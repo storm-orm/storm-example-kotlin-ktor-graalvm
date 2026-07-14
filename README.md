@@ -37,7 +37,7 @@ configuration at all.
 
 Everything Storm-related comes from the framework. The application-level
 metadata in
-[`META-INF/native-image/st.orm.demo/storm-imdb-ktor-graal/`](src/main/resources/META-INF/native-image/st.orm.demo/storm-imdb-ktor-graal/)
+[`META-INF/native-image/st.orm.demo/storm-imdb-ktor-graalvm/`](src/main/resources/META-INF/native-image/st.orm.demo/storm-imdb-ktor-graalvm/)
 covers the rest of the stack:
 
 | Entry | Why |
@@ -84,7 +84,7 @@ GRAALVM_HOME=/path/to/graalvm ./gradlew nativeCompile
 #    migration and streams the IMDB dataset in natively (the ~1.2 GB of
 #    dataset files are downloaded once and cached in ./data); afterwards
 #    the import is skipped.
-./build/native/nativeCompile/storm-imdb-ktor-graal
+./build/native/nativeCompile/storm-imdb-ktor-graalvm
 
 # 4. Open the app
 open http://localhost:8080
@@ -110,7 +110,7 @@ the native binary:
 
 ```bash
 ./gradlew installPlaywrightBrowsers                    # once
-./build/native/nativeCompile/storm-imdb-ktor-graal    # in one terminal
+./build/native/nativeCompile/storm-imdb-ktor-graalvm    # in one terminal
 ./gradlew e2eTest                                      # in another
 ```
 
