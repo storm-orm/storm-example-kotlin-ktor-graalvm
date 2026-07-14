@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- A movie poster card. The gradient placeholder sits underneath the poster
+     image; when the poster fails to load, the image hides itself and the
+     placeholder (with the title in a cinema-style font) remains. -->
+<a th:fragment="movie(id, title, year)" class="movie-card" th:href="@{/movie/{id}(id=${id})}">
+    <div class="poster">
+        <div class="poster-placeholder"><span th:text="${title}">Title</span></div>
+        <img th:src="@{/api/poster/{id}(id=${id})}" alt="" loading="lazy"
+             onerror="this.classList.add('failed')">
+    </div>
+    <div class="movie-card-info">
+        <div class="movie-card-title" th:text="${title}">Title</div>
+        <div class="movie-card-year" th:text="${year}">Year</div>
+    </div>
+</a>
+
+<!-- A movie poster card with a rank badge, for top-10 style rows. -->
+<a th:fragment="rankedMovie(rank, id, title, year)" class="movie-card" th:href="@{/movie/{id}(id=${id})}">
+    <div class="poster">
+        <span class="rank" th:text="${rank}">1</span>
+        <div class="poster-placeholder"><span th:text="${title}">Title</span></div>
+        <img th:src="@{/api/poster/{id}(id=${id})}" alt="" loading="lazy"
+             onerror="this.classList.add('failed')">
+    </div>
+    <div class="movie-card-info">
+        <div class="movie-card-title" th:text="${title}">Title</div>
+        <div class="movie-card-year" th:text="${year}">Year</div>
+    </div>
+</a>
+
+<!-- A small poster used inside list rows. -->
+<div th:fragment="posterThumb(id, title)" class="poster">
+    <div class="poster-placeholder"><span th:text="${title}">Title</span></div>
+    <img th:src="@{/api/poster/{id}(id=${id})}" alt="" loading="lazy"
+         onerror="this.classList.add('failed')">
+</div>
+
+<!-- A person card with an initial avatar. -->
+<a th:fragment="person(id, name)" class="person-card" th:href="@{/person/{id}(id=${id})}">
+    <div class="avatar">
+        <span th:text="${#strings.substring(name, 0, 1)}">A</span>
+        <img th:src="@{/api/photo/{id}(id=${id})}" alt="" loading="lazy"
+             onerror="this.classList.add('failed')">
+    </div>
+    <div class="person-card-name" th:text="${name}">Name</div>
+</a>
+
+</body>
+</html>

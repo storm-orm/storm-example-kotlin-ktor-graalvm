@@ -1,0 +1,19 @@
+
+# Storm MCP (machine-specific)
+.storm/
+.mcp.json
+
+# Storm config (machine-specific)
+.storm.json
+
+# Build
+.gradle/
+build/
+.kotlin/
+
+# IMDB dataset cache
+data/
+
+# IDE
+.idea/
+*.iml

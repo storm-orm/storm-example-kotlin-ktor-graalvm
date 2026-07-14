@@ -1,0 +1,21 @@
+{
+  "resources": {
+    "includes": [
+      {
+        "pattern": "\\Qapplication.conf\\E"
+      },
+      {
+        "pattern": "\\Qlogback.xml\\E"
+      },
+      {
+        "pattern": "templates/.*"
+      },
+      {
+        "pattern": "static/.*"
+      },
+      {
+        "pattern": "db/migration/.*"
+      }
+    ]
+  }
+}

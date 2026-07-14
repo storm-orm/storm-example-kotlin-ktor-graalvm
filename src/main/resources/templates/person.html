@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${person.primaryName})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('')}"></nav>
+
+<header class="page-header">
+    <div class="container person-header">
+        <div class="avatar avatar-large">
+            <span th:text="${#strings.substring(person.primaryName, 0, 1)}">K</span>
+            <img th:src="@{/api/photo/{id}(id=${person.id})}" alt=""
+                 onerror="this.classList.add('failed')">
+        </div>
+        <div>
+            <h1 class="page-title" th:text="${person.primaryName}">Name</h1>
+            <p class="page-subtitle" th:if="${person.birthYear != null}"
+               th:text="${person.deathYear != null} ? |${person.birthYear} – ${person.deathYear}| : |Born ${person.birthYear}|">1964</p>
+            <p class="person-bio" id="person-bio" hidden
+               th:data-summary-endpoint="|/api/summary/person/${person.id}|"></p>
+        </div>
+    </div>
+</header>
+
+<section class="section" id="person-statistics">
+    <div class="container">
+        <div class="stat-chips">
+            <div class="stat-chip">
+                <div class="value" th:text="${statistics.movieCount}">12</div>
+                <div class="label">Rated movies</div>
+            </div>
+            <div class="stat-chip" th:if="${statistics.averageRating != null}">
+                <div class="value" th:text="${#numbers.formatDecimal(statistics.averageRating, 1, 1)}">7.4</div>
+                <div class="label">Average rating</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section" id="photos-section" hidden>
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Photos</h2>
+            <span class="section-note">from Wikimedia Commons</span>
+        </div>
+        <div class="gallery-grid" th:data-gallery-endpoint="|/api/gallery/person/${person.id}|"></div>
+    </div>
+</section>
+
+<section class="section" id="filmography-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Filmography</h2>
+            <span class="section-note">sorted by rating</span>
+        </div>
+        <div class="empty-state" th:if="${filmography.isEmpty()}">No rated movies on record.</div>
+        <div class="credit-list">
+            <a class="ranked-row" th:each="entry : ${filmography}"
+               th:href="@{/movie/{id}(id=${entry.principal.movie.id})}">
+                <div th:replace="~{fragments/cards :: posterThumb(${entry.principal.movie.id}, ${entry.principal.movie.primaryTitle})}"></div>
+                <div>
+                    <div class="ranked-title" th:text="${entry.principal.movie.primaryTitle}">Title</div>
+                    <div class="ranked-sub">
+                        <span th:if="${entry.principal.movie.startYear != null}" th:text="${entry.principal.movie.startYear}">1999</span>
+                        <span th:text="${entry.principal.characters != null} ? | · ${entry.principal.characters}| : | · ${entry.principal.category}|">· Neo</span>
+                    </div>
+                </div>
+                <div class="ranked-end">
+                    <span class="rating-badge">
+                        <span class="star">★</span>
+                        <span th:text="${entry.averageRating}">8.7</span>
+                    </span>
+                </div>
+            </a>
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Home')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('home')}"></nav>
+
+<!-- Featured: the most recently viewed movie. -->
+<section class="hero" th:if="${view.featured != null}" th:with="featured=${view.featured}">
+    <div class="hero-backdrop"
+         th:style="|background-image: url('/api/poster/${featured.movie.id}')|"
+         th:data-backdrop-source="|/api/backdrop/${featured.movie.id}|"></div>
+    <div class="container hero-content">
+        <div class="hero-poster">
+            <div th:replace="~{fragments/cards :: posterThumb(${featured.movie.id}, ${featured.movie.primaryTitle})}"></div>
+        </div>
+        <div>
+            <div class="hero-eyebrow">Featured · Last viewed</div>
+            <h1 class="hero-title" th:text="${featured.movie.primaryTitle}">Title</h1>
+            <div class="hero-meta">
+                <span class="rating-badge" th:if="${featured.rating != null}">
+                    <span class="star">★</span>
+                    <span th:text="${featured.rating.averageRating}">8.7</span>
+                </span>
+                <span class="votes" th:if="${featured.rating != null}"
+                      th:text="|${#numbers.formatInteger(featured.rating.voteCount, 1, 'COMMA')} votes|">votes</span>
+                <span th:if="${featured.movie.startYear != null}" th:text="${featured.movie.startYear}">1999</span>
+                <span th:if="${featured.movie.runtimeMinutes != null}" th:text="|${featured.movie.runtimeMinutes} min|">136 min</span>
+            </div>
+            <div class="movie-genres">
+                <a class="genre-chip" th:each="genre : ${featured.genres}"
+                   th:href="@{/browse/{name}(name=${genre.name})}" th:text="${genre.name}">Genre</a>
+            </div>
+            <p class="hero-extract" hidden
+               th:data-summary-endpoint="|/api/summary/movie/${featured.movie.id}|"></p>
+            <div class="hero-actions">
+                <a class="button button-primary" th:href="@{/movie/{id}(id=${featured.movie.id})}">View details</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Search -->
+<section class="search-hero">
+    <div class="container">
+        <div class="search-box" data-search-box>
+            <input type="search" placeholder="Search movies and people…" autocomplete="off" data-search-input>
+            <div class="search-suggestions" data-search-suggestions hidden></div>
+        </div>
+    </div>
+</section>
+
+<!-- Genre navigation -->
+<section class="section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Browse by Genre</h2>
+        </div>
+        <div class="genre-bar">
+            <a class="genre-chip" th:each="genreCount : ${view.genreCounts}"
+               th:href="@{/browse/{name}(name=${genreCount.genre.name})}">
+                <span th:text="${genreCount.genre.name}">Genre</span>
+                <span class="count" th:text="${#numbers.formatInteger(genreCount.movieCount, 1, 'COMMA')}">123</span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- My watchlist -->
+<section class="section" th:if="${!view.watchlistEntries.isEmpty()}" id="watchlist-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">My Watchlist</h2>
+            <a class="section-link" th:href="@{/watchlist}">View all →</a>
+        </div>
+        <div class="movie-row">
+            <th:block th:each="entry : ${view.watchlistEntries}">
+                <a th:replace="~{fragments/cards :: movie(${entry.movie.id}, ${entry.movie.primaryTitle}, ${entry.movie.startYear})}"></a>
+            </th:block>
+        </div>
+    </div>
+</section>
+
+<!-- Recently viewed -->
+<section class="section" th:if="${!view.recentlyViewed.isEmpty()}" id="recently-viewed-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Recently Viewed</h2>
+        </div>
+        <div class="movie-row">
+            <th:block th:each="movie : ${view.recentlyViewed}">
+                <a th:replace="~{fragments/cards :: movie(${movie.id}, ${movie.primaryTitle}, ${movie.startYear})}"></a>
+            </th:block>
+        </div>
+    </div>
+</section>
+
+<!-- Top 10 -->
+<section class="section" id="top-rated-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Top 10 Movies</h2>
+            <span class="section-note">by rating</span>
+            <a class="section-link" th:href="@{/top}">All top movies →</a>
+        </div>
+        <div class="movie-row">
+            <th:block th:each="entry, iteration : ${view.topRated}">
+                <a th:replace="~{fragments/cards :: rankedMovie(${iteration.count}, ${entry.movie.id}, ${entry.movie.primaryTitle}, ${entry.movie.startYear})}"></a>
+            </th:block>
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

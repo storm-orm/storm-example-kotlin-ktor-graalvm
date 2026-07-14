@@ -1,0 +1,493 @@
+[
+  {
+    "name": "st.orm.demo.imdb.ApplicationKt",
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.BrowseView",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.repository.DecadeMovieCount",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.ExternalSummary",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.FeaturedMovie",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.repository.FilmographyEntry",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.repository.GenreMovieCount",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.repository.GenreRatingStatistics",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.HomeView",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.ImdbImportProperties",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.MovieDetail",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.web.MovieSearchItem",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.PersonDetail",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.web.PersonSearchItem",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.repository.PersonStatistics",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.repository.ProlificActor",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.repository.RelatedMovie",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.SearchResults",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.web.SearchSuggestions",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.web.SearchWindow",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.StatisticsView",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.Suggestions",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.TopMoviesView",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.web.WatchlistState",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "org.thymeleaf.expression.Numbers",
+    "allPublicMethods": true
+  },
+  {
+    "name": "org.thymeleaf.expression.Strings",
+    "allPublicMethods": true
+  },
+  {
+    "name": "org.thymeleaf.expression.Uris",
+    "allPublicMethods": true
+  },
+  {
+    "name": "java.lang.String",
+    "allPublicMethods": true
+  },
+  {
+    "name": "java.lang.Integer",
+    "allPublicMethods": true
+  },
+  {
+    "name": "java.lang.Long",
+    "allPublicMethods": true
+  },
+  {
+    "name": "java.lang.Boolean",
+    "allPublicMethods": true
+  },
+  {
+    "name": "java.lang.Double",
+    "allPublicMethods": true
+  },
+  {
+    "name": "java.math.BigDecimal",
+    "allPublicMethods": true
+  },
+  {
+    "name": "java.time.Instant",
+    "allPublicMethods": true
+  },
+  {
+    "name": "java.util.ArrayList",
+    "allPublicMethods": true
+  },
+  {
+    "name": "java.util.LinkedHashMap",
+    "allPublicMethods": true
+  },
+  {
+    "name": "java.util.Collections$SingletonList",
+    "allPublicMethods": true
+  },
+  {
+    "name": "java.util.Collections$UnmodifiableList",
+    "allPublicMethods": true
+  },
+  {
+    "name": "java.util.Collections$UnmodifiableRandomAccessList",
+    "allPublicMethods": true
+  },
+  {
+    "name": "java.util.ImmutableCollections$List12",
+    "allPublicMethods": true
+  },
+  {
+    "name": "java.util.ImmutableCollections$ListN",
+    "allPublicMethods": true
+  },
+  {
+    "name": "java.util.ImmutableCollections$SubList",
+    "allPublicMethods": true
+  },
+  {
+    "name": "kotlin.collections.EmptyList",
+    "allPublicMethods": true
+  },
+  {
+    "name": "io.ktor.network.selector.SelectableBase",
+    "allDeclaredFields": true
+  },
+  {
+    "name": "io.ktor.network.sockets.NIOSocketImpl",
+    "allDeclaredFields": true
+  },
+  {
+    "name": "io.ktor.network.sockets.ServerSocketImpl",
+    "allDeclaredFields": true
+  },
+  {
+    "name": "io.ktor.network.sockets.SocketImpl",
+    "allDeclaredFields": true
+  },
+  {
+    "name": "io.ktor.network.selector.InterestSuspensionsMap",
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.BrowseView$serializer",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.BrowseView$Companion",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.repository.DecadeMovieCount$serializer",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.repository.DecadeMovieCount$Companion",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.ExternalSummary$serializer",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.ExternalSummary$Companion",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.FeaturedMovie$serializer",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.FeaturedMovie$Companion",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.repository.FilmographyEntry$serializer",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.repository.FilmographyEntry$Companion",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.repository.GenreMovieCount$serializer",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.repository.GenreMovieCount$Companion",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.repository.GenreRatingStatistics$serializer",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.repository.GenreRatingStatistics$Companion",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.HomeView$serializer",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.HomeView$Companion",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.ImdbImportProperties$serializer",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.ImdbImportProperties$Companion",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.MovieDetail$serializer",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.MovieDetail$Companion",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.web.MovieSearchItem$serializer",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.web.MovieSearchItem$Companion",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.PersonDetail$serializer",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.PersonDetail$Companion",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.web.PersonSearchItem$serializer",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.web.PersonSearchItem$Companion",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.repository.PersonStatistics$serializer",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.repository.PersonStatistics$Companion",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.repository.ProlificActor$serializer",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.repository.ProlificActor$Companion",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.repository.RelatedMovie$serializer",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.repository.RelatedMovie$Companion",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.SearchResults$serializer",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.SearchResults$Companion",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.web.SearchSuggestions$serializer",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.web.SearchSuggestions$Companion",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.web.SearchWindow$serializer",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.web.SearchWindow$Companion",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.StatisticsView$serializer",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.StatisticsView$Companion",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.Suggestions$serializer",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.Suggestions$Companion",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.TopMoviesView$serializer",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.TopMoviesView$Companion",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.web.WatchlistState$serializer",
+    "allDeclaredFields": true,
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.web.WatchlistState$Companion",
+    "allDeclaredFields": true,
+    "allPublicMethods": true
+  }
+]

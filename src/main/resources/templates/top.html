@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Top Movies')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('top')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <h1 class="page-title">Top Movies</h1>
+        <p class="page-subtitle">The best rated movies with at least 25,000 votes.</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container">
+        <div class="filter-bar">
+            <span class="filter-label">Genre</span>
+            <a class="genre-chip" th:classappend="${selectedGenre == null} ? 'active'"
+               th:href="@{/top(sort=${sort})}">All</a>
+            <a class="genre-chip" th:each="genre : ${genres}"
+               th:classappend="${selectedGenre != null && selectedGenre.id == genre.id} ? 'active'"
+               th:href="@{/top(genre=${genre.name}, sort=${sort})}"
+               th:text="${genre.name}">Genre</a>
+        </div>
+        <div class="filter-bar">
+            <span class="filter-label">Sort by</span>
+            <a class="genre-chip" th:classappend="${sort == 'rating'} ? 'active'"
+               th:href="@{/top(genre=${selectedGenre != null ? selectedGenre.name : null}, sort='rating')}">Rating</a>
+            <a class="genre-chip" th:classappend="${sort == 'year'} ? 'active'"
+               th:href="@{/top(genre=${selectedGenre != null ? selectedGenre.name : null}, sort='year')}">Year</a>
+        </div>
+
+        <div class="empty-state" th:if="${entries.isEmpty()}">No movies match this filter.</div>
+        <div class="credit-list" id="top-movies-list">
+            <a class="ranked-row" th:each="entry, iteration : ${entries}"
+               th:href="@{/movie/{id}(id=${entry.movie.id})}">
+                <div class="rank-number" th:text="${iteration.count}">1</div>
+                <div th:replace="~{fragments/cards :: posterThumb(${entry.movie.id}, ${entry.movie.primaryTitle})}"></div>
+                <div>
+                    <div class="ranked-title" th:text="${entry.movie.primaryTitle}">Title</div>
+                    <div class="ranked-sub">
+                        <span th:if="${entry.movie.startYear != null}" th:text="${entry.movie.startYear}">1999</span>
+                        <span th:if="${entry.movie.runtimeMinutes != null}" th:text="| · ${entry.movie.runtimeMinutes} min|"> · 136 min</span>
+                    </div>
+                </div>
+                <div class="ranked-end">
+                    <span class="votes" th:text="|${#numbers.formatInteger(entry.voteCount, 1, 'COMMA')} votes|">votes</span>
+                    <span class="rating-badge">
+                        <span class="star">★</span>
+                        <span th:text="${entry.averageRating}">9.3</span>
+                    </span>
+                </div>
+            </a>
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

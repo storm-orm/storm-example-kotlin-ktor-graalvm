@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Watchlist')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('watchlist')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <h1 class="page-title">My Watchlist</h1>
+        <p class="page-subtitle"
+           th:text="|${#numbers.formatInteger(watchlistPage.totalCount(), 1, 'COMMA')} saved movies|">3 saved movies</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container">
+        <div class="empty-state" th:if="${watchlistPage.content().isEmpty()}">
+            Your watchlist is empty. Open a movie and press “Add to watchlist”.
+        </div>
+        <div class="movie-grid" id="watchlist-results">
+            <th:block th:each="entry : ${watchlistPage.content()}">
+                <a th:replace="~{fragments/cards :: movie(${entry.movie.id}, ${entry.movie.primaryTitle}, ${entry.movie.startYear})}"></a>
+            </th:block>
+        </div>
+
+        <div class="pagination" th:if="${watchlistPage.totalPages() > 1}">
+            <a class="button" th:classappend="${!watchlistPage.hasPrevious()} ? 'disabled'"
+               th:href="@{/watchlist(page=${currentPage - 1})}">← Previous</a>
+            <span class="page-info"
+                  th:text="|Page ${currentPage} of ${watchlistPage.totalPages()}|">Page 1 of 2</span>
+            <a class="button" th:classappend="${!watchlistPage.hasNext()} ? 'disabled'"
+               th:href="@{/watchlist(page=${currentPage + 1})}">Next →</a>
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${genre.name})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('browse')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <h1 class="page-title" th:text="${genre.name}">Genre</h1>
+        <p class="page-subtitle"
+           th:text="|${#numbers.formatInteger(movieCount, 1, 'COMMA')} movies|">1,234 movies</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container">
+        <div class="empty-state" th:if="${movieWindow.content().isEmpty()}">No movies in this genre.</div>
+        <div class="movie-grid" id="browse-results">
+            <th:block th:each="movie : ${movieWindow.content()}">
+                <a th:replace="~{fragments/cards :: movie(${movie.id}, ${movie.primaryTitle}, ${movie.startYear})}"></a>
+            </th:block>
+        </div>
+        <div class="scroll-sentinel" th:if="${movieWindow.nextCursor() != null}"
+             data-infinite-scroll
+             data-kind="movie"
+             data-target="browse-results"
+             th:data-endpoint="|/api/browse/${#uris.escapePathSegment(genre.name)}|"
+             th:data-cursor="${movieWindow.nextCursor()}">
+            <div class="spinner" hidden></div>
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${detail.movie.primaryTitle})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('')}"></nav>
+
+<!-- The poster sets the tone: an ambient, blurred backdrop behind the hero. -->
+<section class="movie-hero">
+    <div class="movie-backdrop" id="movie-backdrop"
+         th:style="|background-image: url('/api/poster/${detail.movie.id}')|"
+         th:data-backdrop-source="|/api/backdrop/${detail.movie.id}|"></div>
+    <div class="container movie-hero-content">
+        <div class="movie-hero-poster" id="movie-poster">
+            <div th:replace="~{fragments/cards :: posterThumb(${detail.movie.id}, ${detail.movie.primaryTitle})}"></div>
+        </div>
+        <div>
+            <h1 class="movie-title" th:text="${detail.movie.primaryTitle}">Title</h1>
+            <div class="movie-meta">
+                <span class="rating-badge" th:if="${detail.rating != null}">
+                    <span class="star">★</span>
+                    <span th:text="${detail.rating.averageRating}">8.7</span>
+                </span>
+                <span class="votes" th:if="${detail.rating != null}"
+                      th:text="|${#numbers.formatInteger(detail.rating.voteCount, 1, 'COMMA')} votes|">votes</span>
+                <span th:if="${detail.movie.startYear != null}" th:text="${detail.movie.startYear}">1999</span>
+                <span th:if="${detail.movie.runtimeMinutes != null}" th:text="|${detail.movie.runtimeMinutes} min|">136 min</span>
+                <span th:if="${detail.movie.originalTitle != detail.movie.primaryTitle}"
+                      th:text="|Original title: ${detail.movie.originalTitle}|">Original title</span>
+            </div>
+            <div class="movie-genres">
+                <a class="genre-chip" th:each="genre : ${detail.genres}"
+                   th:href="@{/browse/{name}(name=${genre.name})}" th:text="${genre.name}">Genre</a>
+            </div>
+            <p class="movie-extract" id="movie-description" hidden
+               th:data-summary-endpoint="|/api/summary/movie/${detail.movie.id}|"></p>
+            <button class="button watchlist-button" data-watchlist-toggle
+                    th:data-movie-id="${detail.movie.id}"
+                    th:classappend="${detail.onWatchlist} ? 'active'">
+                <span data-watchlist-label
+                      th:text="${detail.onWatchlist} ? 'On watchlist' : 'Add to watchlist'">Add to watchlist</span>
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- Cast and crew -->
+<section class="section" id="cast-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Cast &amp; Crew</h2>
+        </div>
+        <div class="empty-state" th:if="${detail.cast.isEmpty()}">No credits available.</div>
+        <div class="credit-grid">
+            <a class="credit-card" th:each="credit : ${detail.cast}"
+               th:href="@{/person/{id}(id=${credit.person.id})}">
+                <div class="credit-photo">
+                    <span th:text="${#strings.substring(credit.person.primaryName, 0, 1)}">A</span>
+                    <img th:src="@{/api/photo/{id}(id=${credit.person.id})}" alt="" loading="lazy"
+                         onerror="this.classList.add('failed')">
+                </div>
+                <div class="person-card-name" th:text="${credit.person.primaryName}">Name</div>
+                <div class="credit-role"
+                     th:text="${credit.characters != null} ? ${credit.characters} : ${credit.category}">Role</div>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Movies sharing the most cast members -->
+<section class="section" th:if="${!detail.relatedMovies.isEmpty()}" id="related-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Related Movies</h2>
+            <span class="section-note">shared cast members</span>
+        </div>
+        <div class="movie-row">
+            <th:block th:each="related : ${detail.relatedMovies}">
+                <a th:replace="~{fragments/cards :: movie(${related.movie.id}, ${related.movie.primaryTitle}, ${related.movie.startYear})}"></a>
+            </th:block>
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

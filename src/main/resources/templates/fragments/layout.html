@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="|${title} · Storm Movies|">Storm Movies</title>
+    <link rel="icon" type="image/png" th:href="@{/img/favicon.png}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+
+<nav class="navbar" th:fragment="navbar(active)">
+    <div class="container navbar-inner">
+        <a class="brand" th:href="@{/}">
+            <img class="brand-logo" th:src="@{/img/storm-logo.png}" alt="Storm">
+            <span>Storm Movies</span>
+        </a>
+        <div class="nav-links">
+            <a th:href="@{/}" th:classappend="${active == 'home'} ? 'active'">Home</a>
+            <a th:href="@{/top}" th:classappend="${active == 'top'} ? 'active'">Top Movies</a>
+            <a th:href="@{/watchlist}" th:classappend="${active == 'watchlist'} ? 'active'">Watchlist</a>
+            <a th:href="@{/statistics}" th:classappend="${active == 'statistics'} ? 'active'">Statistics</a>
+        </div>
+        <div class="search-box" data-search-box>
+            <input type="search" placeholder="Search movies and people…" autocomplete="off" data-search-input>
+            <div class="search-suggestions" data-search-suggestions hidden></div>
+        </div>
+    </div>
+</nav>
+
+<footer class="footer" th:fragment="footer">
+    <div class="container">
+        <div>
+            Built with <a href="https://orm.st" target="_blank" rel="noopener">Storm ORM</a> on Ktor ·
+            Data from the public <a href="https://datasets.imdbws.com/" target="_blank" rel="noopener">IMDB dataset</a>
+        </div>
+    </div>
+</footer>
+
+</body>
+</html>

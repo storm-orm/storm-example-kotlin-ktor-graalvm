@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Search')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('search')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <h1 class="page-title" th:text="${query.isEmpty()} ? 'Search' : |Results for “${query}”|">Search</h1>
+        <p class="page-subtitle" th:if="${query.isEmpty()}">Use the search bar above to find movies and people.</p>
+    </div>
+</header>
+
+<th:block th:if="${!query.isEmpty()}">
+
+    <!-- Movie results with infinite scroll -->
+    <section class="section" id="movie-results-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Movies</h2>
+            </div>
+            <div class="empty-state" th:if="${movieWindow.content().isEmpty()}">No movies found.</div>
+            <div class="movie-grid" id="movie-results">
+                <th:block th:each="movie : ${movieWindow.content()}">
+                    <a th:replace="~{fragments/cards :: movie(${movie.id}, ${movie.primaryTitle}, ${movie.startYear})}"></a>
+                </th:block>
+            </div>
+            <div class="scroll-sentinel" th:if="${movieWindow.nextCursor() != null}"
+                 data-infinite-scroll
+                 data-kind="movie"
+                 data-target="movie-results"
+                 th:data-endpoint="|/api/search/movies?query=${#uris.escapeQueryParam(query)}|"
+                 th:data-cursor="${movieWindow.nextCursor()}">
+                <div class="spinner" hidden></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Person results with infinite scroll -->
+    <section class="section" id="person-results-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">People</h2>
+            </div>
+            <div class="empty-state" th:if="${personWindow.content().isEmpty()}">No people found.</div>
+            <div class="person-grid" id="person-results">
+                <th:block th:each="person : ${personWindow.content()}">
+                    <a th:replace="~{fragments/cards :: person(${person.id}, ${person.primaryName})}"></a>
+                </th:block>
+            </div>
+            <div class="scroll-sentinel" th:if="${personWindow.nextCursor() != null}"
+                 data-infinite-scroll
+                 data-kind="person"
+                 data-target="person-results"
+                 th:data-endpoint="|/api/search/persons?query=${#uris.escapeQueryParam(query)}|"
+                 th:data-cursor="${personWindow.nextCursor()}">
+                <div class="spinner" hidden></div>
+            </div>
+        </div>
+    </section>
+
+</th:block>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

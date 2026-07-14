@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Statistics')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('statistics')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <h1 class="page-title">Statistics</h1>
+        <p class="page-subtitle">Aggregate views over the imported dataset.</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container stats-grid">
+
+        <div class="stat-card" id="decades-card">
+            <h2>Movies per Decade</h2>
+            <div class="stat-sub">GROUP BY on a computed decade bucket</div>
+            <div class="bar-row" th:each="decadeCount : ${decades}">
+                <span th:text="|${decadeCount.decade}s|">1990s</span>
+                <div class="bar-track">
+                    <div class="bar-fill"
+                         th:style="|width: ${decadeCount.movieCount * 100.0 / maxDecadeCount}%|"></div>
+                </div>
+                <span class="bar-value" th:text="${#numbers.formatInteger(decadeCount.movieCount, 1, 'COMMA')}">1,234</span>
+            </div>
+        </div>
+
+        <div class="stat-card" id="genres-card">
+            <h2>Top Genres by Rating</h2>
+            <div class="stat-sub">GROUP BY + HAVING: genres with at least 50 rated movies</div>
+            <div class="stat-row" th:each="genreStat : ${genreStatistics}">
+                <a class="genre-chip" th:href="@{/browse/{name}(name=${genreStat.genre.name})}"
+                   th:text="${genreStat.genre.name}">Genre</a>
+                <div class="stat-end">
+                    <span class="stat-count"
+                          th:text="|${#numbers.formatInteger(genreStat.movieCount, 1, 'COMMA')} movies|">movies</span>
+                    <span class="rating-badge">
+                        <span class="star">★</span>
+                        <span th:text="${#numbers.formatDecimal(genreStat.averageRating, 1, 1)}">7.2</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="stat-card" id="actors-card">
+            <h2>Most Prolific Actors</h2>
+            <div class="stat-sub">COUNT of credits, ordered descending</div>
+            <a class="stat-row" th:each="actor, iteration : ${prolificActors}"
+               th:href="@{/person/{id}(id=${actor.person.id})}">
+                <span class="rank-number" th:text="${iteration.count}">1</span>
+                <div class="avatar">
+                    <span th:text="${#strings.substring(actor.person.primaryName, 0, 1)}">A</span>
+                    <img th:src="@{/api/photo/{id}(id=${actor.person.id})}" alt="" loading="lazy"
+                         onerror="this.classList.add('failed')">
+                </div>
+                <span th:text="${actor.person.primaryName}">Name</span>
+                <div class="stat-end">
+                    <span class="stat-count" th:text="|${actor.movieCount} movies|">42 movies</span>
+                </div>
+            </a>
+        </div>
+
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

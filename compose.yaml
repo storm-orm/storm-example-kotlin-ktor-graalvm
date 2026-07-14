@@ -1,0 +1,24 @@
+# Pin the Compose project name so volumes and networks are independent of
+# the checkout directory name.
+name: storm-imdb-demo
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: storm-imdb-postgres
+    environment:
+      POSTGRES_DB: imdb
+      POSTGRES_USER: storm
+      POSTGRES_PASSWORD: storm
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U storm -d imdb"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
+volumes:
+  postgres-data:
