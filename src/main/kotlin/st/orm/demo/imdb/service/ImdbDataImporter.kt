@@ -1,7 +1,6 @@
 package st.orm.demo.imdb.service
 
 import kotlinx.coroutines.flow.asFlow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.runBlocking
@@ -42,7 +41,9 @@ import java.util.zip.GZIPInputStream
  * The write path is Flow-based: TSV rows are parsed into entities and handed
  * to Storm's suspending batch insert, which writes fixed-size JDBC batches
  * while the file is still streaming — one pass per file, no materialized
- * entity lists. Dataset files are downloaded once and cached locally; the
+ * entity lists. The genre step is the exception: its data is in memory after
+ * the movie pass, so the genres and their junction rows are written as a
+ * single write set. Dataset files are downloaded once and cached locally; the
  * import is skipped entirely when movie data is already present.
  */
 class ImdbDataImporter(
@@ -147,24 +148,22 @@ class ImdbDataImporter(
             moviesById to genreNamesByMovieId
         }
 
-    /** Inserts the distinct genres and the movie-genre junction rows. */
-    private suspend fun importGenres(moviesById: Map<String, Movie>, genreNamesByMovieId: Map<String, List<String>>) {
-        val genreNames = genreNamesByMovieId.values.flatten().toSortedSet()
-        val genresByName = genreRepository
-            .insertAndFetch(genreNames.map { Genre(name = it) })
-            .associateBy { it.name }
-        var linkCount = 0
-        val movieGenres = flow {
-            genreNamesByMovieId.forEach { (movieId, names) ->
-                val movie = moviesById.getValue(movieId)
-                names.forEach { name ->
-                    emit(MovieGenre(movie, genresByName.getValue(name)))
-                    linkCount++
-                }
-            }
+    /**
+     * Inserts the genres and the movie-genre junction rows with a single
+     * write set: the unsaved genres are discovered through the junction
+     * rows, inserted first, and their generated keys are propagated into
+     * the composite junction keys. The already-inserted movies only
+     * contribute their key values.
+     */
+    private fun importGenres(moviesById: Map<String, Movie>, genreNamesByMovieId: Map<String, List<String>>) {
+        // One shared instance per name: key propagation correlates by instance identity.
+        val genresByName = genreNamesByMovieId.values.flatten().toSortedSet().associateWith { Genre(name = it) }
+        val movieGenres = genreNamesByMovieId.flatMap { (movieId, names) ->
+            val movie = moviesById.getValue(movieId)
+            names.map { name -> MovieGenre(movie, genresByName.getValue(name)) }
         }
-        movieGenreRepository.insert(movieGenres, INSERT_BATCH_SIZE)
-        logger.info("Imported {} genres and {} movie-genre links.", genresByName.size, linkCount)
+        movieGenreRepository.writeSet().insert(movieGenres)
+        logger.info("Imported {} genres and {} movie-genre links.", genresByName.size, movieGenres.size)
     }
 
     /**
@@ -172,7 +171,7 @@ class ImdbDataImporter(
      * the actually imported movie ids (not the full qualifying set) keeps
      * credits of non-movie titles out, which would violate FK constraints.
      * The rows are needed twice (person filtering, then the actual insert),
-     * so this is the one place the import materializes a list.
+     * so they are collected into a list.
      */
     private fun readPrincipalRows(importedMovieIds: Set<String>): List<PrincipalRow> =
         streamDataset("title.principals.tsv.gz") { lines ->
