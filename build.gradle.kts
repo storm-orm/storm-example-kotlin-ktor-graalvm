@@ -1,7 +1,7 @@
 plugins {
-    kotlin("jvm") version "2.2.21"
-    kotlin("plugin.serialization") version "2.2.21"
-    id("com.google.devtools.ksp") version "2.2.21-2.0.5"
+    kotlin("jvm") version "2.3.10"
+    kotlin("plugin.serialization") version "2.3.10"
+    id("com.google.devtools.ksp") version "2.3.10"
     // The Storm plugin imports the BOM, adds storm-kotlin and storm-core, wires the
     // metamodel processor to KSP, and selects the compiler-plugin variant matching Kotlin.
     id("st.orm") version "1.13.0"
@@ -25,10 +25,10 @@ repositories {
     mavenCentral()
 }
 
-val ktorVersion = "3.2.3"
+val ktorVersion = "3.4.3"
 
 dependencies {
-    // Ktor server (storm-ktor is built against Ktor 3.2.3).
+    // Ktor server (storm-ktor is built against Ktor 3.4.3).
     implementation("io.ktor:ktor-server-core:$ktorVersion")
     // CIO instead of Netty: Ktor's recommended engine for GraalVM native images.
     implementation("io.ktor:ktor-server-cio:$ktorVersion")

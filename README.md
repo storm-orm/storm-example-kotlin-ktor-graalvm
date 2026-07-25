@@ -59,7 +59,7 @@ Two code-level accommodations, both working identically on the JVM:
 
 ## Stack
 
-- Kotlin 2.2 / Java 21, Ktor 3.2 (CIO, Thymeleaf, ContentNegotiation, ktor-server-di)
+- Kotlin 2.3 / Java 21, Ktor 3.4 (CIO, Thymeleaf, ContentNegotiation, ktor-server-di)
 - Storm ORM (`storm-ktor`) with the KSP metamodel generator and the Storm
   compiler plugin
 - **Oracle GraalVM for JDK 23+** (tested with GraalVM for JDK 25)
