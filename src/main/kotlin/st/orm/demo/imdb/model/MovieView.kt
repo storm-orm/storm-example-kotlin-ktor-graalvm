@@ -12,9 +12,9 @@ import java.time.Instant
 
 /**
  * Tracks each visit to a movie detail page, backing the recently-viewed
- * section on the home page. This high-volume, append-only table is the one
- * place the model uses Ref: recording a view needs only the movie's id,
- * so there is no reason to join the full movie graph on every insert.
+ * section on the home page. The movie is a Ref: recording a view needs only
+ * the movie's id, so a high-volume append-only insert never joins the full
+ * movie graph.
  *
  * Serializable to demonstrate Ref serialization: the Ref field is marked
  * Contextual so StormSerializers handles it — an unloaded ref serializes

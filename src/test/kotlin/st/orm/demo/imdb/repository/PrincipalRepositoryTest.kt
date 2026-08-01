@@ -28,7 +28,7 @@ class PrincipalRepositoryTest {
         assertEquals(1, capture.count(Operation.SELECT))
         assertEquals(listOf("Keanu Reeves", "Laurence Fishburne"), cast.map { it.person.primaryName })
         assertEquals(listOf("Neo", "Morpheus"), cast.map { it.characters })
-        assertEquals("The Matrix", cast.first().movie.primaryTitle)
+        assertEquals("tt0133093", cast.first().movie.id())
     }
 
     @Test
@@ -44,7 +44,7 @@ class PrincipalRepositoryTest {
         assertEquals(1, capture.count(Operation.SELECT))
         assertEquals(
             listOf("The Matrix" to BigDecimal("8.7"), "The Matrix Reloaded" to BigDecimal("7.2")),
-            filmography.map { it.principal.movie.primaryTitle to it.averageRating }
+            filmography.map { it.movie.primaryTitle to it.averageRating }
         )
     }
 

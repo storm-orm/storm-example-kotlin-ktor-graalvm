@@ -6,6 +6,7 @@ import st.orm.FK
 import st.orm.GenerationStrategy.NONE
 import st.orm.Json
 import st.orm.PK
+import st.orm.Ref
 import java.time.Instant
 
 /** A single photo in a person's gallery. */
@@ -21,9 +22,13 @@ data class Photo(
  * the primary key is the foreign key to the person. The photos live in a
  * single JSON column — a gallery is opaque, always read whole and never
  * filtered by element, so a separate photo table would buy nothing.
+ *
+ * The key is a Ref: whoever asks for a gallery already holds the person, and
+ * nothing reads the person back off it, so reading a gallery touches the
+ * gallery table alone. Queries can still reach the person through the key.
  */
 data class PersonGallery(
-    @PK(generation = NONE) @FK val person: Person,
+    @PK(generation = NONE) @FK val person: Ref<Person>,
     @Json val photos: List<Photo>,
     val fetchedAt: Instant
-) : Entity<Person>
+) : Entity<Ref<Person>>

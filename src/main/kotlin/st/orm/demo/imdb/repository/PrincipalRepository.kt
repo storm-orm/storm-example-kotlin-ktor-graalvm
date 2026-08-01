@@ -25,6 +25,7 @@ import java.math.BigDecimal
  */
 data class FilmographyEntry(
     val principal: Principal,
+    val movie: Movie,
     val averageRating: BigDecimal
 )
 
@@ -70,12 +71,12 @@ interface PrincipalRepository : EntityRepository<Principal, PrincipalPk> {
             .resultList
 
     /**
-     * A person's filmography sorted by rating, best first. Each entry
-     * carries the full credit (movie included) plus the rating value from
-     * an explicit join to the rating table.
+     * A person's filmography sorted by rating, best first. The credit holds
+     * the movie as a Ref, so the movie is selected alongside it: the join it
+     * needs is the one the rating join already asks for.
      */
     fun findFilmography(person: Person) =
-        select<FilmographyEntry, _, _> { "${Principal::class}, ${Rating_.averageRating}" }
+        select<FilmographyEntry, _, _> { "${Principal::class}, ${Movie::class}, ${Rating_.averageRating}" }
             .innerJoin<Rating>().on<Movie>()
             .where(Principal_.person eq person)
             .orderByDescendingAny(Rating_.averageRating)

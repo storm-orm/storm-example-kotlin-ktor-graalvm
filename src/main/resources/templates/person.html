@@ -55,12 +55,12 @@
         <div class="empty-state" th:if="${filmography.isEmpty()}">No rated movies on record.</div>
         <div class="credit-list">
             <a class="ranked-row" th:each="entry : ${filmography}"
-               th:href="@{/movie/{id}(id=${entry.principal.movie.id})}">
-                <div th:replace="~{fragments/cards :: posterThumb(${entry.principal.movie.id}, ${entry.principal.movie.primaryTitle})}"></div>
+               th:href="@{/movie/{id}(id=${entry.movie.id})}">
+                <div th:replace="~{fragments/cards :: posterThumb(${entry.movie.id}, ${entry.movie.primaryTitle})}"></div>
                 <div>
-                    <div class="ranked-title" th:text="${entry.principal.movie.primaryTitle}">Title</div>
+                    <div class="ranked-title" th:text="${entry.movie.primaryTitle}">Title</div>
                     <div class="ranked-sub">
-                        <span th:if="${entry.principal.movie.startYear != null}" th:text="${entry.principal.movie.startYear}">1999</span>
+                        <span th:if="${entry.movie.startYear != null}" th:text="${entry.movie.startYear}">1999</span>
                         <span th:text="${entry.principal.characters != null} ? | · ${entry.principal.characters}| : | · ${entry.principal.category}|">· Neo</span>
                     </div>
                 </div>

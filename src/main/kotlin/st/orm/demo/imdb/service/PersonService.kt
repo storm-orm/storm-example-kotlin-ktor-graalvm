@@ -24,7 +24,7 @@ class PersonService(
         val person = personRepository.findById(personId) ?: return@transaction null
         // A person can hold multiple credits in one movie; show each movie once.
         val filmography = principalRepository.findFilmography(person)
-            .distinctBy { it.principal.movie.id }
+            .distinctBy { it.movie.id }
         PersonDetail(
             person = person,
             filmography = filmography,

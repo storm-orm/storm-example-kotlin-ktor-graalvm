@@ -9,6 +9,7 @@ import st.orm.demo.imdb.model.PersonGallery
 import st.orm.demo.imdb.model.Photo
 import st.orm.demo.imdb.repository.PersonGalleryRepository
 import st.orm.demo.imdb.repository.PersonRepository
+import st.orm.template.ref
 import st.orm.template.transaction
 import tools.jackson.databind.JsonNode
 import tools.jackson.databind.ObjectMapper
@@ -53,13 +54,13 @@ class PersonGalleryService(
      */
     suspend fun findGallery(personId: String): List<Photo>? {
         val (person, stored) = transaction(readOnly = true) {
-            personRepository.findById(personId)?.let { it to personGalleryRepository.findById(it) }
+            personRepository.findById(personId)?.let { it to personGalleryRepository.findById(it.ref()) }
         } ?: return null
         stored?.let { return it.photos }
         // Fetch outside the transaction: no connection is held during HTTP I/O.
         val photos = fetchPhotos(person) ?: return emptyList()
         transaction {
-            personGalleryRepository.upsert(PersonGallery(person, photos, Instant.now()))
+            personGalleryRepository.upsert(PersonGallery(person.ref(), photos, Instant.now()))
         }
         return photos
     }
