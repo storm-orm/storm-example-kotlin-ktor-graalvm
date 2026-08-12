@@ -34,8 +34,7 @@ interface MovieGenreRepository : EntityRepository<MovieGenre, MovieGenrePk> {
     fun findGenres(movie: Movie) =
         select(Genre::class)
             .where(MovieGenre_.movie eq movie)
-            .widen()
-            .orderBy(Genre_.name)
+            .orderBy(MovieGenre_.genre.name)
             .resultList
 
     /**
