@@ -34,7 +34,8 @@ interface MovieGenreRepository : EntityRepository<MovieGenre, MovieGenrePk> {
     fun findGenres(movie: Movie) =
         select(Genre::class)
             .where(MovieGenre_.movie eq movie)
-            .orderByAny(Genre_.name)
+            .widen()
+            .orderBy(Genre_.name)
             .resultList
 
     /**
@@ -45,7 +46,7 @@ interface MovieGenreRepository : EntityRepository<MovieGenre, MovieGenrePk> {
     fun findGenreRatingStatistics(minimumMovieCount: Int, limit: Int) =
         select<GenreRatingStatistics, _, _> { "${Genre::class}, AVG(${Rating_.averageRating}), COUNT(*)" }
             .innerJoin<Rating>().on<Movie>()
-            .groupByAny(Genre_.id, Genre_.name)
+            .groupBy(Genre_.id, Genre_.name)
             .having { "COUNT(*) >= $minimumMovieCount" }
             .orderByDescending { "AVG(${Rating_.averageRating})" }
             .limit(limit)

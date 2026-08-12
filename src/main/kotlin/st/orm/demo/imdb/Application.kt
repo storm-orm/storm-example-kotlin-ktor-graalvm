@@ -50,11 +50,12 @@ fun Application.module() {
 
 
 /**
- * Storm reports every query as a Micrometer Observation (storm.query) once an
- * ObservationRegistry is available in the dependency container; the registry
- * is wired in configureDependencies(). The Prometheus registry backing it is
- * exposed for scraping at /metrics: look for storm_query_seconds, tagged with
- * the operation, execution kind, and entity type.
+ * Storm reports every query (storm.query) and every transaction (storm.transaction)
+ * as a Micrometer Observation once an ObservationRegistry is available in the
+ * dependency container; the registry is wired in configureDependencies(). The
+ * Prometheus registry backing it is exposed for scraping at /metrics: look for
+ * storm_query_seconds, tagged with the operation, execution kind, entity type and
+ * statement shape, and storm_transaction_seconds.
  */
 private fun Application.configureObservability() {
     val prometheusRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)

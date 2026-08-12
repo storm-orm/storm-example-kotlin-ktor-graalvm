@@ -33,9 +33,9 @@ import tools.jackson.module.kotlin.jacksonObjectMapper
 fun Application.configureDependencies() {
     val importProperties = environment.config.imdbImportProperties()
     dependencies {
-        // With an ObservationRegistry in the container, the Storm plugin
-        // observes every query (storm.query); the meter handler turns the
-        // observations into timers in the Prometheus registry.
+        // With an ObservationRegistry in the container, the Storm plugin observes
+        // every query (storm.query) and every transaction (storm.transaction); the
+        // meter handler turns the observations into timers in the Prometheus registry.
         provide<ObservationRegistry> {
             ObservationRegistry.create().apply {
                 observationConfig().observationHandler(

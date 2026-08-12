@@ -12,6 +12,7 @@ import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.model.Rating_
 import st.orm.repository.EntityRepository
 import st.orm.repository.select
+import st.orm.template.and
 import st.orm.template.eq
 import st.orm.template.inList
 import st.orm.template.neq
@@ -79,7 +80,7 @@ interface PrincipalRepository : EntityRepository<Principal, PrincipalPk> {
         select<FilmographyEntry, _, _> { "${Principal::class}, ${Movie::class}, ${Rating_.averageRating}" }
             .innerJoin<Rating>().on<Movie>()
             .where(Principal_.person eq person)
-            .orderByDescendingAny(Rating_.averageRating)
+            .orderByDescending(Rating_.averageRating)
             .resultList
 
     /** Movie count and average rating across a person's filmography. */
@@ -101,7 +102,8 @@ interface PrincipalRepository : EntityRepository<Principal, PrincipalPk> {
     ) =
         select<RelatedMovie, _, _> { "${Movie::class}, COUNT(*)" }
             .where((Principal_.person inList castMembers) and (Principal_.movie neq excludedMovie))
-            .groupByAny(Movie_.id, Movie_.primaryTitle, Movie_.originalTitle, Movie_.startYear, Movie_.runtimeMinutes)
+            .widen()
+            .groupBy(Movie_.id, Movie_.primaryTitle, Movie_.originalTitle, Movie_.startYear, Movie_.runtimeMinutes)
             .orderByDescending { "COUNT(*)" }
             .limit(limit)
             .resultList
@@ -110,7 +112,8 @@ interface PrincipalRepository : EntityRepository<Principal, PrincipalPk> {
     fun findMostProlificActors(limit: Int) =
         select<ProlificActor, _, _> { "${Person::class}, COUNT(*)" }
             .where(Principal_.category inList listOf("actor", "actress"))
-            .groupByAny(Person_.id, Person_.primaryName, Person_.birthYear, Person_.deathYear)
+            .widen()
+            .groupBy(Person_.id, Person_.primaryName, Person_.birthYear, Person_.deathYear)
             .orderByDescending { "COUNT(*)" }
             .limit(limit)
             .resultList

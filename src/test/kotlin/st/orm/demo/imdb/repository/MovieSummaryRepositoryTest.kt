@@ -64,7 +64,7 @@ class MovieSummaryRepositoryTest {
         // a ready-to-use typed Scrollable. The cursor is merely its
         // serialized form for crossing the client-server boundary.
         val secondWindow = capture.execute {
-            movieSummaryRepository.searchByTitle("matrix", firstWindow.next())
+            movieSummaryRepository.searchByTitle("matrix", firstWindow.next()!!)
         }
         capture.printStatements("searchByTitle-next")
         assertEquals(1, secondWindow.content().size)
