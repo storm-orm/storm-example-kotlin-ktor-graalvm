@@ -2,9 +2,7 @@ package st.orm.demo.imdb.repository
 
 import kotlinx.serialization.Serializable
 import st.orm.demo.imdb.model.Movie
-import st.orm.demo.imdb.model.Movie_
 import st.orm.demo.imdb.model.Person
-import st.orm.demo.imdb.model.Person_
 import st.orm.demo.imdb.model.Principal
 import st.orm.demo.imdb.model.PrincipalPk
 import st.orm.demo.imdb.model.Principal_
@@ -102,8 +100,7 @@ interface PrincipalRepository : EntityRepository<Principal, PrincipalPk> {
     ) =
         select<RelatedMovie, _, _> { "${Movie::class}, COUNT(*)" }
             .where((Principal_.person inList castMembers) and (Principal_.movie neq excludedMovie))
-            .widen()
-            .groupBy(Movie_.id, Movie_.primaryTitle, Movie_.originalTitle, Movie_.startYear, Movie_.runtimeMinutes)
+            .groupBy(Principal_.movie)
             .orderByDescending { "COUNT(*)" }
             .limit(limit)
             .resultList
@@ -112,8 +109,7 @@ interface PrincipalRepository : EntityRepository<Principal, PrincipalPk> {
     fun findMostProlificActors(limit: Int) =
         select<ProlificActor, _, _> { "${Person::class}, COUNT(*)" }
             .where(Principal_.category inList listOf("actor", "actress"))
-            .widen()
-            .groupBy(Person_.id, Person_.primaryName, Person_.birthYear, Person_.deathYear)
+            .groupBy(Principal_.person)
             .orderByDescending { "COUNT(*)" }
             .limit(limit)
             .resultList
