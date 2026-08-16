@@ -102,8 +102,12 @@ Flyway check and Storm validating all 11 entities against the live schema.
 ./gradlew test
 ```
 
-Repository tests run on an in-memory H2 database via `@StormTest`, so no
-Docker is required.
+Repository tests run on an in-memory H2 database via `@StormTest`.
+`EntitySchemaValidationTest` runs on PostgreSQL instead, through
+`@StormTest(database = POSTGRESQL)`: Storm starts a Testcontainers-managed
+PostgreSQL once per test run and applies the Flyway migration to it, so the
+entities are validated against the schema and dialect the application deploys
+with. That one test needs Docker, like running the application does.
 
 The Playwright interface tests run against a live application, which can be
 the native binary:

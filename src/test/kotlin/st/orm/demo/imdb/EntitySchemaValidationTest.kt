@@ -15,14 +15,19 @@ import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.model.Watchlist
 import st.orm.template.ORMTemplate
 import st.orm.test.StormTest
+import st.orm.test.TestDatabase
 
 /**
  * Validates every entity against the database schema at the JDBC level:
  * column presence, type compatibility, nullability, primary keys, and
- * foreign key consistency. The schema.sql script is the same DDL that
- * Flyway applies in production.
+ * foreign key consistency. Unlike the other tests, which run on H2, this
+ * one runs on PostgreSQL in a Testcontainers-managed container and applies
+ * the Flyway migration itself, so the entities are checked against the
+ * schema the application deploys with, on the dialect it deploys on. The
+ * container starts once per test run; the class receives a database of its
+ * own inside it.
  */
-@StormTest(scripts = ["/schema.sql"])
+@StormTest(database = TestDatabase.POSTGRESQL, scripts = ["/db/migration/V1__create_schema.sql"])
 class EntitySchemaValidationTest {
 
     @Test
