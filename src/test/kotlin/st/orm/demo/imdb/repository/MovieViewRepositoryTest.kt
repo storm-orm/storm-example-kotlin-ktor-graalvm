@@ -37,7 +37,6 @@ class MovieViewRepositoryTest {
         val movieViewRepository = orm.repository<MovieViewRepository>()
         capture.execute {
             movieViewRepository.insert(
-                // Older than the seeded views so it never becomes the newest.
                 MovieView(movie = refById<Movie>("tt0110912"), viewedAt = Instant.parse("2026-06-30T00:00:00Z"))
             )
         }
