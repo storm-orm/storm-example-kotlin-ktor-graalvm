@@ -44,13 +44,13 @@ interface RatingRepository : EntityRepository<Rating, Movie> {
             where(Rating_.voteCount greaterEq minimumVoteCount)
             if (genre != null) {
                 innerJoin<MovieGenre, Movie>()
-                whereAny(MovieGenre_.genre eq genre)
+                where(MovieGenre_.genre eq genre)
             }
             when (sortBy) {
                 TopMoviesSort.RATING -> orderByDescending(Rating_.averageRating)
                 TopMoviesSort.YEAR -> {
-                    whereAny(Movie_.startYear.isNotNull())
-                    orderByDescendingAny(Movie_.startYear, Rating_.averageRating)
+                    where(Movie_.startYear.isNotNull())
+                    orderByDescending(Movie_.startYear, Rating_.averageRating)
                 }
             }
             limit(limit)

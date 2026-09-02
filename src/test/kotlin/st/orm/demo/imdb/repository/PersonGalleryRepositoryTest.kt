@@ -26,7 +26,7 @@ class PersonGalleryRepositoryTest {
             Photo(url = "https://upload.wikimedia.org/keanu-2.jpg")
         )
 
-        capture.run {
+        capture.record {
             galleryRepository.insert(
                 PersonGallery(person = keanu, photos = photos, fetchedAt = Instant.parse("2026-07-03T10:00:00Z"))
             )
@@ -40,8 +40,8 @@ class PersonGalleryRepositoryTest {
     fun `a refreshed gallery replaces the stored photos`(orm: ORMTemplate) {
         val personRepository = orm.repository<PersonRepository>()
         val galleryRepository = orm.repository<PersonGalleryRepository>()
-        // Morgan Freeman is not touched by other tests in this class — the
-        // @StormTest database is shared across the class's test methods.
+        // @StormTest rolls each test back, so this person has no gallery yet
+        // however the class orders its methods.
         val morgan = personRepository.getById("nm0000151").ref()
 
         // The refresh runs the way the service does it: upsert writes the

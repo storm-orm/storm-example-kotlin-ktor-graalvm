@@ -32,7 +32,7 @@ interface GenreRepository : EntityRepository<Genre, Int> {
     fun findGenresWithMovieCounts() =
         select<GenreMovieCount, _, _> { "${Genre::class}, COUNT(*)" }
             .innerJoin<MovieGenre>().on<Genre>()
-            .groupBy(Genre_.id, Genre_.name)
+            .groupBy(Genre_.id)
             .orderBy(Genre_.name)
             .resultList
 }

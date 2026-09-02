@@ -20,11 +20,11 @@ class WatchlistRepositoryTest {
     fun `the toggle cycle exists-insert-exists-remove works on the movie key`(orm: ORMTemplate, capture: SqlCapture) {
         val movieRepository = orm.repository<MovieRepository>()
         val watchlistRepository = orm.repository<WatchlistRepository>()
-        // Pulp Fiction is not touched by other tests in this class — the
-        // @StormTest database is shared across the class's test methods.
+        // @StormTest rolls each test back, so the watchlist starts out empty
+        // however the class orders its methods.
         val pulpFiction = movieRepository.getById("tt0110912")
 
-        capture.run {
+        capture.record {
             assertFalse(watchlistRepository.existsById(pulpFiction))
 
             watchlistRepository.insert(Watchlist(movie = pulpFiction, addedAt = Instant.now()))
