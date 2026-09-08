@@ -45,7 +45,7 @@ class SearchService(
      */
     fun scrollMovies(query: String, cursor: String?): Window<MovieSummary> {
         val scrollable = if (cursor != null) {
-            Scrollable.fromCursor(MovieSummary_.id, cursor)
+            Scrollable.of(MovieSummary_.id, MOVIE_PAGE_SIZE).from(cursor)
         } else {
             Scrollable.of(MovieSummary_.id, MOVIE_PAGE_SIZE)
         }
@@ -55,7 +55,7 @@ class SearchService(
     /** The next window of person results — same cursor contract as [scrollMovies]. */
     fun scrollPersons(query: String, cursor: String?): Window<PersonSummary> {
         val scrollable = if (cursor != null) {
-            Scrollable.fromCursor(PersonSummary_.id, cursor)
+            Scrollable.of(PersonSummary_.id, PERSON_PAGE_SIZE).from(cursor)
         } else {
             Scrollable.of(PersonSummary_.id, PERSON_PAGE_SIZE)
         }
