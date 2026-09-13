@@ -46,7 +46,7 @@ class MovieSummaryRepositoryTest {
         assertNotNull(cursor)
 
         val secondWindow = capture.execute {
-            movieSummaryRepository.searchByTitle("matrix", Scrollable.fromCursor(MovieSummary_.id, cursor!!))
+            movieSummaryRepository.searchByTitle("matrix", Scrollable.of(MovieSummary_.id, 1).from(cursor!!))
         }
         capture.printStatements("searchByTitle-cursor")
         assertEquals(1, secondWindow.content().size)
@@ -102,7 +102,7 @@ class MovieSummaryRepositoryTest {
 
         val secondWindow = movieSummaryRepository.scrollByGenre(
             drama,
-            Scrollable.fromCursor(MovieSummary_.id, firstWindow.nextCursor()!!)
+            Scrollable.of(MovieSummary_.id, 2).from(firstWindow.nextCursor()!!)
         )
         // Three drama movies in total: 2 in the first window, 1 in the second.
         assertEquals(1, secondWindow.content().size)
