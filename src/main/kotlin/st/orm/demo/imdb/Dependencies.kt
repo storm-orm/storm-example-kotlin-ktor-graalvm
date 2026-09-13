@@ -6,6 +6,7 @@ import io.micrometer.core.instrument.observation.DefaultMeterObservationHandler
 import io.micrometer.observation.ObservationRegistry
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import st.orm.demo.imdb.service.BrowseService
+import st.orm.demo.imdb.service.GalleryRefreshProperties
 import st.orm.demo.imdb.service.HomeService
 import st.orm.demo.imdb.service.ImdbDataImporter
 import st.orm.demo.imdb.service.MovieService
@@ -16,6 +17,7 @@ import st.orm.demo.imdb.service.StatisticsService
 import st.orm.demo.imdb.service.TopMoviesService
 import st.orm.demo.imdb.service.WatchlistService
 import st.orm.demo.imdb.service.WikipediaSummaryService
+import st.orm.demo.imdb.service.galleryRefreshProperties
 import st.orm.demo.imdb.service.imdbImportProperties
 import st.orm.demo.imdb.web.PosterController
 import tools.jackson.databind.ObjectMapper
@@ -29,6 +31,7 @@ import tools.jackson.module.kotlin.jacksonObjectMapper
  */
 fun Application.configureDependencies() {
     val importProperties = environment.config.imdbImportProperties()
+    val galleryRefreshProperties = environment.config.galleryRefreshProperties()
     dependencies {
         // With an ObservationRegistry in the container, the Storm plugin observes
         // every query (storm.query) and every transaction (storm.transaction); the
@@ -41,6 +44,7 @@ fun Application.configureDependencies() {
         }
         provide<ObjectMapper> { jacksonObjectMapper() }
         provide { importProperties }
+        provide<GalleryRefreshProperties> { galleryRefreshProperties }
         provide { HomeService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { TopMoviesService(resolve(), resolve()) }
         provide { WatchlistService(resolve(), resolve()) }
@@ -50,7 +54,7 @@ fun Application.configureDependencies() {
         provide { MovieService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PersonService(resolve(), resolve()) }
         provide { WikipediaSummaryService(resolve(), resolve(), resolve()) }
-        provide { PersonGalleryService(resolve(), resolve(), resolve(), resolve()) }
+        provide { PersonGalleryService(resolve(), resolve(), resolve(), resolve(), resolve<GalleryRefreshProperties>().maxAge) }
         provide { PosterController(resolve()) }
         provide {
             ImdbDataImporter(

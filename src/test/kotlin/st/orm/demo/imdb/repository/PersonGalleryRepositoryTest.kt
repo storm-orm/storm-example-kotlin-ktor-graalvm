@@ -1,5 +1,7 @@
 package st.orm.demo.imdb.repository
 
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import st.orm.demo.imdb.model.PersonGallery
@@ -34,6 +36,38 @@ class PersonGalleryRepositoryTest {
         }
         capture.printStatements("galleryRoundTrip")
         assertEquals(1, capture.count(Operation.INSERT))
+    }
+
+    @Test
+    fun `stale galleries are read in windows of their own statement`(orm: ORMTemplate, capture: SqlCapture) {
+        val personRepository = orm.repository<PersonRepository>()
+        val galleryRepository = orm.repository<PersonGalleryRepository>()
+        val cutoff = Instant.parse("2026-08-01T00:00:00Z")
+        val stalePersonIds = listOf("nm0000206", "nm0000401", "nm0000151", "nm0000209", "nm0000237")
+        galleryRepository.insert(stalePersonIds.map { personId ->
+            PersonGallery(
+                person = personRepository.getById(personId).ref(),
+                photos = listOf(Photo("https://upload.wikimedia.org/$personId.jpg")),
+                fetchedAt = Instant.parse("2026-07-03T10:00:00Z")
+            )
+        })
+        galleryRepository.insert(
+            PersonGallery(
+                person = personRepository.getById("nm0000199").ref(),
+                photos = listOf(Photo("https://upload.wikimedia.org/nm0000199.jpg")),
+                fetchedAt = Instant.parse("2026-09-01T10:00:00Z")
+            )
+        )
+
+        val windows = capture.execute { runBlocking { galleryRepository.findStaleGalleries(cutoff, 2).toList() } }
+        capture.printStatements("findStaleGalleries")
+
+        // Three windows over the five stale galleries, each read by one statement
+        // of its own; the fresh gallery is not in any of them.
+        assertEquals(3, windows.size)
+        assertEquals(3, capture.count(Operation.SELECT))
+        assertEquals(listOf(2, 2, 1), windows.map { it.content().size })
+        assertEquals(stalePersonIds.size, windows.sumOf { it.content().size })
     }
 
     @Test

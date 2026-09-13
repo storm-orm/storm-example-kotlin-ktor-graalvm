@@ -19,9 +19,14 @@ import org.thymeleaf.context.IExpressionContext
 import org.thymeleaf.linkbuilder.StandardLinkBuilder
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver
 import io.ktor.http.HttpStatusCode
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import st.orm.InvalidCursorException
 import st.orm.NoResultException
+import st.orm.demo.imdb.service.GalleryRefreshProperties
 import st.orm.demo.imdb.service.ImdbDataImporter
+import st.orm.demo.imdb.service.PersonGalleryService
 import st.orm.demo.imdb.web.configureRouting
 import st.orm.ktor.Storm
 import st.orm.serialization.StormSerializers
@@ -47,6 +52,28 @@ fun Application.module() {
     // finishes is intentional — the Ktor counterpart of Spring's ApplicationRunner.
     val imdbDataImporter: ImdbDataImporter by dependencies
     imdbDataImporter.import()
+
+    configureGalleryRefresh()
+}
+
+/**
+ * The photo galleries go stale where a Wikipedia article gains or loses images, so
+ * a background loop re-fetches the oldest of them. It reads the stale galleries in
+ * keyset windows: each window is one statement that has closed before the loop sees
+ * it, so the connection is free while the loop calls Wikimedia, and each window is
+ * written back in one upsert. The timer is the Ktor counterpart of a scheduled
+ * method, and the application's own scope cancels it at shutdown.
+ */
+private fun Application.configureGalleryRefresh() {
+    val properties: GalleryRefreshProperties by dependencies
+    val personGalleryService: PersonGalleryService by dependencies
+    launch {
+        delay(properties.initialDelay.toMillis())
+        while (isActive) {
+            personGalleryService.refreshStaleGalleries()
+            delay(properties.interval.toMillis())
+        }
+    }
 }
 
 
