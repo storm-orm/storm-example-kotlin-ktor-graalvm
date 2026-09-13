@@ -1,9 +1,9 @@
 plugins {
     kotlin("jvm") version "2.3.10"
     kotlin("plugin.serialization") version "2.3.10"
-    id("com.google.devtools.ksp") version "2.3.10"
-    // The Storm plugin imports the BOM, adds storm-kotlin and storm-core, wires the
-    // metamodel processor to KSP, and selects the compiler-plugin variant matching Kotlin.
+    // The Storm plugin imports the BOM, adds storm-kotlin and storm-core, applies KSP and
+    // wires the metamodel processor to it, and selects the compiler-plugin variant matching
+    // Kotlin. KSP comes with the plugin from Kotlin 2.3 on.
     id("st.orm") version "1.14.1"
     id("org.graalvm.buildtools.native") version "0.11.1"
     application
