@@ -19,6 +19,7 @@ import org.thymeleaf.context.IExpressionContext
 import org.thymeleaf.linkbuilder.StandardLinkBuilder
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver
 import io.ktor.http.HttpStatusCode
+import st.orm.InvalidCursorException
 import st.orm.NoResultException
 import st.orm.demo.imdb.service.ImdbDataImporter
 import st.orm.demo.imdb.web.configureRouting
@@ -74,14 +75,22 @@ private fun Application.configureObservability() {
 
 /**
  * Storm exceptions map to HTTP status codes centrally: a lookup of a row that
- * does not exist (getById on an unknown id) is a 404, not a 500. See the
- * Error Handling section of the Ktor integration docs for the full recipe,
- * including constraint-violation and optimistic-lock mappings.
+ * does not exist (getById on an unknown id) is a 404, not a 500, and a scroll
+ * cursor the engine refuses is a 400. See the Error Handling section of the
+ * Ktor integration docs for the full recipe, including constraint-violation
+ * and optimistic-lock mappings.
  */
 private fun Application.configureErrorHandling() {
     install(StatusPages) {
         exception<NoResultException> { call, _ ->
             call.respondText("Not found", status = HttpStatusCode.NotFound)
+        }
+        // A cursor is opaque and is issued for one ordering: a malformed cursor, one from an
+        // earlier format, or one issued for another ordering cannot resume the scroll. The
+        // client asked with a parameter it cannot fix by retrying, so the answer is a 400 and
+        // the list starts over without it.
+        exception<InvalidCursorException> { call, _ ->
+            call.respondText("Invalid cursor", status = HttpStatusCode.BadRequest)
         }
     }
 }

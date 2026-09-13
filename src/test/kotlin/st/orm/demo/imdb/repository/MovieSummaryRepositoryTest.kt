@@ -61,8 +61,9 @@ class MovieSummaryRepositoryTest {
         assertTrue(firstWindow.hasNext())
 
         // Server-side navigation never touches the cursor string: next() is
-        // a ready-to-use typed Scrollable. The cursor is merely its
-        // serialized form for crossing the client-server boundary.
+        // a ready-to-use typed Scrollable, ordering and size included. The
+        // cursor carries the position alone, for crossing the client-server
+        // boundary where the request states the rest.
         val secondWindow = capture.execute {
             movieSummaryRepository.searchByTitle("matrix", firstWindow.next()!!)
         }
