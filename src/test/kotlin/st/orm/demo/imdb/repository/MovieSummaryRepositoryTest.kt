@@ -36,6 +36,19 @@ class MovieSummaryRepositoryTest {
     }
 
     @Test
+    fun `searchByTitle matches every word of the query in any order`(orm: ORMTemplate) {
+        val movieSummaryRepository = orm.repository<MovieSummaryRepository>()
+        fun titles(query: String) =
+            movieSummaryRepository.searchByTitle(query, Scrollable.of(MovieSummary_.id, 10))
+                .content().map { it.primaryTitle }.sorted()
+        assertEquals(listOf("The Matrix Reloaded"), titles("reloaded MATRIX"))
+        assertEquals(listOf("The Matrix", "The Matrix Reloaded"), titles("\"the matrix\""))
+        assertEquals(emptyList<String>(), titles("matrix godfather"))
+        // % and _ match themselves rather than acting as wildcards.
+        assertEquals(emptyList<String>(), titles("%"))
+    }
+
+    @Test
     fun `searchByTitle scrolls through windows with a cursor`(orm: ORMTemplate, capture: SqlCapture) {
         val movieSummaryRepository = orm.repository<MovieSummaryRepository>()
 
