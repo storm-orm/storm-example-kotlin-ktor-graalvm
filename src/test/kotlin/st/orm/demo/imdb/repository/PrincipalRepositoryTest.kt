@@ -26,8 +26,8 @@ class PrincipalRepositoryTest {
         capture.printStatements("findCast")
         // One query loads the credits including their movie and person graph.
         assertEquals(1, capture.count(Operation.SELECT))
-        assertEquals(listOf("Keanu Reeves", "Laurence Fishburne"), cast.map { it.person.primaryName })
-        assertEquals(listOf("Neo", "Morpheus"), cast.map { it.characters })
+        assertEquals(listOf("Keanu Reeves", "Laurence Fishburne", "Lana Wachowski"), cast.map { it.person.primaryName })
+        assertEquals(listOf("Neo", "Morpheus", null), cast.map { it.characters })
         assertEquals("tt0133093", cast.first().movie.id())
     }
 

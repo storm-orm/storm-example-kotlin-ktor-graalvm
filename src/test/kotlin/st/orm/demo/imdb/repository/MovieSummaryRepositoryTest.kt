@@ -18,12 +18,12 @@ import st.orm.test.StormTest
 class MovieSummaryRepositoryTest {
 
     @Test
-    fun `searchByTitle selects only the projected columns`(orm: ORMTemplate, capture: SqlCapture) {
+    fun `searchMovies selects only the projected columns`(orm: ORMTemplate, capture: SqlCapture) {
         val movieSummaryRepository = orm.repository<MovieSummaryRepository>()
         val window = capture.execute {
-            movieSummaryRepository.searchByTitle("matrix", Scrollable.of(MovieSummary_.id, 10))
+            movieSummaryRepository.searchMovies("matrix", Scrollable.of(MovieSummary_.id, 10))
         }
-        capture.printStatements("searchByTitle")
+        capture.printStatements("searchMovies")
         assertEquals(1, capture.count(Operation.SELECT))
         val statement = capture.statements().single().statement()
         // The projection narrows the SELECT: no columns beyond id, title, year.
@@ -36,10 +36,10 @@ class MovieSummaryRepositoryTest {
     }
 
     @Test
-    fun `searchByTitle matches every word of the query in any order`(orm: ORMTemplate) {
+    fun `searchMovies matches every word of the query in any order`(orm: ORMTemplate) {
         val movieSummaryRepository = orm.repository<MovieSummaryRepository>()
         fun titles(query: String) =
-            movieSummaryRepository.searchByTitle(query, Scrollable.of(MovieSummary_.id, 10))
+            movieSummaryRepository.searchMovies(query, Scrollable.of(MovieSummary_.id, 10))
                 .content().map { it.primaryTitle }.sorted()
         assertEquals(listOf("The Matrix Reloaded"), titles("reloaded MATRIX"))
         assertEquals(listOf("The Matrix", "The Matrix Reloaded"), titles("\"the matrix\""))
@@ -49,19 +49,33 @@ class MovieSummaryRepositoryTest {
     }
 
     @Test
-    fun `searchByTitle scrolls through windows with a cursor`(orm: ORMTemplate, capture: SqlCapture) {
+    fun `searchMovies matches the names of the director and actors`(orm: ORMTemplate) {
+        val movieSummaryRepository = orm.repository<MovieSummaryRepository>()
+        fun titles(query: String) =
+            movieSummaryRepository.searchMovies(query, Scrollable.of(MovieSummary_.id, 10))
+                .content().map { it.primaryTitle }.sorted()
+        assertEquals(listOf("The Matrix", "The Matrix Reloaded"), titles("keanu"))
+        assertEquals(listOf("The Matrix", "The Matrix Reloaded"), titles("wachowski"))
+        assertEquals(listOf("The Matrix", "The Matrix Reloaded"), titles("matrix keanu"))
+        assertEquals(listOf("The Matrix Reloaded"), titles("reloaded fishburne"))
+        assertEquals(listOf("The Shawshank Redemption"), titles("freeman"))
+        assertEquals(emptyList<String>(), titles("keanu godfather"))
+    }
+
+    @Test
+    fun `searchMovies scrolls through windows with a cursor`(orm: ORMTemplate, capture: SqlCapture) {
         val movieSummaryRepository = orm.repository<MovieSummaryRepository>()
 
-        val firstWindow = movieSummaryRepository.searchByTitle("matrix", Scrollable.of(MovieSummary_.id, 1))
+        val firstWindow = movieSummaryRepository.searchMovies("matrix", Scrollable.of(MovieSummary_.id, 1))
         assertEquals(1, firstWindow.content().size)
         assertTrue(firstWindow.hasNext())
         val cursor = firstWindow.nextCursor()
         assertNotNull(cursor)
 
         val secondWindow = capture.execute {
-            movieSummaryRepository.searchByTitle("matrix", Scrollable.of(MovieSummary_.id, 1).from(cursor!!))
+            movieSummaryRepository.searchMovies("matrix", Scrollable.of(MovieSummary_.id, 1).from(cursor!!))
         }
-        capture.printStatements("searchByTitle-cursor")
+        capture.printStatements("searchMovies-cursor")
         assertEquals(1, secondWindow.content().size)
         assertFalse(firstWindow.content().first().id == secondWindow.content().first().id)
     }
@@ -70,7 +84,7 @@ class MovieSummaryRepositoryTest {
     fun `scrolling server-side uses window next() without any cursor`(orm: ORMTemplate, capture: SqlCapture) {
         val movieSummaryRepository = orm.repository<MovieSummaryRepository>()
 
-        val firstWindow = movieSummaryRepository.searchByTitle("matrix", Scrollable.of(MovieSummary_.id, 1))
+        val firstWindow = movieSummaryRepository.searchMovies("matrix", Scrollable.of(MovieSummary_.id, 1))
         assertTrue(firstWindow.hasNext())
 
         // Server-side navigation never touches the cursor string: next() is
@@ -78,20 +92,20 @@ class MovieSummaryRepositoryTest {
         // cursor carries the position alone, for crossing the client-server
         // boundary where the request states the rest.
         val secondWindow = capture.execute {
-            movieSummaryRepository.searchByTitle("matrix", firstWindow.next()!!)
+            movieSummaryRepository.searchMovies("matrix", firstWindow.next()!!)
         }
-        capture.printStatements("searchByTitle-next")
+        capture.printStatements("searchMovies-next")
         assertEquals(1, secondWindow.content().size)
         assertFalse(firstWindow.content().first().id == secondWindow.content().first().id)
     }
 
     @Test
-    fun `findTitleSuggestions ranks by vote count`(orm: ORMTemplate, capture: SqlCapture) {
+    fun `findMovieSuggestions ranks by vote count`(orm: ORMTemplate, capture: SqlCapture) {
         val movieSummaryRepository = orm.repository<MovieSummaryRepository>()
         val suggestions = capture.execute {
-            movieSummaryRepository.findTitleSuggestions("matrix", 5)
+            movieSummaryRepository.findMovieSuggestions("matrix", 5)
         }
-        capture.printStatements("findTitleSuggestions")
+        capture.printStatements("findMovieSuggestions")
         assertEquals(1, capture.count(Operation.SELECT))
         assertTrue(capture.statements().single().statement().contains("rating"))
         // The Matrix (2M votes) must rank above The Matrix Reloaded (600k).
