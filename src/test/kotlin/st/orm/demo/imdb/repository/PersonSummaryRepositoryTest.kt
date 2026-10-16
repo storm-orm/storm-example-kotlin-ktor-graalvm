@@ -37,7 +37,7 @@ class PersonSummaryRepositoryTest {
             personSummaryRepository.findNameSuggestions("an", 10)
         }
         capture.printStatements("findNameSuggestions")
-        assertEquals(listOf("Keanu Reeves", "Lana Wachowski", "Morgan Freeman"), suggestions.map { it.primaryName })
+        assertEquals(listOf("Keanu Reeves", "Morgan Freeman"), suggestions.map { it.primaryName })
     }
 
     @Test

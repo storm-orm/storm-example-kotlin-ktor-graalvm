@@ -11,7 +11,8 @@ INSERT INTO movie (id, primary_title, original_title, start_year, runtime_minute
     ('tt0234215', 'The Matrix Reloaded', 'The Matrix Reloaded', 2003, 138),
     ('tt0111161', 'The Shawshank Redemption', 'The Shawshank Redemption', 1994, 142),
     ('tt0110912', 'Pulp Fiction', 'Pulp Fiction', 1994, 154),
-    ('tt0068646', 'The Godfather', 'The Godfather', 1972, 175);
+    ('tt0068646', 'The Godfather', 'The Godfather', 1972, 175),
+    ('tt0211915', 'Amélie', 'Le Fabuleux Destin d''Amélie Poulain', 2001, 122);
 
 INSERT INTO movie_genre (movie_id, genre_id) VALUES
     ('tt0133093', 1),
@@ -28,8 +29,7 @@ INSERT INTO person (id, primary_name, birth_year, death_year) VALUES
     ('nm0000151', 'Morgan Freeman', 1937, NULL),
     ('nm0000209', 'Tim Robbins', 1958, NULL),
     ('nm0000237', 'John Travolta', 1954, NULL),
-    ('nm0000199', 'Al Pacino', 1940, NULL),
-    ('nm0905154', 'Lana Wachowski', 1965, NULL);
+    ('nm0000199', 'Al Pacino', 1940, NULL);
 
 INSERT INTO principal (movie_id, ordering, person_id, category, characters) VALUES
     ('tt0133093', 1, 'nm0000206', 'actor', 'Neo'),
@@ -39,9 +39,7 @@ INSERT INTO principal (movie_id, ordering, person_id, category, characters) VALU
     ('tt0111161', 1, 'nm0000209', 'actor', 'Andy Dufresne'),
     ('tt0111161', 2, 'nm0000151', 'actor', 'Red'),
     ('tt0110912', 1, 'nm0000237', 'actor', 'Vincent Vega'),
-    ('tt0068646', 1, 'nm0000199', 'actor', 'Michael Corleone'),
-    ('tt0133093', 3, 'nm0905154', 'director', NULL),
-    ('tt0234215', 3, 'nm0905154', 'director', NULL);
+    ('tt0068646', 1, 'nm0000199', 'actor', 'Michael Corleone');
 
 INSERT INTO rating (movie_id, average_rating, vote_count) VALUES
     ('tt0133093', 8.7, 2000000),

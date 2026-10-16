@@ -10,26 +10,24 @@ import st.orm.demo.imdb.model.MovieSummary_
 import st.orm.demo.imdb.model.Person
 import st.orm.demo.imdb.model.Person_
 import st.orm.demo.imdb.model.Principal
-import st.orm.demo.imdb.model.Principal_
 import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.model.Rating_
 import st.orm.repository.ProjectionRepository
-import st.orm.template.and
 import st.orm.template.eq
-import st.orm.template.inList
 import st.orm.template.search
 
 interface MovieSummaryRepository : ProjectionRepository<MovieSummary, String> {
 
     /**
      * Movie search with keyset scrolling. Every word of the query must occur
-     * in the title or in the name of the director or an actor, ignoring case,
-     * so "matrix reloaded" finds The Matrix Reloaded and "matrix keanu" finds
-     * both Matrix movies; a quoted phrase counts as one word, and % or _
-     * match themselves. The projection keeps the SELECT to the three columns
-     * the result grid actually shows.
-     * The search joins the director and actor credits, one row per credit,
-     * and DISTINCT folds them back into one row per movie.
+     * in the title, the original title or the name of someone credited, such
+     * as an actor or the director, ignoring case, so "matrix reloaded" finds The Matrix Reloaded, "fabuleux destin"
+     * finds Amélie and "matrix keanu" finds both Matrix movies; a quoted
+     * phrase counts as one word, and % or _ match themselves. The projection
+     * keeps the SELECT to the columns the result grid needs.
+     * The names come from the credits, one row per credit, and DISTINCT
+     * folds them back into one row per movie. The joins are LEFT joins, so a
+     * movie without credits is still found by its title.
      * The returned Window offers both navigation modes: typed
      * next()/previous() Scrollables for server-side code, and opaque
      * nextCursor()/previousCursor() strings for clients.
@@ -37,12 +35,9 @@ interface MovieSummaryRepository : ProjectionRepository<MovieSummary, String> {
     fun searchMovies(query: String, scrollable: Scrollable<MovieSummary>): Window<MovieSummary> =
         select()
             .distinct()
-            .innerJoin<Principal>().on<MovieSummary>()
-            .innerJoin<Person>().on<Principal>()
-            .where(
-                (Principal_.category inList CREDITED_CATEGORIES) and
-                    search(query, MovieSummary_.primaryTitle, Person_.primaryName)
-            )
+            .leftJoin<Principal>().on<MovieSummary>()
+            .leftJoin<Person>().on<Principal>()
+            .where(search(query, MovieSummary_.primaryTitle, MovieSummary_.originalTitle, Person_.primaryName))
             .narrow<MovieSummary>()
             .scroll(scrollable)
 
@@ -58,12 +53,9 @@ interface MovieSummaryRepository : ProjectionRepository<MovieSummary, String> {
     fun findMovieSuggestions(query: String, limit: Int): List<MovieSummary> =
         select()
             .innerJoin<Rating>().on<MovieSummary>()
-            .innerJoin<Principal>().on<MovieSummary>()
-            .innerJoin<Person>().on<Principal>()
-            .where(
-                (Principal_.category inList CREDITED_CATEGORIES) and
-                    search(query, MovieSummary_.primaryTitle, Person_.primaryName)
-            )
+            .leftJoin<Principal>().on<MovieSummary>()
+            .leftJoin<Person>().on<Principal>()
+            .where(search(query, MovieSummary_.primaryTitle, MovieSummary_.originalTitle, Person_.primaryName))
             .groupBy(MovieSummary_.id, Rating_.voteCount)
             .orderByDescending(Rating_.voteCount)
             .limit(limit)
@@ -84,5 +76,3 @@ interface MovieSummaryRepository : ProjectionRepository<MovieSummary, String> {
             .narrow<MovieSummary>()
             .scroll(scrollable)
 }
-
-private val CREDITED_CATEGORIES = listOf("director", "actor", "actress")

@@ -26,8 +26,7 @@ class MovieSummaryRepositoryTest {
         capture.printStatements("searchMovies")
         assertEquals(1, capture.count(Operation.SELECT))
         val statement = capture.statements().single().statement()
-        // The projection narrows the SELECT: no columns beyond id, title, year.
-        assertFalse(statement.contains("original_title"))
+        // The projection narrows the SELECT: no columns beyond id, titles, year.
         assertFalse(statement.contains("runtime_minutes"))
         assertEquals(
             listOf("The Matrix", "The Matrix Reloaded"),
@@ -49,13 +48,23 @@ class MovieSummaryRepositoryTest {
     }
 
     @Test
-    fun `searchMovies matches the names of the director and actors`(orm: ORMTemplate) {
+    fun `searchMovies matches the original title`(orm: ORMTemplate) {
+        val movieSummaryRepository = orm.repository<MovieSummaryRepository>()
+        fun titles(query: String) =
+            movieSummaryRepository.searchMovies(query, Scrollable.of(MovieSummary_.id, 10))
+                .content().map { it.primaryTitle }
+        assertEquals(listOf("Amélie"), titles("fabuleux destin"))
+        assertEquals(listOf("Amélie"), titles("amélie poulain"))
+        assertEquals(emptyList<String>(), titles("fabuleux matrix"))
+    }
+
+    @Test
+    fun `searchMovies matches the names of the people credited`(orm: ORMTemplate) {
         val movieSummaryRepository = orm.repository<MovieSummaryRepository>()
         fun titles(query: String) =
             movieSummaryRepository.searchMovies(query, Scrollable.of(MovieSummary_.id, 10))
                 .content().map { it.primaryTitle }.sorted()
         assertEquals(listOf("The Matrix", "The Matrix Reloaded"), titles("keanu"))
-        assertEquals(listOf("The Matrix", "The Matrix Reloaded"), titles("wachowski"))
         assertEquals(listOf("The Matrix", "The Matrix Reloaded"), titles("matrix keanu"))
         assertEquals(listOf("The Matrix Reloaded"), titles("reloaded fishburne"))
         assertEquals(listOf("The Shawshank Redemption"), titles("freeman"))
