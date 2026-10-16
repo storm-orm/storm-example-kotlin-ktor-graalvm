@@ -20,6 +20,6 @@ class MovieRepositoryTest {
         }
         capture.printStatements("countMoviesPerDecade")
         assertTrue(capture.statements().single().statement().contains("GROUP BY"))
-        assertEquals(listOf(1970 to 1L, 1990 to 3L, 2000 to 1L), decades.map { it.decade to it.movieCount })
+        assertEquals(listOf(1970 to 1L, 1990 to 3L, 2000 to 2L), decades.map { it.decade to it.movieCount })
     }
 }

@@ -11,7 +11,8 @@ INSERT INTO movie (id, primary_title, original_title, start_year, runtime_minute
     ('tt0234215', 'The Matrix Reloaded', 'The Matrix Reloaded', 2003, 138),
     ('tt0111161', 'The Shawshank Redemption', 'The Shawshank Redemption', 1994, 142),
     ('tt0110912', 'Pulp Fiction', 'Pulp Fiction', 1994, 154),
-    ('tt0068646', 'The Godfather', 'The Godfather', 1972, 175);
+    ('tt0068646', 'The Godfather', 'The Godfather', 1972, 175),
+    ('tt0211915', 'Amélie', 'Le Fabuleux Destin d''Amélie Poulain', 2001, 122);
 
 INSERT INTO movie_genre (movie_id, genre_id) VALUES
     ('tt0133093', 1),

@@ -5,24 +5,24 @@ import st.orm.Window
 import st.orm.demo.imdb.model.PersonSummary
 import st.orm.demo.imdb.model.PersonSummary_
 import st.orm.repository.ProjectionRepository
+import st.orm.template.search
 
 interface PersonSummaryRepository : ProjectionRepository<PersonSummary, String> {
 
-    /** Case-insensitive name search with keyset scrolling. */
-    fun searchByName(query: String, scrollable: Scrollable<PersonSummary>): Window<PersonSummary> {
-        val pattern = "%$query%"
-        return select()
-            .where { "LOWER(${PersonSummary_.primaryName}) LIKE LOWER($pattern)" }
+    /**
+     * Name search with keyset scrolling. Every word of the query must occur
+     * in the name, ignoring case, so "reeves keanu" finds Keanu Reeves.
+     */
+    fun searchByName(query: String, scrollable: Scrollable<PersonSummary>): Window<PersonSummary> =
+        select()
+            .where(search(query, PersonSummary_.primaryName))
             .scroll(scrollable)
-    }
 
     /** Name suggestions for the search auto-complete. */
-    fun findNameSuggestions(query: String, limit: Int): List<PersonSummary> {
-        val pattern = "%$query%"
-        return select()
-            .where { "LOWER(${PersonSummary_.primaryName}) LIKE LOWER($pattern)" }
+    fun findNameSuggestions(query: String, limit: Int): List<PersonSummary> =
+        select()
+            .where(search(query, PersonSummary_.primaryName))
             .orderBy(PersonSummary_.primaryName)
             .limit(limit)
             .resultList
-    }
 }

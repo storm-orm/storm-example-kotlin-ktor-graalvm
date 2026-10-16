@@ -30,7 +30,7 @@ class SearchService(
     /** The search page: both first windows in one read-only transaction. */
     suspend fun search(query: String): SearchResults = transaction(readOnly = true) {
         SearchResults(
-            movieWindow = movieSummaryRepository.searchByTitle(
+            movieWindow = movieSummaryRepository.searchMovies(
                 query, Scrollable.of(MovieSummary_.id, MOVIE_PAGE_SIZE)),
             personWindow = personSummaryRepository.searchByName(
                 query, Scrollable.of(PersonSummary_.id, PERSON_PAGE_SIZE))
@@ -49,7 +49,7 @@ class SearchService(
         } else {
             Scrollable.of(MovieSummary_.id, MOVIE_PAGE_SIZE)
         }
-        return movieSummaryRepository.searchByTitle(query, scrollable)
+        return movieSummaryRepository.searchMovies(query, scrollable)
     }
 
     /** The next window of person results — same cursor contract as [scrollMovies]. */
@@ -65,7 +65,7 @@ class SearchService(
     /** Auto-complete: movie and person suggestions in one read-only transaction. */
     suspend fun findSuggestions(query: String): Suggestions = transaction(readOnly = true) {
         Suggestions(
-            movies = movieSummaryRepository.findTitleSuggestions(query, MOVIE_SUGGESTION_LIMIT),
+            movies = movieSummaryRepository.findMovieSuggestions(query, MOVIE_SUGGESTION_LIMIT),
             persons = personSummaryRepository.findNameSuggestions(query, PERSON_SUGGESTION_LIMIT)
         )
     }
