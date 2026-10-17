@@ -14,11 +14,6 @@ ENV GRAALVM_HOME=/usr/lib64/graalvm/graalvm-community-java25 \
 RUN microdnf install -y findutils && microdnf clean all \
  && mkdir -p /root/.gradle \
  && printf 'org.gradle.java.installations.paths=/opt/jdk-21\norg.gradle.java.installations.auto-download=false\norg.gradle.jvmargs=-Xmx1g\nkotlin.compiler.execution.strategy=in-process\n' > /root/.gradle/gradle.properties
-# Storm 1.15.2-LOCAL is a local build that is not published to Maven Central: local-repo holds its
-# artifacts, and an init script puts that repository before Maven Central and the plugin portal.
-COPY local-repo /local-repo
-RUN mkdir -p /root/.gradle/init.d \
- && printf 'settingsEvaluated {\n    pluginManagement.repositories {\n        maven { url = uri("/local-repo") }\n        gradlePluginPortal()\n    }\n}\nallprojects {\n    repositories {\n        maven { url = uri("/local-repo") }\n    }\n}\n' > /root/.gradle/init.d/local-repo.init.gradle.kts
 WORKDIR /src
 COPY gradlew settings.gradle.kts build.gradle.kts ./
 COPY gradle gradle
