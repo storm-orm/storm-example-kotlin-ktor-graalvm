@@ -76,6 +76,10 @@ class ImdbDataImporter(
      * from Application.module() after Flyway and the Storm plugin are ready.
      */
     fun import() {
+        if (!properties.enabled) {
+            logger.info("IMDB import disabled, skipping.")
+            return
+        }
         if (movieRepository.count() > 0) {
             logger.info("Movie data already present, skipping IMDB import.")
             return

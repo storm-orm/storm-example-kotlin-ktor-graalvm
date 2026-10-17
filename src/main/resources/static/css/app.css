@@ -153,7 +153,7 @@ img { display: block; }
     transition: background 0.1s ease;
 }
 
-.suggestion:hover { background: rgba(139, 124, 248, 0.12); }
+.suggestion.active { background: rgba(139, 124, 248, 0.12); }
 
 .suggestion-media {
     flex-shrink: 0;
@@ -386,9 +386,9 @@ img { display: block; }
 
 .movie-row::-webkit-scrollbar-thumb:hover { background: var(--border); }
 
-.movie-card { display: block; transition: transform 0.18s ease; animation: fade-up 0.35s ease backwards; }
+.movie-card { display: block; transition: transform 0.18s ease; animation: fade-up 0.2s ease backwards; }
 
-.person-card { animation: fade-up 0.35s ease backwards; }
+.person-card { animation: fade-up 0.2s ease backwards; }
 
 @keyframes fade-up {
     from {
@@ -715,7 +715,7 @@ img { display: block; }
     border-radius: var(--radius-small);
     border: 1px solid rgba(255, 255, 255, 0.06);
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
-    animation: fade-up 0.35s ease backwards;
+    animation: fade-up 0.2s ease backwards;
 }
 
 .gallery-photo img {
@@ -738,7 +738,7 @@ img { display: block; }
 .credit-card {
     display: block;
     transition: transform 0.18s ease;
-    animation: fade-up 0.35s ease backwards;
+    animation: fade-up 0.2s ease backwards;
 }
 
 .credit-card:hover { transform: translateY(-3px); }
@@ -832,6 +832,8 @@ img { display: block; }
 
 .ranked-row .poster-placeholder span { font-size: 7px; -webkit-line-clamp: 3; }
 
+.ranked-main { min-width: 0; }
+
 .ranked-title { font-weight: 600; font-size: 15.5px; }
 
 .ranked-sub { color: var(--text-muted); font-size: 13px; }
@@ -842,7 +844,7 @@ img { display: block; }
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
     gap: 22px;
     align-items: start;
 }
@@ -1002,4 +1004,44 @@ img { display: block; }
     .hero-content, .movie-hero-content { flex-direction: column; align-items: flex-start; gap: 26px; }
     .hero-poster, .movie-hero-poster { width: 180px; }
     .hero-title, .movie-title { font-size: 32px; }
+}
+
+/* Phones: the navbar takes two rows, the logo with the page links and then the search box at
+   full width, so its suggestions have room. Side-by-side layouts stack, and rows drop what does
+   not fit rather than overflow the screen. */
+@media (max-width: 640px) {
+    .container { padding: 0 16px; }
+
+    .navbar-inner {
+        flex-wrap: wrap;
+        height: auto;
+        gap: 6px 10px;
+        padding-top: 8px;
+        padding-bottom: 10px;
+    }
+    .brand span { display: none; }
+    .nav-links {
+        flex: 1;
+        min-width: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+    .nav-links::-webkit-scrollbar { display: none; }
+    .nav-links a { padding: 7px 10px; white-space: nowrap; }
+    .navbar .search-box { flex-basis: 100%; width: auto; margin-left: 0; }
+    .search-box input { font-size: 16px; }  /* below 16px, iOS zooms the page in on focus */
+
+    .hero-content, .movie-hero-content { padding: 28px 16px 32px; gap: 20px; }
+    .hero-poster, .movie-hero-poster { width: 150px; }
+    .hero-title, .movie-title { font-size: 28px; }
+    .page-title { font-size: 28px; }
+
+    .person-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+
+    .section-header { flex-wrap: wrap; gap: 6px 12px; }
+
+    .ranked-row { gap: 12px; padding: 10px 4px; }
+    .ranked-row .rank-number { width: 22px; font-size: 15px; }
+    .ranked-title { font-size: 14.5px; }
+    .ranked-end .votes { display: none; }
 }

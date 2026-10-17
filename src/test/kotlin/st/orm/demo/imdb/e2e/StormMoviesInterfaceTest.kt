@@ -96,6 +96,60 @@ class StormMoviesInterfaceTest {
         assertThat(page.locator(".page-title")).containsText(Pattern.compile("keanu", Pattern.CASE_INSENSITIVE))
     }
 
+    @Test
+    fun `auto-complete is browsable with the arrow keys and opens the highlighted suggestion with enter`() {
+        page.navigate("$baseUrl/")
+        val searchInput = page.locator(".navbar [data-search-input]")
+        searchInput.pressSequentially("matrix", Locator.PressSequentiallyOptions().setDelay(60.0))
+
+        val suggestions = page.locator(".navbar .suggestion")
+        assertThat(suggestions.first()).isVisible()
+        // New results start without a highlight.
+        assertThat(page.locator(".navbar .suggestion.active")).hasCount(0)
+
+        searchInput.press("ArrowDown")
+        assertThat(suggestions.nth(0)).hasClass(Pattern.compile("\\bactive\\b"))
+        assertThat(searchInput).hasAttribute("aria-activedescendant", suggestions.nth(0).getAttribute("id"))
+        searchInput.press("ArrowDown")
+        assertThat(suggestions.nth(1)).hasClass(Pattern.compile("\\bactive\\b"))
+        assertThat(page.locator(".navbar .suggestion.active")).hasCount(1)
+        searchInput.press("ArrowUp")
+        assertThat(suggestions.nth(0)).hasClass(Pattern.compile("\\bactive\\b"))
+        // Up from the first suggestion wraps to the last.
+        searchInput.press("ArrowUp")
+        assertThat(suggestions.last()).hasClass(Pattern.compile("\\bactive\\b"))
+        searchInput.press("ArrowDown")
+        assertThat(suggestions.nth(0)).hasClass(Pattern.compile("\\bactive\\b"))
+
+        val href = suggestions.nth(0).getAttribute("href")
+        searchInput.press("Enter")
+        page.waitForURL("$baseUrl$href")
+        assertThat(page.locator(".movie-title")).containsText(Pattern.compile("matrix", Pattern.CASE_INSENSITIVE))
+    }
+
+    @Test
+    fun `the find shortcut focuses the search box`() {
+        val shortcut = if (System.getProperty("os.name").lowercase().contains("mac")) "Meta+f" else "Control+f"
+        page.navigate("$baseUrl/")
+        page.keyboard().press(shortcut)
+        assertThat(page.locator(".search-hero [data-search-input]")).isFocused()
+
+        page.navigate("$baseUrl/top")
+        page.keyboard().press(shortcut)
+        assertThat(page.locator(".navbar [data-search-input]")).isFocused()
+    }
+
+    @Test
+    fun `enter without a highlighted suggestion opens the search page`() {
+        page.navigate("$baseUrl/")
+        val searchInput = page.locator(".navbar [data-search-input]")
+        searchInput.pressSequentially("matrix", Locator.PressSequentiallyOptions().setDelay(60.0))
+        assertThat(page.locator(".navbar .suggestion").first()).isVisible()
+
+        searchInput.press("Enter")
+        page.waitForURL(Pattern.compile(".*/search\\?query=matrix"))
+    }
+
     /* ── Search results + infinite scroll ─────────────────────────── */
 
     @Test
@@ -322,6 +376,43 @@ class StormMoviesInterfaceTest {
                     // Fast-forward CSS animations so screenshots show settled state.
                     .setAnimations(ScreenshotAnimations.DISABLED)
             )
+        }
+    }
+
+    @Test
+    fun `every page fits a phone screen and the search box serves it`() {
+        // A phone widens its layout to the widest content, so a page that does not fit is shown
+        // zoomed out rather than overflowing: the layout width, not the scroll width, tells.
+        val phone = browser.newContext(
+            Browser.NewContextOptions().setViewportSize(390, 844).setIsMobile(true).setHasTouch(true)
+        )
+        try {
+            val mobile = phone.newPage()
+            val screenshots = Paths.get("build/e2e-screenshots")
+            for ((path, name) in listOf(
+                "/" to "home", "/top" to "top", "/watchlist" to "watchlist", "/statistics" to "statistics",
+                "/search?query=matrix" to "search", "/movie/tt0133093" to "movie",
+                "/person/nm0000206" to "person", "/browse/Drama" to "browse"
+            )) {
+                mobile.navigate("$baseUrl$path")
+                val width = mobile.evaluate("window.innerWidth") as Number
+                assertEquals(390, width.toInt()) { "$path lays out wider than the phone screen" }
+                mobile.screenshot(
+                    Page.ScreenshotOptions().setPath(screenshots.resolve("mobile-$name.png"))
+                        .setAnimations(ScreenshotAnimations.DISABLED)
+                )
+            }
+            // The navbar search box spans the screen, and its suggestions with it.
+            mobile.navigate("$baseUrl/top")
+            val input = mobile.locator(".navbar [data-search-input]")
+            assertThat(input).isVisible()
+            input.fill("matrix")
+            val suggestions = mobile.locator(".navbar [data-search-suggestions]")
+            assertThat(suggestions.locator(".suggestion").first()).isVisible()
+            val box = suggestions.boundingBox()
+            assertTrue(box.width >= 340) { "Suggestions are ${box.width}px wide on a 390px screen" }
+        } finally {
+            phone.close()
         }
     }
 

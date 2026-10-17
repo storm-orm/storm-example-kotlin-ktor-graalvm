@@ -4,6 +4,8 @@ import io.ktor.server.config.ApplicationConfig
 import java.nio.file.Path
 
 data class ImdbImportProperties(
+    /** Whether the dataset is imported on first startup. */
+    val enabled: Boolean = true,
     /** Directory where downloaded IMDB dataset files are cached. */
     val cacheDirectory: Path = Path.of("./data"),
     /** Only movies with at least this many votes are imported. */
@@ -19,6 +21,8 @@ data class ImdbImportProperties(
 fun ApplicationConfig.imdbImportProperties(): ImdbImportProperties {
     val defaults = ImdbImportProperties()
     return ImdbImportProperties(
+        enabled = propertyOrNull("imdb.import.enabled")?.getString()?.toBoolean()
+            ?: defaults.enabled,
         cacheDirectory = propertyOrNull("imdb.import.cacheDirectory")?.getString()?.let { Path.of(it) }
             ?: defaults.cacheDirectory,
         minimumVoteCount = propertyOrNull("imdb.import.minimumVoteCount")?.getString()?.toInt()

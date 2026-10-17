@@ -26,6 +26,7 @@ import st.orm.InvalidCursorException
 import st.orm.NoResultException
 import st.orm.demo.imdb.service.GalleryRefreshProperties
 import st.orm.demo.imdb.service.ImdbDataImporter
+import st.orm.demo.imdb.service.StatisticsService
 import st.orm.demo.imdb.service.PersonGalleryService
 import st.orm.demo.imdb.web.configureRouting
 import st.orm.ktor.Storm
@@ -53,7 +54,23 @@ fun Application.module() {
     val imdbDataImporter: ImdbDataImporter by dependencies
     imdbDataImporter.import()
 
+    configureStatisticsWarmUp()
+
     configureGalleryRefresh()
+}
+
+/**
+ * The statistics page aggregates every movie, rating and credit, which takes a
+ * moment, and its cache lives in memory, so it starts empty after each restart.
+ * Filling it in the background as soon as the data is in place spares the first
+ * visitor that wait. A failure is logged, and the page computes the view itself.
+ */
+private fun Application.configureStatisticsWarmUp() {
+    val statisticsService: StatisticsService by dependencies
+    launch {
+        runCatching { statisticsService.buildStatisticsView() }
+            .onFailure { environment.log.warn("Could not prepare the statistics in advance.", it) }
+    }
 }
 
 /**
@@ -96,6 +113,9 @@ private fun Application.configureObservability() {
     routing {
         get("/metrics") {
             call.respondText(prometheusRegistry.scrape())
+        }
+        get("/healthz") {
+            call.respondText("ok")
         }
     }
 }

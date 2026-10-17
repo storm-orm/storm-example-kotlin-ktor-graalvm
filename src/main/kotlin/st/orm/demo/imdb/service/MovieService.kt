@@ -3,6 +3,7 @@ package st.orm.demo.imdb.service
 import st.orm.demo.imdb.model.Genre
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieView
+import st.orm.demo.imdb.model.Person
 import st.orm.demo.imdb.model.Principal
 import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.repository.MovieGenreRepository
@@ -15,12 +16,25 @@ import st.orm.demo.imdb.repository.WatchlistRepository
 import st.orm.template.transaction
 import java.time.Instant
 
+/**
+ * A person's credits on one movie, listed once: an actor who also directs
+ * holds a credit per role, which the page shows as one card.
+ */
+data class CastCredit(
+    val person: Person,
+    /** The roles in billing order: the character played, or else the job. */
+    val roles: List<String>
+) {
+    /** The roles as the card shows them, separated by a slash. */
+    val role: String get() = roles.joinToString(" / ")
+}
+
 /** Everything the movie detail page shows. */
 data class MovieDetail(
     val movie: Movie,
     val rating: Rating?,
     val genres: List<Genre>,
-    val cast: List<Principal>,
+    val cast: List<CastCredit>,
     val relatedMovies: List<RelatedMovie>,
     val onWatchlist: Boolean
 )
@@ -43,8 +57,9 @@ class MovieService(
         val movie = movieRepository.findById(movieId) ?: return@transaction null
         movieViewRepository.insert(MovieView(movie = movie, viewedAt = Instant.now()))
 
-        val cast = principalRepository.findCast(movie)
-        val castMembers = cast.map { it.person }.distinct()
+        val credits = principalRepository.findCast(movie)
+        val cast = castCredits(credits)
+        val castMembers = cast.map { it.person }
         val relatedMovies = if (castMembers.isEmpty()) emptyList() else {
             principalRepository.findMoviesSharingCast(castMembers, excludedMovie = movie, limit = RELATED_MOVIES_LIMIT)
         }
@@ -57,6 +72,18 @@ class MovieService(
             onWatchlist = watchlistRepository.existsById(movie)
         )
     }
+
+    /**
+     * Folds the credits into one per person, at the person's first billing
+     * position, with each distinct role once.
+     */
+    private fun castCredits(credits: List<Principal>): List<CastCredit> =
+        credits.groupBy { it.person.id }.values.map { personCredits ->
+            CastCredit(
+                person = personCredits.first().person,
+                roles = personCredits.map { it.characters ?: it.category }.distinct()
+            )
+        }
 
     companion object {
         private const val RELATED_MOVIES_LIMIT = 6

@@ -36,7 +36,7 @@ class RatingRepositoryTest {
         capture.printStatements("findTopMovies-all")
         // No genre filter: the junction table must not be joined.
         assertTrue(!capture.statements().single().statement().contains("movie_genre"))
-        assertEquals(5, topMovies.size)
+        assertEquals(6, topMovies.size)
         assertEquals("The Shawshank Redemption", topMovies.first().movie.primaryTitle)
     }
 

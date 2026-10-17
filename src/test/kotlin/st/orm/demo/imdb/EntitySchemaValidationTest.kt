@@ -22,7 +22,7 @@ import st.orm.test.TestDatabase
  * column presence, type compatibility, nullability, primary keys, and
  * foreign key consistency. Unlike the other tests, which run on H2, this
  * one runs on PostgreSQL in a Testcontainers-managed container and applies
- * the Flyway migration itself, so the entities are checked against the
+ * the Flyway migrations themselves, so the entities are checked against the
  * schema the application deploys with, on the dialect it deploys on. The
  * container starts once per test run; the class receives a database of its
  * own inside it.
