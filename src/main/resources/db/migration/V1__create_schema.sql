@@ -114,3 +114,10 @@ ALTER INDEX idx_person_primary_name_fold_trgm ALTER COLUMN 1 SET STATISTICS 1000
 -- that count, and holds the movie as well, so the lookup never reads the table.
 CREATE INDEX idx_principal_lead_person ON principal (person_id, movie_id)
     WHERE ordering <= 3 OR category = 'director';
+
+-- The statistics page counts the acting credits of every person to find the most
+-- prolific actors. This index holds exactly those credits, close to half of all
+-- credits, keyed by person, so the count reads it in order without touching the
+-- table, instead of reading every credit and the person each belongs to.
+CREATE INDEX idx_principal_acting_person ON principal (person_id)
+    WHERE category IN ('actor', 'actress');

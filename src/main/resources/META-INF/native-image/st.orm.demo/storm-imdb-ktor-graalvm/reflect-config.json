@@ -94,6 +94,12 @@
     "allDeclaredFields": true
   },
   {
+    "name": "st.orm.demo.imdb.repository.ActingCreditCount",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
     "name": "st.orm.demo.imdb.repository.ProlificActor",
     "allDeclaredConstructors": true,
     "allPublicMethods": true,
