@@ -7,7 +7,7 @@
 -- that is valid in both PostgreSQL and H2.
 
 -- The searches fold accents through fold_accents, which PostgreSQL defines over
--- unaccent (V5). H2 has no unaccent, so the tests define it in Java.
+-- unaccent (V1). H2 has no unaccent, so the tests define it in Java.
 CREATE ALIAS fold_accents DETERMINISTIC FOR 'st.orm.demo.imdb.H2Functions.foldAccents';
 
 CREATE TABLE movie (

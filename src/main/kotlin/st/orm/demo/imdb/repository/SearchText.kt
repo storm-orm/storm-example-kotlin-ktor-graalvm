@@ -9,10 +9,10 @@ import st.orm.template.invoke
 private val WHITESPACE = Regex("\\s+")
 
 /**
- * The database's accent folding (V5): the text without its accents, through
+ * The database's accent folding (V1): the text without its accents, through
  * PostgreSQL's unaccent. The searches apply it to the columns they match, and
  * Storm applies it to the input as well, so the database folds both sides and
- * "leon", "Léon" and "LÉON" all find Léon. The trigram indexes of V10 and V11
+ * "leon", "Léon" and "LÉON" all find Léon. The trigram indexes of V1
  * are built on LOWER(fold_accents(column)), the expression the searches
  * compare, so they serve them without a column that stores the folded text.
  */

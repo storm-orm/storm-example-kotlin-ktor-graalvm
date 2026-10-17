@@ -37,7 +37,7 @@ interface MovieSummaryRepository : ProjectionRepository<MovieSummary, String> {
      * so each movie comes back once without a DISTINCT, each word may match a
      * different credit, and a movie without credits is still found by its
      * title. The condition on the join limits the credits to leads and
-     * directors, which the partial index of V4 holds, so a fragment as common
+     * directors, which the partial index of V1 holds, so a fragment as common
      * as "rob" reads a few thousand index entries instead of every credit of
      * every Robert.
      * The results are ranked as the suggestions are: a title equal to the
@@ -128,7 +128,7 @@ private fun titleStartsWith(text: String) =
 
 /**
  * The credits a movie is found by: the leads, billed first to third, and the
- * directors. The partial index of migration V4 holds exactly these rows.
+ * directors. The partial index of migration V1 holds exactly these rows.
  */
 private fun leadOrDirector() =
     (Principal_.ordering lessEq 3) or (Principal_.category eq "director")
