@@ -58,6 +58,12 @@
     "allDeclaredFields": true
   },
   {
+    "name": "st.orm.demo.imdb.service.CastCredit",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
     "name": "st.orm.demo.imdb.service.MovieDetail",
     "allDeclaredConstructors": true,
     "allPublicMethods": true,

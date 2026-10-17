@@ -97,6 +97,9 @@ private fun Application.configureObservability() {
         get("/metrics") {
             call.respondText(prometheusRegistry.scrape())
         }
+        get("/healthz") {
+            call.respondText("ok")
+        }
     }
 }
 
@@ -136,7 +139,7 @@ private fun Application.configureStorm() {
                 .dataSource(it)
                 // Explicit resources instead of classpath scanning, which GraalVM
                 // native images do not support; see FlywayResources.
-                .resourceProvider(FlywayResources(listOf("db/migration/V1__create_schema.sql")))
+                .resourceProvider(FlywayResources(listOf("db/migration/V1__create_schema.sql", "db/migration/V2__search_indexes.sql", "db/migration/V3__search_index_statistics.sql", "db/migration/V4__lead_credit_index.sql", "db/migration/V5__accent_folding.sql", "db/migration/V6__movie_folded_titles.sql", "db/migration/V7__person_folded_name.sql", "db/migration/V8__person_folded_name_index.sql", "db/migration/V9__person_folded_name_statistics.sql", "db/migration/V10__movie_title_expression_indexes.sql", "db/migration/V11__person_name_expression_index.sql", "db/migration/V12__person_name_expression_statistics.sql", "db/migration/V13__drop_folded_columns.sql")))
                 .load()
                 .migrate()
         }

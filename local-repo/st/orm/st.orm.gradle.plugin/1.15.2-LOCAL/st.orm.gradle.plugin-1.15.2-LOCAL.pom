@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>st.orm</groupId>
+  <artifactId>st.orm.gradle.plugin</artifactId>
+  <version>1.15.2-LOCAL</version>
+  <packaging>pom</packaging>
+  <name>Storm ORM</name>
+  <description>Applies Storm ORM to Kotlin or Java projects: BOM import, core dependencies, metamodel generation (KSP or annotation processor), Kotlin compiler-plugin variant selection, and Java preview flags.</description>
+  <dependencies>
+    <dependency>
+      <groupId>st.orm</groupId>
+      <artifactId>storm-gradle-plugin</artifactId>
+      <version>1.15.2-LOCAL</version>
+    </dependency>
+  </dependencies>
+</project>

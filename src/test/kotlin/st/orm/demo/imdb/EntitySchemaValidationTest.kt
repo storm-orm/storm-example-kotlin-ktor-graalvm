@@ -22,12 +22,12 @@ import st.orm.test.TestDatabase
  * column presence, type compatibility, nullability, primary keys, and
  * foreign key consistency. Unlike the other tests, which run on H2, this
  * one runs on PostgreSQL in a Testcontainers-managed container and applies
- * the Flyway migration itself, so the entities are checked against the
+ * the Flyway migrations themselves, so the entities are checked against the
  * schema the application deploys with, on the dialect it deploys on. The
  * container starts once per test run; the class receives a database of its
  * own inside it.
  */
-@StormTest(database = TestDatabase.POSTGRESQL, scripts = ["/db/migration/V1__create_schema.sql"])
+@StormTest(database = TestDatabase.POSTGRESQL, scripts = ["/db/migration/V1__create_schema.sql", "/db/migration/V2__search_indexes.sql", "/db/migration/V3__search_index_statistics.sql", "/db/migration/V4__lead_credit_index.sql", "/db/migration/V5__accent_folding.sql", "/db/migration/V6__movie_folded_titles.sql", "/db/migration/V7__person_folded_name.sql", "/db/migration/V8__person_folded_name_index.sql", "/db/migration/V9__person_folded_name_statistics.sql", "/db/migration/V10__movie_title_expression_indexes.sql", "/db/migration/V11__person_name_expression_index.sql", "/db/migration/V12__person_name_expression_statistics.sql", "/db/migration/V13__drop_folded_columns.sql"])
 class EntitySchemaValidationTest {
 
     @Test

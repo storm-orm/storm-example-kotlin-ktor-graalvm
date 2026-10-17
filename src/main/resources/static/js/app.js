@@ -4,6 +4,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     setupSearchBoxes();
+    setupSearchShortcut();
     setupInfiniteScroll();
     setupWatchlistToggle();
     setupSummaries();
@@ -72,28 +73,65 @@ function setupSummaries() {
 
 /* ── Search auto-complete ─────────────────────────────────────────── */
 
-const SUGGESTION_DEBOUNCE_MS = 300;
+// Long enough to skip the keystrokes of a word typed in one go, short enough that the
+// dropdown follows the typing; a request still in flight is aborted by the next one.
+const SUGGESTION_DEBOUNCE_MS = 150;
+// Suggestions already fetched in this page, by query, so backspacing or retyping a
+// query shows its suggestions at once; the oldest are dropped past the limit.
+const SUGGESTION_CACHE_LIMIT = 50;
 
 function setupSearchBoxes() {
-    document.querySelectorAll('[data-search-box]').forEach(searchBox => {
+    document.querySelectorAll('[data-search-box]').forEach((searchBox, boxIndex) => {
         const input = searchBox.querySelector('[data-search-input]');
         const panel = searchBox.querySelector('[data-search-suggestions]');
         let debounceTimer = null;
         let abortController = null;
+        const cache = new Map();
+        // The highlighted suggestion, moved with the arrow keys or the mouse; -1 is none.
+        let activeIndex = -1;
+
+        // A combobox owning a listbox: screen readers announce the highlighted
+        // option while focus stays in the input.
+        panel.id = 'search-suggestions-' + boxIndex;
+        panel.setAttribute('role', 'listbox');
+        input.setAttribute('role', 'combobox');
+        input.setAttribute('aria-autocomplete', 'list');
+        input.setAttribute('aria-controls', panel.id);
+        input.setAttribute('aria-expanded', 'false');
 
         input.addEventListener('input', () => {
             clearTimeout(debounceTimer);
             const query = input.value.trim();
             if (query.length < 2) {
+                // Cancel a request in flight too, or its late response reopens the panel.
+                abortPending();
                 hideSuggestions();
+                return;
+            }
+            const cached = cache.get(query);
+            if (cached) {
+                abortPending();
+                renderSuggestions(cached);
                 return;
             }
             debounceTimer = setTimeout(() => fetchSuggestions(query), SUGGESTION_DEBOUNCE_MS);
         });
 
         input.addEventListener('keydown', event => {
-            if (event.key === 'Enter') {
+            const options = suggestionOptions();
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                if (options.length === 0) return;
                 event.preventDefault();
+                const step = event.key === 'ArrowDown' ? 1 : -1;
+                // Wraps around; from no highlight, down starts at the top and up at the bottom.
+                const start = activeIndex === -1 ? (step === 1 ? -1 : options.length) : activeIndex;
+                setActive((start + step + options.length) % options.length);
+            } else if (event.key === 'Enter') {
+                event.preventDefault();
+                if (activeIndex >= 0 && options[activeIndex]) {
+                    window.location.href = options[activeIndex].href;
+                    return;
+                }
                 const query = input.value.trim();
                 if (query) {
                     window.location.href = '/search?query=' + encodeURIComponent(query);
@@ -103,17 +141,28 @@ function setupSearchBoxes() {
             }
         });
 
+        // The mouse moves the same highlight, so keyboard and pointer never show two.
+        panel.addEventListener('mousemove', event => {
+            const option = event.target.closest('.suggestion');
+            if (option) setActive(suggestionOptions().indexOf(option));
+        });
+
         document.addEventListener('click', event => {
             if (!searchBox.contains(event.target)) {
                 hideSuggestions();
             }
         });
 
-        async function fetchSuggestions(query) {
-            // Abort the in-flight request before sending the next one.
+        function abortPending() {
             if (abortController) {
                 abortController.abort();
+                abortController = null;
             }
+        }
+
+        async function fetchSuggestions(query) {
+            // Abort the in-flight request before sending the next one.
+            abortPending();
             abortController = new AbortController();
             try {
                 const response = await fetch(
@@ -121,11 +170,36 @@ function setupSearchBoxes() {
                     { signal: abortController.signal }
                 );
                 if (!response.ok) return;
-                renderSuggestions(await response.json());
+                const suggestions = await response.json();
+                cache.set(query, suggestions);
+                if (cache.size > SUGGESTION_CACHE_LIMIT) {
+                    cache.delete(cache.keys().next().value);
+                }
+                renderSuggestions(suggestions);
             } catch (error) {
                 if (error.name !== 'AbortError') {
                     console.error('Suggestion request failed', error);
                 }
+            }
+        }
+
+        function suggestionOptions() {
+            return Array.from(panel.querySelectorAll('.suggestion'));
+        }
+
+        function setActive(index) {
+            const options = suggestionOptions();
+            options.forEach((option, i) => {
+                const active = i === index;
+                option.classList.toggle('active', active);
+                option.setAttribute('aria-selected', String(active));
+            });
+            activeIndex = index;
+            if (index >= 0 && options[index]) {
+                input.setAttribute('aria-activedescendant', options[index].id);
+                options[index].scrollIntoView({ block: 'nearest' });
+            } else {
+                input.removeAttribute('aria-activedescendant');
             }
         }
 
@@ -140,13 +214,44 @@ function setupSearchBoxes() {
                 ...persons.map(person => suggestionLink(
                     '/person/' + person.id, 'person', 'Person', person.name, null, '/api/photo/' + person.id))
             );
+            suggestionOptions().forEach((option, i) => {
+                option.id = panel.id + '-option-' + i;
+                option.setAttribute('role', 'option');
+            });
+            // New results start without a highlight: Enter searches until an arrow picks one.
+            setActive(-1);
             panel.hidden = false;
+            input.setAttribute('aria-expanded', 'true');
         }
 
         function hideSuggestions() {
             panel.hidden = true;
             panel.replaceChildren();
+            activeIndex = -1;
+            input.removeAttribute('aria-activedescendant');
+            input.setAttribute('aria-expanded', 'false');
         }
+    });
+}
+
+/**
+ * Cmd+F on macOS and Ctrl+F elsewhere focus the search box: the hero's on the
+ * home page, the navbar's on the others. Pressed again from inside the box it
+ * falls through to the browser's own find, so searching the page stays one
+ * keystroke away.
+ */
+function setupSearchShortcut() {
+    document.addEventListener('keydown', event => {
+        const modifier = navigator.platform.toUpperCase().includes('MAC') ? event.metaKey : event.ctrlKey;
+        if (!modifier || event.altKey || event.shiftKey || event.key.toLowerCase() !== 'f') return;
+        const inputs = Array.from(document.querySelectorAll('[data-search-input]'));
+        if (inputs.includes(document.activeElement)) return;
+        // The hero comes after the navbar in the page, so the last visible box is the prominent one.
+        const input = inputs.filter(it => it.offsetParent !== null).pop();
+        if (!input) return;
+        event.preventDefault();
+        input.focus();
+        input.select();
     });
 }
 
@@ -159,7 +264,8 @@ function suggestionLink(href, kind, kindLabel, text, year, imageUrl) {
     media.className = 'suggestion-media suggestion-media-' + kind;
     media.src = imageUrl;
     media.alt = '';
-    media.loading = 'lazy';
+    // The dropdown is on screen the moment it renders, so its images load at once.
+    media.loading = 'eager';
     media.addEventListener('error', () => media.classList.add('failed'));
     link.appendChild(media);
 
