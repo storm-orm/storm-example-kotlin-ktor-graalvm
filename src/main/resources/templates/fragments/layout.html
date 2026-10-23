@@ -18,19 +18,35 @@
 
 <nav class="navbar" th:fragment="navbar(active)">
     <div class="container navbar-inner">
-        <a class="brand" th:href="@{/}">
-            <img class="brand-logo" th:src="@{/img/storm-logo.png}" alt="Storm">
-            <span>Storm Movies</span>
-        </a>
+        <div class="brand">
+            <a href="https://orm.st" target="_blank" rel="noopener" title="Storm ORM">
+                <img class="brand-logo" th:src="@{/img/storm-logo.png}" alt="Storm Movies">
+            </a>
+        </div>
         <div class="nav-links">
             <a th:href="@{/}" th:classappend="${active == 'home'} ? 'active'">Home</a>
             <a th:href="@{/top}" th:classappend="${active == 'top'} ? 'active'">Top Movies</a>
+            <a th:href="@{/recent}" th:classappend="${active == 'recent'} ? 'active'">Recently Added</a>
             <a th:href="@{/watchlist}" th:classappend="${active == 'watchlist'} ? 'active'">Watchlist</a>
+            <a th:href="@{/seen}" th:classappend="${active == 'seen'} ? 'active'">Seen</a>
             <a th:href="@{/statistics}" th:classappend="${active == 'statistics'} ? 'active'">Statistics</a>
         </div>
         <div class="search-box" data-search-box>
             <input type="search" placeholder="Search movies and people…" autocomplete="off" data-search-input>
             <div class="search-suggestions" data-search-suggestions hidden></div>
+        </div>
+        <!-- The account: a name once signed in with a git provider, else the way to. -->
+        <div class="nav-account">
+            <th:block th:if="${account.name != null}">
+                <span class="nav-user" th:title="${account.name}">
+                    <img class="nav-avatar" th:if="${account.avatarUrl != null}" th:src="${account.avatarUrl}" alt="">
+                    <span class="nav-user-name" th:text="${account.name}">Name</span>
+                </span>
+                <form th:action="@{/signout}" method="post" class="nav-signout-form">
+                    <button type="submit" class="nav-signout">Sign out</button>
+                </form>
+            </th:block>
+            <a th:unless="${account.name != null}" class="nav-signin" th:href="@{/signin}">Sign in</a>
         </div>
     </div>
 </nav>

@@ -83,6 +83,12 @@ class PrincipalRepositoryTest {
     }
 
     @Test
+    fun `countActors counts each actor once`(orm: ORMTemplate) {
+        // Eight acting credits, but Keanu Reeves and Laurence Fishburne have two each.
+        assertEquals(6L, orm.repository<PrincipalRepository>().countActors())
+    }
+
+    @Test
     fun `findMostProlificActors counts credits per person`(orm: ORMTemplate, capture: SqlCapture) {
         val principalRepository = orm.repository<PrincipalRepository>()
         val prolificActors = capture.execute {

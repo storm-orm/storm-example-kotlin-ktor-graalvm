@@ -28,9 +28,9 @@ RUN ./gradlew --no-daemon -Dorg.gradle.jvmargs=-Xmx512m nativeCompile
 FROM debian:bookworm-slim
 WORKDIR /app
 COPY --from=build /src/build/native/nativeCompile/storm-imdb-ktor-graalvm /app/storm-imdb-ktor-graalvm
-# A hosted database is loaded from a dump of a local import instead: the import runs as
-# one long transaction at startup, which outlasts hosting platforms' startup windows.
-ENV PORT=8080 \
-    IMDB_IMPORT_ENABLED=false
+# A hosted database is loaded from a dump of a local import: the initial import blocks
+# startup for longer than hosting platforms wait. With data present, startup syncs in the
+# background instead, and the daily sync keeps the data current from there.
+ENV PORT=8080
 EXPOSE 8080
 CMD ["/app/storm-imdb-ktor-graalvm"]

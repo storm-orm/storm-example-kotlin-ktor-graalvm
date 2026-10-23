@@ -8,6 +8,6 @@ import st.orm.demo.imdb.service.HomeService
 
 fun Route.homeRoutes(homeService: HomeService) {
     get("/") {
-        call.respond(ThymeleafContent("home", mapOf("view" to homeService.buildHomeView())))
+        call.respondPage(ThymeleafContent("home", mapOf("view" to homeService.buildHomeView(call.currentUser()))))
     }
 }

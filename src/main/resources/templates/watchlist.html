@@ -17,6 +17,9 @@
         <div class="empty-state" th:if="${watchlistPage.content().isEmpty()}">
             Your watchlist is empty. Open a movie and press “Add to watchlist”.
         </div>
+        <p class="account-hint" th:if="${account.name == null}">
+            Your lists live in this browser. <a th:href="@{/signin(rd='/watchlist')}">Sign in</a> with a git account to keep them on every device.
+        </p>
         <div class="movie-grid" id="watchlist-results">
             <th:block th:each="entry : ${watchlistPage.content()}">
                 <a th:replace="~{fragments/cards :: movie(${entry.movie.id}, ${entry.movie.primaryTitle}, ${entry.movie.startYear})}"></a>

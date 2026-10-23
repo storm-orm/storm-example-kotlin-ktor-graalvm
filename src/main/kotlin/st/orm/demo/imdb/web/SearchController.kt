@@ -18,7 +18,7 @@ fun Route.searchRoutes(searchService: SearchService) {
                 put("personWindow", results.personWindow)
             }
         }
-        call.respond(ThymeleafContent("search", model))
+        call.respondPage(ThymeleafContent("search", model))
     }
 
     get("/api/search/suggestions") {

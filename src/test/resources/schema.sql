@@ -4,7 +4,7 @@
 -- tables back the application's recently-viewed and watchlist features.
 --
 -- This file is also executed against H2 by @StormTest, so it sticks to DDL
--- that is valid in both PostgreSQL and H2.
+-- that is valid in both PostgreSQL and H2, apart from the generated columns.
 
 -- The searches fold accents through fold_accents, which PostgreSQL defines over
 -- unaccent (V1). H2 has no unaccent, so the tests define it in Java.
@@ -15,7 +15,11 @@ CREATE TABLE movie (
     primary_title   VARCHAR NOT NULL,
     original_title  VARCHAR NOT NULL,
     start_year      INTEGER,
-    runtime_minutes INTEGER
+    runtime_minutes INTEGER,
+    -- The titles without accents, stored for the searches (V2). H2 stores a
+    -- generated column without being told; PostgreSQL is told STORED.
+    primary_title_folded  VARCHAR GENERATED ALWAYS AS (fold_accents(primary_title)) NOT NULL,
+    original_title_folded VARCHAR GENERATED ALWAYS AS (fold_accents(original_title)) NOT NULL
 );
 
 CREATE TABLE genre (
@@ -52,15 +56,49 @@ CREATE TABLE rating (
     vote_count     INTEGER NOT NULL
 );
 
+-- The movies that joined the catalogue after it was created (V3).
+CREATE TABLE movie_addition (
+    movie_id VARCHAR NOT NULL PRIMARY KEY REFERENCES movie (id) ON DELETE CASCADE,
+    added_at TIMESTAMP NOT NULL
+);
+
 CREATE TABLE movie_view (
     id        BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     movie_id  VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
     viewed_at TIMESTAMP NOT NULL
 );
 
+-- Personal accounts (V4): a visitor's account, the git provider accounts
+-- linked to it, and the two lists that belong to it.
+CREATE TABLE app_user (
+    id           VARCHAR NOT NULL PRIMARY KEY,
+    name         VARCHAR,
+    avatar_url   VARCHAR,
+    created_at   TIMESTAMP NOT NULL,
+    last_seen_at TIMESTAMP NOT NULL
+);
+
+CREATE TABLE user_login (
+    provider  VARCHAR NOT NULL,
+    subject   VARCHAR NOT NULL,
+    user_id   VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    username  VARCHAR NOT NULL,
+    linked_at TIMESTAMP NOT NULL,
+    PRIMARY KEY (provider, subject)
+);
+
 CREATE TABLE watchlist (
-    movie_id VARCHAR NOT NULL PRIMARY KEY REFERENCES movie (id) ON DELETE CASCADE,
-    added_at TIMESTAMP NOT NULL
+    user_id  VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    movie_id VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
+    added_at TIMESTAMP NOT NULL,
+    PRIMARY KEY (user_id, movie_id)
+);
+
+CREATE TABLE movie_seen (
+    user_id  VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    movie_id VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
+    seen_at  TIMESTAMP NOT NULL,
+    PRIMARY KEY (user_id, movie_id)
 );
 
 -- Photo galleries from the person's Wikipedia article, fetched from Wikimedia
@@ -80,3 +118,6 @@ CREATE INDEX idx_movie_genre_genre_id ON movie_genre (genre_id);
 CREATE INDEX idx_principal_person_id ON principal (person_id);
 CREATE INDEX idx_rating_average_rating ON rating (average_rating DESC);
 CREATE INDEX idx_movie_view_viewed_at ON movie_view (viewed_at DESC);
+CREATE INDEX idx_user_login_user_id ON user_login (user_id);
+CREATE INDEX idx_watchlist_user_id_added_at ON watchlist (user_id, added_at DESC);
+CREATE INDEX idx_movie_seen_user_id_seen_at ON movie_seen (user_id, seen_at DESC);

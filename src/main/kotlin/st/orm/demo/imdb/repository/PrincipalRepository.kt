@@ -15,8 +15,12 @@ import st.orm.repository.select
 import st.orm.template.and
 import st.orm.template.eq
 import st.orm.template.inList
+import st.orm.template.inRefs
 import st.orm.template.neq
 import java.math.BigDecimal
+
+/** The credit categories that count as acting. */
+private val ACTING_CATEGORIES = listOf("actor", "actress")
 
 /**
  * Query result shape: one movie in a person's filmography — the credit
@@ -74,6 +78,10 @@ data class ActingCreditCount(
 
 interface PrincipalRepository : EntityRepository<Principal, PrincipalPk> {
 
+    /** The cast and crew of several movies at once, in no particular order. */
+    fun findByMovies(movies: List<Ref<Movie>>) =
+        findAll(Principal_.movie inRefs movies)
+
     /** The cast and crew of a movie in IMDB billing order. */
     fun findCast(movie: Movie) =
         select(Principal_.movie eq movie)
@@ -116,6 +124,12 @@ interface PrincipalRepository : EntityRepository<Principal, PrincipalPk> {
             .limit(limit)
             .resultList
 
+    /** The number of people with at least one acting credit. */
+    fun countActors(): Long =
+        select<Long, _, _> { "COUNT(DISTINCT ${Principal_.person})" }
+            .where(Principal_.category inList ACTING_CATEGORIES)
+            .singleResult
+
     /**
      * Most prolific actors for the statistics page: COUNT + ORDER BY. The
      * credits are counted per person by their foreign key, which names the
@@ -126,12 +140,12 @@ interface PrincipalRepository : EntityRepository<Principal, PrincipalPk> {
      */
     fun findMostProlificActors(limit: Int): List<ProlificActor> {
         val counts = select<ActingCreditCount, _, _> { "${Principal_.person}, COUNT(*)" }
-            .where(Principal_.category inList listOf("actor", "actress"))
+            .where(Principal_.category inList ACTING_CATEGORIES)
             .groupBy(Principal_.person)
             .orderByDescending { "COUNT(*)" }
             .limit(limit)
             .resultList
-        val people = orm.entity<Person>().findAllByRef(counts.map { it.person }).associateBy<Person, Any> { it.id }
+        val people = orm.entity(Person::class).findAllByRef(counts.map { it.person }).associateBy<Person, Any> { it.id }
         return counts.map { ProlificActor(people.getValue(it.person.id()), it.creditCount) }
     }
 }

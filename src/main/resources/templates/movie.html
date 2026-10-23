@@ -33,12 +33,20 @@
             </div>
             <p class="movie-extract" id="movie-description" hidden
                th:data-summary-endpoint="|/api/summary/movie/${detail.movie.id}|"></p>
-            <button class="button watchlist-button" data-watchlist-toggle
-                    th:data-movie-id="${detail.movie.id}"
-                    th:classappend="${detail.onWatchlist} ? 'active'">
-                <span data-watchlist-label
-                      th:text="${detail.onWatchlist} ? 'On watchlist' : 'Add to watchlist'">Add to watchlist</span>
-            </button>
+            <div class="list-buttons">
+                <button class="button list-button watchlist-button" data-list-toggle="watchlist"
+                        th:data-movie-id="${detail.movie.id}"
+                        th:classappend="${detail.lists.onWatchlist} ? 'active'">
+                    <span data-watchlist-label
+                          th:text="${detail.lists.onWatchlist} ? 'On watchlist' : 'Add to watchlist'">Add to watchlist</span>
+                </button>
+                <button class="button list-button seen-button" data-list-toggle="seen"
+                        th:data-movie-id="${detail.movie.id}"
+                        th:classappend="${detail.lists.seen} ? 'active'">
+                    <span data-seen-label
+                          th:text="${detail.lists.seen} ? 'Seen' : 'Mark as seen'">Mark as seen</span>
+                </button>
+            </div>
         </div>
     </div>
 </section>

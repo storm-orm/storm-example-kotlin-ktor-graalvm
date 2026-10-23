@@ -218,7 +218,7 @@ class StormMoviesInterfaceTest {
     @Test
     fun `the watchlist toggle persists across home and watchlist pages`() {
         page.navigate("$baseUrl/movie/tt0133093")
-        val toggleButton = page.locator("[data-watchlist-toggle]")
+        val toggleButton = page.locator("[data-list-toggle='watchlist']")
         val label = page.locator("[data-watchlist-label]")
 
         // Make the starting state deterministic: ensure OFF first.
@@ -260,6 +260,64 @@ class StormMoviesInterfaceTest {
         } finally {
             // Toggle everything back off.
             movieIds.forEach { movieId -> request.post("$baseUrl/api/watchlist/$movieId") }
+        }
+    }
+
+    /* ── Seen list and account ────────────────────────────────────── */
+
+    @Test
+    fun `marking a movie seen takes it off the watchlist and lists it on the seen page`() {
+        page.navigate("$baseUrl/movie/tt0133093")
+        val watchlistButton = page.locator("[data-list-toggle='watchlist']")
+        val seenButton = page.locator("[data-list-toggle='seen']")
+        val watchlistLabel = page.locator("[data-watchlist-label]")
+        val seenLabel = page.locator("[data-seen-label]")
+
+        // Each browser context is a new account, so both lists start empty.
+        assertThat(watchlistLabel).hasText("Add to watchlist")
+        assertThat(seenLabel).hasText("Mark as seen")
+
+        watchlistButton.click()
+        assertThat(watchlistLabel).hasText("On watchlist")
+        seenButton.click()
+        assertThat(seenLabel).hasText("Seen")
+        assertThat(watchlistLabel).hasText("Add to watchlist")
+
+        page.navigate("$baseUrl/seen")
+        assertThat(page.locator("#seen-results .movie-card-title").first()).hasText("The Matrix")
+        page.navigate("$baseUrl/watchlist")
+        assertEquals(0, page.locator("#watchlist-results .movie-card").count())
+        page.navigate("$baseUrl/")
+        assertThat(page.locator("#seen-section .movie-card-title").first()).hasText("The Matrix")
+    }
+
+    @Test
+    fun `the lists belong to the browser's account`() {
+        page.navigate("$baseUrl/movie/tt0133093")
+        page.locator("[data-list-toggle='watchlist']").click()
+        assertThat(page.locator("[data-watchlist-label]")).hasText("On watchlist")
+
+        // Another browser, another account: an empty watchlist.
+        val otherContext = browser.newContext()
+        try {
+            val other = otherContext.newPage()
+            other.navigate("$baseUrl/watchlist")
+            assertEquals(0, other.locator("#watchlist-results .movie-card").count())
+            assertThat(other.locator(".nav-signin")).isVisible()
+        } finally {
+            otherContext.close()
+        }
+    }
+
+    @Test
+    fun `the sign-in page offers the configured providers or says there are none`() {
+        page.navigate("$baseUrl/signin?rd=/watchlist")
+        assertThat(page.locator(".page-title")).hasText("Sign in")
+        val providers = page.locator(".signin-button").count()
+        if (providers == 0) {
+            assertThat(page.locator(".empty-state")).containsText("No sign-in providers")
+        } else {
+            assertTrue(page.locator(".signin-button").first().getAttribute("href").contains("rd=%2Fwatchlist"))
         }
     }
 
@@ -306,6 +364,7 @@ class StormMoviesInterfaceTest {
     fun `the statistics page renders all aggregate sections`() {
         page.navigate("$baseUrl/statistics")
 
+        assertEquals(4, page.locator("#catalogue-totals .stat-chip").count())
         assertTrue(page.locator("#decades-card .bar-row").count() >= 5)
         assertTrue(page.locator("#genres-card .stat-row").count() >= 5)
         assertEquals(10, page.locator("#actors-card .stat-row").count())
@@ -390,7 +449,8 @@ class StormMoviesInterfaceTest {
             val mobile = phone.newPage()
             val screenshots = Paths.get("build/e2e-screenshots")
             for ((path, name) in listOf(
-                "/" to "home", "/top" to "top", "/watchlist" to "watchlist", "/statistics" to "statistics",
+                "/" to "home", "/top" to "top", "/watchlist" to "watchlist", "/seen" to "seen",
+                "/signin" to "signin", "/statistics" to "statistics",
                 "/search?query=matrix" to "search", "/movie/tt0133093" to "movie",
                 "/person/nm0000206" to "person", "/browse/Drama" to "browse"
             )) {

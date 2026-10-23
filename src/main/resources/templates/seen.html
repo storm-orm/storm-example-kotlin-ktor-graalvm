@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Seen')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('seen')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <h1 class="page-title">Seen</h1>
+        <p class="page-subtitle"
+           th:text="|${#numbers.formatInteger(seenPage.totalCount(), 1, 'COMMA')} movies seen|">3 movies seen</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container">
+        <div class="empty-state" th:if="${seenPage.content().isEmpty()}">
+            No movies marked as seen yet. Open a movie and press “Mark as seen”.
+        </div>
+        <p class="account-hint" th:if="${account.name == null}">
+            Your lists live in this browser. <a th:href="@{/signin(rd='/seen')}">Sign in</a> with a git account to keep them on every device.
+        </p>
+        <div class="movie-grid" id="seen-results">
+            <th:block th:each="entry : ${seenPage.content()}">
+                <a th:replace="~{fragments/cards :: movie(${entry.movie.id}, ${entry.movie.primaryTitle}, ${entry.movie.startYear})}"></a>
+            </th:block>
+        </div>
+
+        <div class="pagination" th:if="${seenPage.totalPages() > 1}">
+            <a class="button" th:classappend="${!seenPage.hasPrevious()} ? 'disabled'"
+               th:href="@{/seen(page=${currentPage - 1})}">← Previous</a>
+            <span class="page-info"
+                  th:text="|Page ${currentPage} of ${seenPage.totalPages()}|">Page 1 of 2</span>
+            <a class="button" th:classappend="${!seenPage.hasNext()} ? 'disabled'"
+               th:href="@{/seen(page=${currentPage + 1})}">Next →</a>
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

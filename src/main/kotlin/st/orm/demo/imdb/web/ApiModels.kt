@@ -1,14 +1,20 @@
 package st.orm.demo.imdb.web
 
 import kotlinx.serialization.Serializable
-import st.orm.demo.imdb.model.MovieSummary
-import st.orm.demo.imdb.model.PersonSummary
+import st.orm.demo.imdb.model.Movie
+import st.orm.demo.imdb.model.MovieAddition
+import st.orm.demo.imdb.model.Person
+import st.orm.demo.imdb.service.additionDay
 
 @Serializable
 data class MovieSearchItem(val id: String, val title: String, val year: Int?)
 
 @Serializable
 data class PersonSearchItem(val id: String, val name: String)
+
+/** A movie of the recently added page, under the day it joined the catalogue. */
+@Serializable
+data class AddedMovieItem(val id: String, val title: String, val year: Int?, val day: String)
 
 /**
  * One keyset window of results plus the opaque cursor for the next window.
@@ -28,9 +34,9 @@ data class SearchSuggestions(
     val persons: List<PersonSearchItem>
 )
 
-@Serializable
-data class WatchlistState(val onWatchlist: Boolean)
+fun Movie.toSearchItem() = MovieSearchItem(id = id, title = primaryTitle, year = startYear)
 
-fun MovieSummary.toSearchItem() = MovieSearchItem(id = id, title = primaryTitle, year = startYear)
+fun Person.toSearchItem() = PersonSearchItem(id = id, name = primaryName)
 
-fun PersonSummary.toSearchItem() = PersonSearchItem(id = id, name = primaryName)
+fun MovieAddition.toAddedItem() =
+    AddedMovieItem(id = movie.id, title = movie.primaryTitle, year = movie.startYear, day = additionDay())

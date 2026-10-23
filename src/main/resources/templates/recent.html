@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Recently Added')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('recent')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <h1 class="page-title">Recently Added</h1>
+        <p class="page-subtitle">The movies that joined the catalogue, newest day first.</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container">
+        <div class="empty-state" th:if="${days.isEmpty()}">No movies have joined the catalogue since it was created.</div>
+        <div id="recent-results">
+            <section class="day-group" th:each="day : ${days}" th:data-day="${day.label}">
+                <div class="section-header">
+                    <h2 class="section-title" th:text="${day.label}">23 October 2026</h2>
+                </div>
+                <div class="movie-grid">
+                    <th:block th:each="movie : ${day.movies}">
+                        <a th:replace="~{fragments/cards :: movie(${movie.id}, ${movie.primaryTitle}, ${movie.startYear})}"></a>
+                    </th:block>
+                </div>
+            </section>
+        </div>
+        <div class="scroll-sentinel" th:if="${nextCursor != null}"
+             data-infinite-scroll
+             data-kind="addition"
+             data-target="recent-results"
+             data-endpoint="/api/recent"
+             th:data-cursor="${nextCursor}">
+            <div class="spinner" hidden></div>
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

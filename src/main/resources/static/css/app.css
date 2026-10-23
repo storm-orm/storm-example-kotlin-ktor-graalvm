@@ -81,6 +81,11 @@ img { display: block; }
     white-space: nowrap;
 }
 
+.brand a {
+    display: flex;
+    align-items: center;
+}
+
 .brand-logo {
     height: 26px;
     width: auto;
@@ -98,6 +103,7 @@ img { display: block; }
     color: var(--text-muted);
     font-size: 14.5px;
     font-weight: 500;
+    white-space: nowrap;
     transition: color 0.15s ease, background 0.15s ease;
 }
 
@@ -105,7 +111,12 @@ img { display: block; }
 
 .nav-links a.active { color: var(--accent-strong); background: var(--surface-raised); }
 
-.navbar .search-box { margin-left: auto; width: 320px; }
+/* The search box gives way before the page links do, so the navbar stays one row. */
+.navbar .search-box { margin-left: auto; flex: 0 1 320px; min-width: 190px; }
+
+/* The suggestions are wider than the box, anchored to its right edge so they open over the page links
+   rather than past the screen; a title gets the room a poster, a type and a year leave. */
+.navbar .search-suggestions { left: auto; right: 0; width: 520px; max-width: calc(100vw - 32px); }
 
 /* ── Search box + suggestions ──────────────────────────────────────── */
 
@@ -190,6 +201,8 @@ img { display: block; }
 .suggestion-type-person { background: rgba(245, 197, 24, 0.15); color: var(--gold); }
 
 .suggestion-text {
+    flex: 1 1 auto;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -323,6 +336,9 @@ img { display: block; }
 .section-link { margin-left: auto; color: var(--accent-strong); font-size: 14px; font-weight: 500; }
 
 .section-link:hover { text-decoration: underline; }
+
+/* The days of the recently added page, one section each. */
+.day-group + .day-group { margin-top: 34px; }
 
 /* ── Genre chips ───────────────────────────────────────────────────── */
 
@@ -606,11 +622,55 @@ img { display: block; }
 
 .watchlist-button.active::before { content: "✓"; }
 
-.watchlist-button.active {
+.seen-button::before {
+    content: "○";
+    font-size: 15px;
+    line-height: 1;
+}
+
+.seen-button.active::before { content: "✓"; }
+
+.list-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.list-button.active {
     background: rgba(139, 124, 248, 0.16);
     border-color: var(--accent);
     color: var(--accent-strong);
 }
+
+/* ── Account ───────────────────────────────────────────────────────── */
+
+/* The account gives way after the search box: the name shortens to an ellipsis before anything wraps. */
+.nav-account { display: flex; align-items: center; gap: 10px; min-width: 0; white-space: nowrap; }
+
+.nav-user { display: inline-flex; align-items: center; gap: 8px; min-width: 0; color: var(--text); font-size: 14px; font-weight: 500; }
+
+.nav-user-name { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.nav-avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; background: var(--surface-raised); }
+
+.nav-signin, .nav-signout {
+    padding: 7px 13px;
+    border-radius: var(--radius-small);
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.nav-signin:hover, .nav-signout:hover { color: var(--text); background: var(--surface-raised); }
+
+.nav-signout-form { margin: 0; }
+
+.account-hint { margin: 0 0 22px; color: var(--text-muted); font-size: 14px; }
+
+.account-hint a { color: var(--accent-strong); }
+
+.signin-providers { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 22px; }
 
 /* ── Movie detail ──────────────────────────────────────────────────── */
 
@@ -867,9 +927,7 @@ img { display: block; }
     background: linear-gradient(90deg, transparent, rgba(139, 124, 248, 0.55), transparent);
 }
 
-.stat-card h2 { font-size: 17px; margin: 0 0 4px; }
-
-.stat-card .stat-sub { color: var(--text-muted); font-size: 13px; margin-bottom: 18px; }
+.stat-card h2 { font-size: 17px; margin: 0 0 18px; }
 
 .bar-row {
     display: grid;
@@ -913,7 +971,7 @@ img { display: block; }
 
 .stat-count { color: var(--text-muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 
-/* ── Stat chips (person page) ──────────────────────────────────────── */
+/* ── Stat chips (person and statistics pages) ──────────────────────── */
 
 .stat-chips { display: flex; gap: 12px; flex-wrap: wrap; }
 
@@ -998,6 +1056,13 @@ img { display: block; }
 
 /* ── Responsive ────────────────────────────────────────────────────── */
 
+/* Narrow desktops: the page links tighten and the name gives way, so the navbar stays one row. */
+@media (max-width: 1200px) {
+    .navbar-inner { gap: 16px; }
+    .nav-links a { padding: 7px 9px; font-size: 14px; }
+    .nav-user-name { max-width: 90px; }
+}
+
 @media (max-width: 860px) {
     .navbar .search-box { width: 200px; }
     .nav-links a { padding: 7px 9px; font-size: 13.5px; }
@@ -1019,7 +1084,6 @@ img { display: block; }
         padding-top: 8px;
         padding-bottom: 10px;
     }
-    .brand span { display: none; }
     .nav-links {
         flex: 1;
         min-width: 0;
@@ -1028,7 +1092,10 @@ img { display: block; }
     }
     .nav-links::-webkit-scrollbar { display: none; }
     .nav-links a { padding: 7px 10px; white-space: nowrap; }
-    .navbar .search-box { flex-basis: 100%; width: auto; margin-left: 0; }
+    .navbar .search-box { flex-basis: 100%; width: auto; margin-left: 0; order: 1; }
+    .navbar .search-suggestions { left: 0; right: 0; width: auto; }
+    /* The account stays in the first row, as the avatar alone once signed in. */
+    .nav-user-name { display: none; }
     .search-box input { font-size: 16px; }  /* below 16px, iOS zooms the page in on focus */
 
     .hero-content, .movie-hero-content { padding: 28px 16px 32px; gap: 20px; }
@@ -1044,4 +1111,6 @@ img { display: block; }
     .ranked-row .rank-number { width: 22px; font-size: 15px; }
     .ranked-title { font-size: 14.5px; }
     .ranked-end .votes { display: none; }
+
+    #catalogue-totals .stat-chips { display: grid; grid-template-columns: 1fr 1fr; }
 }

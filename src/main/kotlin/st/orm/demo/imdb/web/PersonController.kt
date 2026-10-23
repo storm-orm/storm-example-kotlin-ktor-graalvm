@@ -13,7 +13,7 @@ fun Route.personRoutes(personService: PersonService) {
         val personId = call.parameters.getOrFail("personId")
         val detail = personService.findPersonDetail(personId)
             ?: return@get call.respond(HttpStatusCode.NotFound, "Unknown person: $personId")
-        call.respond(
+        call.respondPage(
             ThymeleafContent(
                 "person",
                 mapOf(

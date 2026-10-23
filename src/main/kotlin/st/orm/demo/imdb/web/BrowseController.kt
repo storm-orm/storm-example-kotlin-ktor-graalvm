@@ -13,7 +13,7 @@ fun Route.browseRoutes(browseService: BrowseService) {
         val genreName = call.parameters.getOrFail("genreName")
         val view = browseService.browseGenre(genreName)
             ?: return@get call.respond(HttpStatusCode.NotFound, "Unknown genre: $genreName")
-        call.respond(
+        call.respondPage(
             ThymeleafContent(
                 "browse",
                 mapOf(

@@ -19,6 +19,6 @@ fun Route.topMoviesRoutes(topMoviesService: TopMoviesService) {
             put("sort", if (sortBy == TopMoviesSort.YEAR) "year" else "rating")
             put("entries", view.entries)
         }
-        call.respond(ThymeleafContent("top", model))
+        call.respondPage(ThymeleafContent("top", model))
     }
 }

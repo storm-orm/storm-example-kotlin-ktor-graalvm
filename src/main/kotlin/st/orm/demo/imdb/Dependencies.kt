@@ -5,10 +5,17 @@ import io.ktor.server.plugins.di.dependencies
 import io.micrometer.core.instrument.observation.DefaultMeterObservationHandler
 import io.micrometer.observation.ObservationRegistry
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import st.orm.demo.imdb.service.AccountService
 import st.orm.demo.imdb.service.BrowseService
+import st.orm.demo.imdb.service.RecentlyAddedService
 import st.orm.demo.imdb.service.GalleryRefreshProperties
+import st.orm.demo.imdb.service.GitSignIn
 import st.orm.demo.imdb.service.HomeService
-import st.orm.demo.imdb.service.ImdbDataImporter
+import st.orm.demo.imdb.service.CachedImdbDatasets
+import st.orm.demo.imdb.service.ImdbDataSync
+import st.orm.demo.imdb.service.ImdbDatasets
+import st.orm.demo.imdb.service.ImdbSyncProperties
+import st.orm.demo.imdb.service.MovieSeenService
 import st.orm.demo.imdb.service.MovieService
 import st.orm.demo.imdb.service.PersonGalleryService
 import st.orm.demo.imdb.service.PersonService
@@ -17,8 +24,9 @@ import st.orm.demo.imdb.service.StatisticsService
 import st.orm.demo.imdb.service.TopMoviesService
 import st.orm.demo.imdb.service.WatchlistService
 import st.orm.demo.imdb.service.WikipediaSummaryService
+import st.orm.demo.imdb.service.configuredProviders
 import st.orm.demo.imdb.service.galleryRefreshProperties
-import st.orm.demo.imdb.service.imdbImportProperties
+import st.orm.demo.imdb.service.imdbSyncProperties
 import st.orm.demo.imdb.web.PosterController
 import tools.jackson.databind.ObjectMapper
 import tools.jackson.module.kotlin.jacksonObjectMapper
@@ -30,8 +38,9 @@ import tools.jackson.module.kotlin.jacksonObjectMapper
  * services resolve their repositories directly.
  */
 fun Application.configureDependencies() {
-    val importProperties = environment.config.imdbImportProperties()
+    val syncProperties = environment.config.imdbSyncProperties()
     val galleryRefreshProperties = environment.config.galleryRefreshProperties()
+    val configuredProviders = environment.config.configuredProviders()
     dependencies {
         // With an ObservationRegistry in the container, the Storm plugin observes
         // every query (storm.query) and every transaction (storm.transaction); the
@@ -43,23 +52,29 @@ fun Application.configureDependencies() {
             }
         }
         provide<ObjectMapper> { jacksonObjectMapper() }
-        provide { importProperties }
+        provide<ImdbSyncProperties> { syncProperties }
         provide<GalleryRefreshProperties> { galleryRefreshProperties }
-        provide { HomeService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        // The git providers the deployment has credentials for; see application.conf (accounts).
+        provide { GitSignIn(configuredProviders, resolve()) }
+        provide { AccountService(resolve(), resolve(), resolve(), resolve()) }
+        provide { HomeService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { TopMoviesService(resolve(), resolve()) }
-        provide { WatchlistService(resolve(), resolve()) }
-        provide { StatisticsService(resolve(), resolve(), resolve()) }
+        provide { WatchlistService(resolve(), resolve(), resolve(), resolve()) }
+        provide { MovieSeenService(resolve(), resolve(), resolve(), resolve()) }
+        provide { StatisticsService(resolve(), resolve(), resolve(), resolve()) }
         provide { SearchService(resolve(), resolve()) }
         provide { BrowseService(resolve(), resolve(), resolve()) }
-        provide { MovieService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { RecentlyAddedService(resolve()) }
+        provide { MovieService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PersonService(resolve(), resolve()) }
         provide { WikipediaSummaryService(resolve(), resolve(), resolve()) }
         provide { PersonGalleryService(resolve(), resolve(), resolve(), resolve(), resolve<GalleryRefreshProperties>().maxAge) }
         provide { PosterController(resolve()) }
+        provide<ImdbDatasets> { CachedImdbDatasets(syncProperties.cacheDirectory, syncProperties.datasetBaseUrl) }
         provide {
-            ImdbDataImporter(
+            ImdbDataSync(
                 resolve(), resolve(), resolve(), resolve(), resolve(),
-                resolve(), resolve(), resolve(), resolve(),
+                resolve(), resolve(), resolve(), resolve(), resolve(), syncProperties.minimumVoteCount,
             )
         }
     }

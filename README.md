@@ -26,7 +26,7 @@ The feature activates automatically through storm-core's
 the image build it reports:
 
 ```
-Storm: registered 11 data types, 0 converters, and 11 repositories from the type index.
+Storm: registered 13 data types, 0 entity callbacks, 0 converters, and 13 repositories from the type index.
 ```
 
 The Ktor plugin's repository auto-registration reads the same index at
@@ -81,9 +81,9 @@ docker compose up -d
 GRAALVM_HOME=/path/to/graalvm ./gradlew nativeCompile
 
 # 3. Run the binary. On an empty database the first start runs the Flyway
-#    migration and streams the IMDB dataset in natively (the ~1.2 GB of
-#    dataset files are downloaded once and cached in ./data); afterwards
-#    the import is skipped.
+#    migration and imports the IMDB dataset natively (the ~1.3 GB of
+#    dataset files are downloaded and cached in ./data); afterwards the
+#    data is synced with the dataset at each start and daily (see below).
 ./build/native/nativeCompile/storm-imdb-ktor-graalvm
 
 # 4. Open the app
@@ -94,7 +94,67 @@ The application also still runs on the JVM with `./gradlew run`.
 
 Measured on an Apple M-series MacBook: the binary is a 97 MB self-contained
 executable that reports `Application started in 0.129 seconds`, including the
-Flyway check and Storm validating all 11 entities against the live schema.
+Flyway check and Storm validating all 13 entities against the live schema.
+
+## Keeping the data current
+
+IMDB republishes its dataset daily, and the application syncs with it at
+startup, in the background, and every day at `imdb.sync.dailyAt` (03:00 UTC). A dataset file is downloaded again
+only when IMDB has published a newer one. The sync
+([`ImdbDataSync`](src/main/kotlin/st/orm/demo/imdb/service/ImdbDataSync.kt))
+works in chunks of a thousand movies or people, each in its own transaction:
+it reads the stored rows, compares them with the dataset as values (entities
+are immutable data classes), and writes only the difference, so a day's run
+writes the day's changes and an interrupted run is completed by the next.
+The initial import on an empty database is the same sync.
+A sync records the movies it adds (`movie_addition`, V3), and the Recently
+Added page scrolls those, newest day first; the initial import is no
+addition, so the page lists what has joined the catalogue since.
+
+The catalogue holds the movies with at least `imdb.sync.minimumVoteCount`
+votes (1000, or `IMDB_MINIMUM_VOTE_COUNT`). A movie stays once it is in, even
+when its votes drop, because watchlist entries refer to it; lowering the
+threshold adds the movies that newly qualify on the next run.
+`IMDB_SYNC_ENABLED=false` switches both the import and the sync off.
+
+## Personal lists without a sign-up
+
+The watchlist and the seen list belong to the visitor. Every visitor has an
+account from the first page: a random id in a cookie
+([`web/Accounts.kt`](src/main/kotlin/st/orm/demo/imdb/web/Accounts.kt)), whose
+row (`app_user`, V4) is written on the first save. Both lists are keyed by
+the pair of user and movie (`Watchlist`, `MovieSeen`), so a toggle is a
+lookup of the pair key, and marking a movie seen takes it off the watchlist
+in the same route transaction.
+
+Signing in with a git provider (GitHub, GitLab, Bitbucket or Codeberg) links
+the provider account to the cookie account (`user_login`), which is what
+carries the lists to another browser: a sign-in that finds the provider
+account linked already switches to that account and moves over what the new
+browser saved meanwhile
+([`AccountService`](src/main/kotlin/st/orm/demo/imdb/service/AccountService.kt)).
+The OAuth 2 exchange is a few lines over the JDK HTTP client
+([`GitProviders.kt`](src/main/kotlin/st/orm/demo/imdb/service/GitProviders.kt)).
+A provider is offered when its client id and secret are in the environment
+(`GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`, and likewise `GITLAB_`,
+`BITBUCKET_`, `CODEBERG_`), with `<origin>/signin/<provider>/callback` as the
+registered callback URL.
+
+## Parallel query on a small database
+
+PostgreSQL runs a large scan with parallel worker processes. On a database
+with a small CPU allowance, such as the one the
+[live demo](https://movies.orm.st) runs on, the workers compete for the same
+CPU and each one loads `unaccent`'s rules again before its first row, so the
+search suggestions took about twice as long with them as without. The setting
+belongs to the host rather than the schema, so it is applied once to that
+database instead of in a migration:
+
+```sql
+DO $$ BEGIN
+    EXECUTE format('ALTER DATABASE %I SET max_parallel_workers_per_gather = 0', current_database());
+END $$;
+```
 
 ## Testing
 
@@ -125,10 +185,10 @@ src/main/kotlin/st/orm/demo/imdb/
 ├── Application.kt      Ktor module: Storm plugin, Thymeleaf, DI, routing
 ├── FlywayResources.kt  Explicit Flyway resources (native images cannot scan)
 ├── Dependencies.kt     Service wiring via ktor-server-di
-├── model/              Storm entities (@PK, @FK) and projections
+├── model/              Storm entities (@PK, @FK)
 ├── repository/         EntityRepository interfaces with QueryBuilder queries
 ├── service/            Business logic in suspend `transaction { }` blocks,
-│                       plus the streaming IMDB importer
+│                       plus the daily IMDB sync
 ├── web/                Page routes and REST routes (/api/**)
 └── serialization/      kotlinx.serialization support
 src/main/resources/

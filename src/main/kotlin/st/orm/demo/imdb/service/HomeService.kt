@@ -2,12 +2,15 @@ package st.orm.demo.imdb.service
 
 import st.orm.demo.imdb.model.Genre
 import st.orm.demo.imdb.model.Movie
+import st.orm.demo.imdb.model.MovieSeen
 import st.orm.demo.imdb.model.Rating
+import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.model.Watchlist
 import st.orm.demo.imdb.repository.GenreMovieCount
 import st.orm.demo.imdb.repository.GenreRepository
 import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieRepository
+import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.MovieViewRepository
 import st.orm.demo.imdb.repository.RatingRepository
 import st.orm.demo.imdb.repository.WatchlistRepository
@@ -27,7 +30,9 @@ data class HomeView(
     val recentlyViewed: List<Movie>,
     val topRated: List<Rating>,
     val genreCounts: List<GenreMovieCount>,
-    val watchlistEntries: List<Watchlist>
+    /** The visitor's watchlist and seen list; the other sections are the site's. */
+    val watchlistEntries: List<Watchlist>,
+    val seenEntries: List<MovieSeen>
 )
 
 class HomeService(
@@ -36,11 +41,12 @@ class HomeService(
     private val ratingRepository: RatingRepository,
     private val genreRepository: GenreRepository,
     private val movieGenreRepository: MovieGenreRepository,
-    private val watchlistRepository: WatchlistRepository
+    private val watchlistRepository: WatchlistRepository,
+    private val movieSeenRepository: MovieSeenRepository
 ) {
 
-    /** All home page sections, read in one read-only transaction. */
-    suspend fun buildHomeView(): HomeView = transaction(readOnly = true) {
+    /** All home page sections for the visitor, read in one read-only transaction. */
+    suspend fun buildHomeView(user: User): HomeView = transaction(readOnly = true) {
         // Views hold movie refs; dedupe the refs and fetch the movies once.
         val recentMovieRefs = movieViewRepository.findRecentViews(RECENT_VIEW_SAMPLE_SIZE)
             .map { it.movie }
@@ -61,7 +67,8 @@ class HomeService(
             recentlyViewed = recentMovies.drop(1).take(RECENTLY_VIEWED_LIMIT),
             topRated = ratingRepository.findTopRated(TOP_RATED_MINIMUM_VOTES, TOP_RATED_LIMIT),
             genreCounts = genreRepository.findGenresWithMovieCounts(),
-            watchlistEntries = watchlistRepository.findMostRecent(WATCHLIST_PREVIEW_LIMIT)
+            watchlistEntries = watchlistRepository.findMostRecent(user, LIST_PREVIEW_LIMIT),
+            seenEntries = movieSeenRepository.findMostRecent(user, LIST_PREVIEW_LIMIT)
         )
     }
 
@@ -70,6 +77,6 @@ class HomeService(
         private const val RECENTLY_VIEWED_LIMIT = 12
         private const val TOP_RATED_LIMIT = 10
         private const val TOP_RATED_MINIMUM_VOTES = 25_000
-        private const val WATCHLIST_PREVIEW_LIMIT = 12
+        private const val LIST_PREVIEW_LIMIT = 12
     }
 }

@@ -6,8 +6,10 @@ import st.orm.demo.imdb.model.MovieView
 import st.orm.demo.imdb.model.Person
 import st.orm.demo.imdb.model.Principal
 import st.orm.demo.imdb.model.Rating
+import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieRepository
+import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.MovieViewRepository
 import st.orm.demo.imdb.repository.PrincipalRepository
 import st.orm.demo.imdb.repository.RatingRepository
@@ -36,7 +38,8 @@ data class MovieDetail(
     val genres: List<Genre>,
     val cast: List<CastCredit>,
     val relatedMovies: List<RelatedMovie>,
-    val onWatchlist: Boolean
+    /** The state of the visitor's two lists for this movie. */
+    val lists: MovieListState
 )
 
 class MovieService(
@@ -45,15 +48,17 @@ class MovieService(
     private val movieGenreRepository: MovieGenreRepository,
     private val principalRepository: PrincipalRepository,
     private val movieViewRepository: MovieViewRepository,
-    private val watchlistRepository: WatchlistRepository
+    private val watchlistRepository: WatchlistRepository,
+    private val movieSeenRepository: MovieSeenRepository
 ) {
 
     /**
-     * Loads the movie detail page and records the visit, so the movie shows
-     * up in the recently-viewed section on the home page. The view insert
-     * and the page reads share one explicit Storm transaction.
+     * Loads the movie detail page for the visitor and records the visit, so
+     * the movie shows up in the recently-viewed section on the home page.
+     * The view is the site's, not the visitor's: that section is global. The
+     * view insert and the page reads share one explicit Storm transaction.
      */
-    suspend fun viewMovie(movieId: String): MovieDetail? = transaction {
+    suspend fun viewMovie(movieId: String, user: User): MovieDetail? = transaction {
         val movie = movieRepository.findById(movieId) ?: return@transaction null
         movieViewRepository.insert(MovieView(movie = movie, viewedAt = Instant.now()))
 
@@ -69,7 +74,10 @@ class MovieService(
             genres = movieGenreRepository.findGenres(movie),
             cast = cast,
             relatedMovies = relatedMovies,
-            onWatchlist = watchlistRepository.existsById(movie)
+            lists = MovieListState(
+                onWatchlist = watchlistRepository.contains(user, movie),
+                seen = movieSeenRepository.contains(user, movie)
+            )
         )
     }
 

@@ -5,10 +5,20 @@ import st.orm.demo.imdb.repository.DecadeMovieCount
 import st.orm.demo.imdb.repository.GenreRatingStatistics
 import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieRepository
+import st.orm.demo.imdb.repository.PersonRepository
 import st.orm.demo.imdb.repository.PrincipalRepository
 import st.orm.demo.imdb.repository.ProlificActor
 import st.orm.demo.imdb.serialization.KotlinxSerializedCache
 import st.orm.template.transaction
+
+/** The size of the catalogue: how many movies, actors, people and credits it holds. */
+@Serializable
+data class CatalogueTotals(
+    val movies: Long,
+    val actors: Long,
+    val people: Long,
+    val credits: Long
+)
 
 /**
  * Everything the statistics page shows. Serializable, including the Storm
@@ -17,6 +27,7 @@ import st.orm.template.transaction
  */
 @Serializable
 data class StatisticsView(
+    val totals: CatalogueTotals,
     val decades: List<DecadeMovieCount>,
     val maxDecadeCount: Long,
     val genreStatistics: List<GenreRatingStatistics>,
@@ -26,6 +37,7 @@ data class StatisticsView(
 class StatisticsService(
     private val movieRepository: MovieRepository,
     private val movieGenreRepository: MovieGenreRepository,
+    private val personRepository: PersonRepository,
     private val principalRepository: PrincipalRepository
 ) {
 
@@ -42,17 +54,29 @@ class StatisticsService(
      * lookup and the query path are coroutine-native, this is a plain suspend
      * function opening its transaction with the suspend `transaction { }`.
      */
-    suspend fun buildStatisticsView(): StatisticsView = cache.get(STATISTICS_CACHE) {
-        transaction(readOnly = true) {
-            val decades = movieRepository.countMoviesPerDecade()
-            StatisticsView(
-                decades = decades,
-                maxDecadeCount = decades.maxOfOrNull { it.movieCount } ?: 1L,
-                genreStatistics = movieGenreRepository.findGenreRatingStatistics(
-                    GENRE_MINIMUM_MOVIE_COUNT, GENRE_LIMIT),
-                prolificActors = principalRepository.findMostProlificActors(ACTOR_LIMIT)
-            )
-        }
+    suspend fun buildStatisticsView(): StatisticsView =
+        cache.get(STATISTICS_CACHE) { computeStatisticsView() }
+
+    /** Recomputes the view and replaces the cached one, once the data behind it has changed. */
+    suspend fun refreshStatisticsView() {
+        cache.put(STATISTICS_CACHE, computeStatisticsView())
+    }
+
+    private suspend fun computeStatisticsView(): StatisticsView = transaction(readOnly = true) {
+        val decades = movieRepository.countMoviesPerDecade()
+        StatisticsView(
+            totals = CatalogueTotals(
+                movies = movieRepository.count(),
+                actors = principalRepository.countActors(),
+                people = personRepository.count(),
+                credits = principalRepository.count()
+            ),
+            decades = decades,
+            maxDecadeCount = decades.maxOfOrNull { it.movieCount } ?: 1L,
+            genreStatistics = movieGenreRepository.findGenreRatingStatistics(
+                GENRE_MINIMUM_MOVIE_COUNT, GENRE_LIMIT),
+            prolificActors = principalRepository.findMostProlificActors(ACTOR_LIMIT)
+        )
     }
 
     companion object {

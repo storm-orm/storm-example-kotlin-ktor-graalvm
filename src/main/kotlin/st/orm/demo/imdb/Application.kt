@@ -19,22 +19,30 @@ import org.thymeleaf.context.IExpressionContext
 import org.thymeleaf.linkbuilder.StandardLinkBuilder
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver
 import io.ktor.http.HttpStatusCode
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import st.orm.InvalidCursorException
 import st.orm.NoResultException
 import st.orm.demo.imdb.service.GalleryRefreshProperties
-import st.orm.demo.imdb.service.ImdbDataImporter
+import st.orm.demo.imdb.service.ImdbDataSync
+import st.orm.demo.imdb.service.ImdbSyncProperties
 import st.orm.demo.imdb.service.StatisticsService
 import st.orm.demo.imdb.service.PersonGalleryService
+import st.orm.demo.imdb.web.configureAccounts
 import st.orm.demo.imdb.web.configureRouting
 import st.orm.ktor.Storm
 import st.orm.serialization.StormSerializers
+import java.time.Duration
+import java.time.LocalTime
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 
 /**
  * The application module: plugin setup, service wiring (Dependencies.kt),
- * routing (web/Routing.kt), and the streaming import on first startup.
+ * routing (web/Routing.kt), and the IMDB sync: the import on first startup, then daily.
  *
  * Referenced from application.conf (ktor.application.modules) and started by
  * Ktor's EngineMain.
@@ -44,19 +52,64 @@ fun Application.module() {
     configureStorm()
     configureDependencies()
     configureSerialization()
+    configureAccounts()
     configureTemplating()
     configureErrorHandling()
     configureRouting()
 
-    // Import the dataset on first startup (skipped once movie data is present),
-    // after Flyway and the Storm plugin are ready. Blocking startup until it
-    // finishes is intentional — the Ktor counterpart of Spring's ApplicationRunner.
-    val imdbDataImporter: ImdbDataImporter by dependencies
-    imdbDataImporter.import()
+    configureImdbSync()
 
     configureStatisticsWarmUp()
 
     configureGalleryRefresh()
+}
+
+/**
+ * IMDB republishes its dataset daily, so the catalogue is synced with it at startup and then once
+ * a day, at a fixed time (see ImdbDataSync). On an empty database the first sync is the initial
+ * import, and it runs before the application serves: blocking startup until it finishes is
+ * intentional, the Ktor counterpart of Spring's ApplicationRunner. With data present, the startup
+ * sync runs in the background instead, so a deploy applies a changed configuration and catches up
+ * on missed days without delaying startup. The background runs happen in the application's own
+ * scope, which cancels them at shutdown. A failed run is logged; the next one catches up, since a
+ * sync always brings the whole catalogue up to date.
+ */
+private fun Application.configureImdbSync() {
+    val properties: ImdbSyncProperties by dependencies
+    if (!properties.enabled) {
+        environment.log.info("IMDB sync disabled.")
+        return
+    }
+    val imdbDataSync: ImdbDataSync by dependencies
+    val statisticsService: StatisticsService by dependencies
+    suspend fun syncInBackground() {
+        try {
+            imdbDataSync.sync()
+            statisticsService.refreshStatisticsView()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            environment.log.error("IMDB sync failed.", e)
+        }
+    }
+    val imported = imdbDataSync.isEmpty()
+    if (imported) {
+        runBlocking { imdbDataSync.sync() }
+    }
+    launch {
+        if (!imported) syncInBackground()
+        while (isActive) {
+            delay(timeUntil(properties.dailyAt).toMillis())
+            syncInBackground()
+        }
+    }
+}
+
+/** The time from now until [time] of day in UTC, today or else tomorrow. */
+private fun timeUntil(time: LocalTime): Duration {
+    val now = ZonedDateTime.now(ZoneOffset.UTC)
+    val today = now.with(time)
+    return Duration.between(now, if (today.isAfter(now)) today else today.plusDays(1))
 }
 
 /**
@@ -156,7 +209,12 @@ private fun Application.configureStorm() {
                 .dataSource(it)
                 // Explicit resources instead of classpath scanning, which GraalVM
                 // native images do not support; see FlywayResources.
-                .resourceProvider(FlywayResources(listOf("db/migration/V1__create_schema.sql")))
+                .resourceProvider(FlywayResources(listOf(
+                    "db/migration/V1__create_schema.sql",
+                    "db/migration/V2__store_folded_titles.sql",
+                    "db/migration/V3__record_movie_additions.sql",
+                    "db/migration/V4__personal_accounts.sql"
+                )))
                 .load()
                 .migrate()
         }

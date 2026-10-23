@@ -6,7 +6,7 @@ import st.orm.GenerationStrategy.NONE
 import st.orm.PK
 import st.orm.Persist
 import st.orm.Ref
-import st.orm.template.ref
+import st.orm.template.entityId
 
 data class PrincipalPk(
     val movieId: String,
@@ -29,9 +29,9 @@ data class Principal(
     val category: String,
     val characters: String?
 ) : Entity<PrincipalPk> {
-    constructor(movie: Movie, ordering: Int, person: Person, category: String, characters: String?) : this(
-        id = PrincipalPk(movieId = movie.id, ordering = ordering),
-        movie = movie.ref(),
+    constructor(movie: Ref<Movie>, ordering: Int, person: Person, category: String, characters: String?) : this(
+        id = PrincipalPk(movieId = movie.entityId(), ordering = ordering),
+        movie = movie,
         person = person,
         ordering = ordering,
         category = category,

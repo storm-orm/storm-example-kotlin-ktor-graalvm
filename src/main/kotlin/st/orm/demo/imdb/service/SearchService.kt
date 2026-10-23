@@ -1,38 +1,40 @@
 package st.orm.demo.imdb.service
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import st.orm.Scrollable
 import st.orm.Window
-import st.orm.demo.imdb.model.MovieSummary
-import st.orm.demo.imdb.model.PersonSummary
-import st.orm.demo.imdb.model.PersonSummary_
-import st.orm.demo.imdb.repository.MovieSummaryRepository
-import st.orm.demo.imdb.repository.PersonSummaryRepository
+import st.orm.demo.imdb.model.Movie
+import st.orm.demo.imdb.model.Person
+import st.orm.demo.imdb.model.Person_
+import st.orm.demo.imdb.repository.MovieRepository
+import st.orm.demo.imdb.repository.PersonRepository
 import st.orm.template.transaction
 
 /** The first result windows of both search sections. */
 data class SearchResults(
-    val movieWindow: Window<MovieSummary>,
-    val personWindow: Window<PersonSummary>
+    val movieWindow: Window<Movie>,
+    val personWindow: Window<Person>
 )
 
 /** Auto-complete suggestions for both types. */
 data class Suggestions(
-    val movies: List<MovieSummary>,
-    val persons: List<PersonSummary>
+    val movies: List<Movie>,
+    val persons: List<Person>
 )
 
 class SearchService(
-    private val movieSummaryRepository: MovieSummaryRepository,
-    private val personSummaryRepository: PersonSummaryRepository
+    private val movieRepository: MovieRepository,
+    private val personRepository: PersonRepository
 ) {
 
     /** The search page: both first windows in one read-only transaction. */
     suspend fun search(query: String): SearchResults = transaction(readOnly = true) {
         SearchResults(
-            movieWindow = movieSummaryRepository.searchMovies(
-                query, MovieSummaryRepository.mostVotedFirst(MOVIE_PAGE_SIZE)),
-            personWindow = personSummaryRepository.searchByName(
-                query, Scrollable.of(PersonSummary_.id, PERSON_PAGE_SIZE))
+            movieWindow = movieRepository.searchMovies(
+                query, MovieRepository.mostVotedFirst(MOVIE_PAGE_SIZE)),
+            personWindow = personRepository.searchByName(
+                query, Scrollable.of(Person_.id, PERSON_PAGE_SIZE))
         )
     }
 
@@ -42,31 +44,44 @@ class SearchService(
      * value resumes exactly where the client left off. Purely server-side
      * navigation would use window.next() instead — no cursor involved.
      */
-    fun scrollMovies(query: String, cursor: String?): Window<MovieSummary> {
+    fun scrollMovies(query: String, cursor: String?): Window<Movie> {
         val scrollable = if (cursor != null) {
-            MovieSummaryRepository.mostVotedFirst(MOVIE_PAGE_SIZE).from(cursor)
+            MovieRepository.mostVotedFirst(MOVIE_PAGE_SIZE).from(cursor)
         } else {
-            MovieSummaryRepository.mostVotedFirst(MOVIE_PAGE_SIZE)
+            MovieRepository.mostVotedFirst(MOVIE_PAGE_SIZE)
         }
-        return movieSummaryRepository.searchMovies(query, scrollable)
+        return movieRepository.searchMovies(query, scrollable)
     }
 
     /** The next window of person results — same cursor contract as [scrollMovies]. */
-    fun scrollPersons(query: String, cursor: String?): Window<PersonSummary> {
+    fun scrollPersons(query: String, cursor: String?): Window<Person> {
         val scrollable = if (cursor != null) {
-            Scrollable.of(PersonSummary_.id, PERSON_PAGE_SIZE).from(cursor)
+            Scrollable.of(Person_.id, PERSON_PAGE_SIZE).from(cursor)
         } else {
-            Scrollable.of(PersonSummary_.id, PERSON_PAGE_SIZE)
+            Scrollable.of(Person_.id, PERSON_PAGE_SIZE)
         }
-        return personSummaryRepository.searchByName(query, scrollable)
+        return personRepository.searchByName(query, scrollable)
     }
 
-    /** Auto-complete: movie and person suggestions in one read-only transaction. */
-    suspend fun findSuggestions(query: String): Suggestions = transaction(readOnly = true) {
-        Suggestions(
-            movies = movieSummaryRepository.findMovieSuggestions(query, MOVIE_SUGGESTION_LIMIT),
-            persons = personSummaryRepository.findNameSuggestions(query, PERSON_SUGGESTION_LIMIT)
-        )
+    /**
+     * Auto-complete: movie and person suggestions. The box queries on every
+     * keystroke, so the two queries run concurrently, each in a read-only
+     * transaction of its own on a connection of its own, and the response
+     * waits for the slower one instead of for both in turn. The two lists
+     * need no common snapshot.
+     */
+    suspend fun findSuggestions(query: String): Suggestions = coroutineScope {
+        val movies = async {
+            transaction(readOnly = true) {
+                movieRepository.findMovieSuggestions(query, MOVIE_SUGGESTION_LIMIT)
+            }
+        }
+        val persons = async {
+            transaction(readOnly = true) {
+                personRepository.findNameSuggestions(query, PERSON_SUGGESTION_LIMIT)
+            }
+        }
+        Suggestions(movies = movies.await(), persons = persons.await())
     }
 
     companion object {

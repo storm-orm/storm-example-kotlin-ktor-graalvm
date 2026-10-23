@@ -80,6 +80,21 @@
     </div>
 </section>
 
+<!-- Seen -->
+<section class="section" th:if="${!view.seenEntries.isEmpty()}" id="seen-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Seen</h2>
+            <a class="section-link" th:href="@{/seen}">View all →</a>
+        </div>
+        <div class="movie-row">
+            <th:block th:each="entry : ${view.seenEntries}">
+                <a th:replace="~{fragments/cards :: movie(${entry.movie.id}, ${entry.movie.primaryTitle}, ${entry.movie.startYear})}"></a>
+            </th:block>
+        </div>
+    </div>
+</section>
+
 <!-- Recently viewed -->
 <section class="section" th:if="${!view.recentlyViewed.isEmpty()}" id="recently-viewed-section">
     <div class="container">

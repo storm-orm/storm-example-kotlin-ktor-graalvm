@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Sign in')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('signin')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <h1 class="page-title">Sign in</h1>
+        <p class="page-subtitle">Your watchlist and seen list already work in this browser. Sign in with a git account to keep them on every device.</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container">
+        <div class="empty-state" th:if="${failure == 'expired'}">The sign-in took too long or was started elsewhere. Please try again.</div>
+        <div class="empty-state" th:if="${failure == 'denied'}">The sign-in was cancelled at the provider.</div>
+        <div class="empty-state" th:if="${failure == 'refused'}">The provider did not complete the sign-in. Please try again.</div>
+
+        <div class="empty-state" th:if="${providers.isEmpty()}">
+            No sign-in providers are configured for this deployment.
+        </div>
+        <div class="signin-providers" th:unless="${providers.isEmpty()}">
+            <a class="button signin-button" th:each="provider : ${providers}"
+               th:href="@{/signin/{key}(key=${provider.key}, rd=${returnTo})}"
+               th:text="|Continue with ${provider.label}|">Continue with GitHub</a>
+        </div>
+        <p class="account-hint">
+            The application reads only the account's id, login name, display name and avatar. Nothing is written to the provider.
+        </p>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

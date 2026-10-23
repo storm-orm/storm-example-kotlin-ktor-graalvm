@@ -4,14 +4,16 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import st.orm.demo.imdb.model.Genre
 import st.orm.demo.imdb.model.Movie
+import st.orm.demo.imdb.model.MovieAddition
 import st.orm.demo.imdb.model.MovieGenre
-import st.orm.demo.imdb.model.MovieSummary
+import st.orm.demo.imdb.model.MovieSeen
 import st.orm.demo.imdb.model.MovieView
 import st.orm.demo.imdb.model.Person
 import st.orm.demo.imdb.model.PersonGallery
-import st.orm.demo.imdb.model.PersonSummary
 import st.orm.demo.imdb.model.Principal
 import st.orm.demo.imdb.model.Rating
+import st.orm.demo.imdb.model.User
+import st.orm.demo.imdb.model.UserLogin
 import st.orm.demo.imdb.model.Watchlist
 import st.orm.template.ORMTemplate
 import st.orm.test.StormTest
@@ -27,7 +29,7 @@ import st.orm.test.TestDatabase
  * container starts once per test run; the class receives a database of its
  * own inside it.
  */
-@StormTest(database = TestDatabase.POSTGRESQL, scripts = ["/db/migration/V1__create_schema.sql"])
+@StormTest(database = TestDatabase.POSTGRESQL, scripts = ["/db/migration/V1__create_schema.sql", "/db/migration/V2__store_folded_titles.sql", "/db/migration/V3__record_movie_additions.sql", "/db/migration/V4__personal_accounts.sql"])
 class EntitySchemaValidationTest {
 
     @Test
@@ -39,11 +41,13 @@ class EntitySchemaValidationTest {
             Person::class,
             Principal::class,
             Rating::class,
+            MovieAddition::class,
             MovieView::class,
+            User::class,
+            UserLogin::class,
             Watchlist::class,
-            PersonGallery::class,
-            MovieSummary::class,
-            PersonSummary::class
+            MovieSeen::class,
+            PersonGallery::class
         )
         assertTrue(errors.isEmpty()) { "Schema validation errors: $errors" }
     }

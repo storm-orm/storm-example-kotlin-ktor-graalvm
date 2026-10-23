@@ -1,12 +1,12 @@
 // Client-side behavior for the Storm IMDB demo: search auto-complete with
-// debounce + abort, keyset-cursor infinite scrolling, and the watchlist
-// toggle. No frameworks — the interesting part of this demo is the backend.
+// debounce + abort, keyset-cursor infinite scrolling, and the watchlist and
+// seen toggles. No frameworks — the interesting part of this demo is the backend.
 
 document.addEventListener('DOMContentLoaded', () => {
     setupSearchBoxes();
     setupSearchShortcut();
     setupInfiniteScroll();
-    setupWatchlistToggle();
+    setupListToggles();
     setupSummaries();
     setupBackdrops();
     setupGalleries();
@@ -318,7 +318,7 @@ function setupInfiniteScroll() {
                     return;
                 }
                 const window_ = await response.json();
-                window_.items.forEach(item => target.appendChild(renderCard(sentinel.dataset.kind, item)));
+                window_.items.forEach(item => appendItem(sentinel.dataset.kind, target, item));
                 if (window_.nextCursor && window_.items.length > 0) {
                     sentinel.dataset.cursor = window_.nextCursor;
                     // Re-observe so a still-visible sentinel triggers the next window.
@@ -344,6 +344,37 @@ function setupInfiniteScroll() {
 
 function renderCard(kind, item) {
     return kind === 'person' ? personCard(item) : movieCard(item);
+}
+
+/**
+ * Appends an item of a window to the target. A movie of the recently added
+ * page goes under the day it joined the catalogue: the last day on the page
+ * when it is that day, a new day otherwise, so a day that continues in the
+ * next window continues on the page. Anything else is a card in a grid.
+ */
+function appendItem(kind, target, item) {
+    if (kind !== 'addition') {
+        target.appendChild(renderCard(kind, item));
+        return;
+    }
+    let day = target.lastElementChild;
+    if (!day || day.dataset.day !== item.day) {
+        day = document.createElement('section');
+        day.className = 'day-group';
+        day.dataset.day = item.day;
+        const header = document.createElement('div');
+        header.className = 'section-header';
+        const title = document.createElement('h2');
+        title.className = 'section-title';
+        title.textContent = item.day;
+        header.appendChild(title);
+        day.appendChild(header);
+        const grid = document.createElement('div');
+        grid.className = 'movie-grid';
+        day.appendChild(grid);
+        target.appendChild(day);
+    }
+    day.querySelector('.movie-grid').appendChild(movieCard(item));
 }
 
 function movieCard(movie) {
@@ -410,21 +441,31 @@ function personCard(person) {
     return card;
 }
 
-/* ── Watchlist toggle ─────────────────────────────────────────────── */
+/* ── Watchlist and seen toggles ───────────────────────────────────── */
 
-function setupWatchlistToggle() {
-    document.querySelectorAll('[data-watchlist-toggle]').forEach(button => {
+// Both toggles answer with the state of both lists: marking a movie seen
+// takes it off the watchlist, so the other button follows.
+function setupListToggles() {
+    const buttons = document.querySelectorAll('[data-list-toggle]');
+    const render = state => {
+        buttons.forEach(button => {
+            const onList = button.dataset.listToggle === 'watchlist' ? state.onWatchlist : state.seen;
+            button.classList.toggle('active', onList);
+            const label = button.querySelector('span');
+            label.textContent = button.dataset.listToggle === 'watchlist'
+                ? (onList ? 'On watchlist' : 'Add to watchlist')
+                : (onList ? 'Seen' : 'Mark as seen');
+        });
+    };
+    buttons.forEach(button => {
         button.addEventListener('click', async () => {
-            button.disabled = true;
+            buttons.forEach(other => other.disabled = true);
             try {
-                const response = await fetch('/api/watchlist/' + button.dataset.movieId, { method: 'POST' });
+                const response = await fetch('/api/' + button.dataset.listToggle + '/' + button.dataset.movieId, { method: 'POST' });
                 if (!response.ok) return;
-                const state = await response.json();
-                button.classList.toggle('active', state.onWatchlist);
-                button.querySelector('[data-watchlist-label]').textContent =
-                    state.onWatchlist ? 'On watchlist' : 'Add to watchlist';
+                render(await response.json());
             } finally {
-                button.disabled = false;
+                buttons.forEach(other => other.disabled = false);
             }
         });
     });

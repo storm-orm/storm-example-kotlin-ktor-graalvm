@@ -12,6 +12,7 @@ import st.orm.demo.imdb.serialization.BigDecimalAsStringSerializer
 import st.orm.repository.EntityRepository
 import st.orm.repository.select
 import st.orm.template.eq
+import st.orm.template.inList
 import java.math.BigDecimal
 
 /**
@@ -28,6 +29,10 @@ data class GenreRatingStatistics(
 )
 
 interface MovieGenreRepository : EntityRepository<MovieGenre, MovieGenrePk> {
+
+    /** The genre links of several movies at once. */
+    fun findByMovies(movies: List<Movie>) =
+        findAll(MovieGenre_.movie inList movies)
 
     /** The genres of a single movie, for the movie detail page. */
     fun findGenres(movie: Movie) =

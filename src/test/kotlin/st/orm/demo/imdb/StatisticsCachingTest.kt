@@ -51,6 +51,7 @@ class StatisticsCachingTest {
     private fun statisticsService(orm: ORMTemplate) = StatisticsService(
         movieRepository = orm.repository(),
         movieGenreRepository = orm.repository(),
+        personRepository = orm.repository(),
         principalRepository = orm.repository()
     )
 }

@@ -10,8 +10,8 @@ fun Route.watchlistRoutes(watchlistService: WatchlistService) {
     get("/watchlist") {
         val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
         // Page numbers in the URL are 1-based; Storm pages are 0-based.
-        val watchlistPage = watchlistService.findPage((page - 1).coerceAtLeast(0))
-        call.respond(
+        val watchlistPage = watchlistService.findPage(call.currentUser(), (page - 1).coerceAtLeast(0))
+        call.respondPage(
             ThymeleafContent(
                 "watchlist",
                 mapOf(

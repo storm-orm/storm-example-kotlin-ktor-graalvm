@@ -11,12 +11,32 @@
     </div>
 </header>
 
+<section class="section" id="catalogue-totals">
+    <div class="container stat-chips">
+        <div class="stat-chip">
+            <div class="value" th:text="${#numbers.formatInteger(totals.movies, 1, 'COMMA')}">49,346</div>
+            <div class="label">Movies</div>
+        </div>
+        <div class="stat-chip">
+            <div class="value" th:text="${#numbers.formatInteger(totals.actors, 1, 'COMMA')}">180,000</div>
+            <div class="label">Actors</div>
+        </div>
+        <div class="stat-chip">
+            <div class="value" th:text="${#numbers.formatInteger(totals.people, 1, 'COMMA')}">329,425</div>
+            <div class="label">Cast &amp; crew</div>
+        </div>
+        <div class="stat-chip">
+            <div class="value" th:text="${#numbers.formatInteger(totals.credits, 1, 'COMMA')}">1,000,000</div>
+            <div class="label">Credits</div>
+        </div>
+    </div>
+</section>
+
 <section class="section">
     <div class="container stats-grid">
 
         <div class="stat-card" id="decades-card">
             <h2>Movies per Decade</h2>
-            <div class="stat-sub">GROUP BY on a computed decade bucket</div>
             <div class="bar-row" th:each="decadeCount : ${decades}">
                 <span th:text="|${decadeCount.decade}s|">1990s</span>
                 <div class="bar-track">
@@ -29,7 +49,6 @@
 
         <div class="stat-card" id="genres-card">
             <h2>Top Genres by Rating</h2>
-            <div class="stat-sub">GROUP BY + HAVING: genres with at least 50 rated movies</div>
             <div class="stat-row" th:each="genreStat : ${genreStatistics}">
                 <a class="genre-chip" th:href="@{/browse/{name}(name=${genreStat.genre.name})}"
                    th:text="${genreStat.genre.name}">Genre</a>
@@ -46,7 +65,6 @@
 
         <div class="stat-card" id="actors-card">
             <h2>Most Prolific Actors</h2>
-            <div class="stat-sub">COUNT of credits, ordered descending</div>
             <a class="stat-row" th:each="actor, iteration : ${prolificActors}"
                th:href="@{/person/{id}(id=${actor.person.id})}">
                 <span class="rank-number" th:text="${iteration.count}">1</span>

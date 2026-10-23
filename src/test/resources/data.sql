@@ -14,6 +14,15 @@ INSERT INTO movie (id, primary_title, original_title, start_year, runtime_minute
     ('tt0068646', 'The Godfather', 'The Godfather', 1972, 175),
     ('tt0211915', 'Amélie', 'Le Fabuleux Destin d''Amélie Poulain', 2001, 122);
 
+-- Four movies joined the catalogue after it was created, two a day in one sync
+-- run each: the two of a day share the moment, as the rows of a sync's chunk do.
+-- The Godfather and Amélie were there from the start and have no addition.
+INSERT INTO movie_addition (movie_id, added_at) VALUES
+    ('tt0133093', TIMESTAMP '2026-07-03 03:00:00'),
+    ('tt0234215', TIMESTAMP '2026-07-03 03:00:00'),
+    ('tt0111161', TIMESTAMP '2026-07-02 03:00:00'),
+    ('tt0110912', TIMESTAMP '2026-07-02 03:00:00');
+
 INSERT INTO movie_genre (movie_id, genre_id) VALUES
     ('tt0133093', 1),
     ('tt0133093', 3),
