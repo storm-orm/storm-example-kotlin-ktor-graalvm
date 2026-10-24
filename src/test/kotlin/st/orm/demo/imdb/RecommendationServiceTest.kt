@@ -76,13 +76,16 @@ class RecommendationServiceTest {
         val page = runBlocking { service.forYou(user) }
 
         assertTrue(home.personal)
-        assertEquals("The Matrix Reloaded", home.watchNext.first().movie.primaryTitle)
         assertEquals(listOf("The Matrix"), home.shelves.map { it.seed.primaryTitle })
         assertEquals("Because you saw The Matrix", home.shelves.single().title)
         assertEquals(listOf("The Matrix Reloaded"), home.shelves.single().movies.map { it.movie.primaryTitle })
         assertTrue(page.personal)
-        assertEquals(home.watchNext.map { it.movie.id }, page.movies.map { it.movie.id })
+        assertEquals("The Matrix Reloaded", page.movies.first().movie.primaryTitle)
         assertNull(page.nextCursor)
+        // The featured movie is one of the For You picks, and the row under it leaves it out.
+        val featured = home.featured!!.movie.id
+        assertTrue(featured in page.movies.map { it.movie.id })
+        assertEquals(page.movies.map { it.movie.id } - featured, home.watchNext.map { it.movie.id })
     }
 
     @Test
@@ -95,6 +98,8 @@ class RecommendationServiceTest {
 
         assertFalse(home.personal)
         assertTrue(home.shelves.isEmpty())
+        assertTrue(home.featured!!.movie.id in page.movies.map { it.movie.id })
+        assertFalse(home.featured!!.movie.id in home.watchNext.map { it.movie.id })
         assertEquals(6, page.movies.size)
         assertTrue(page.movies.all { pick -> pick.reasons.all { it.kind == ReasonKind.RATING } })
         // The best-rated movie leads: nothing personal weighs in.

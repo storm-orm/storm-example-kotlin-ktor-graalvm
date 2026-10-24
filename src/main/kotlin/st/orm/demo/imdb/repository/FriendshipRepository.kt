@@ -18,6 +18,10 @@ interface FriendshipRepository : EntityRepository<Friendship, FriendshipPk> {
             .orderBy(Friendship_.friend.name)
             .resultList
 
+    /** Whether two users are friends. */
+    fun areFriends(user: User, other: User): Boolean =
+        existsById(FriendshipPk(userId = user.id, friendId = other.id))
+
     /** Makes two users friends, both ways; a direction that exists already stays as it is. */
     fun befriend(user: User, friend: User, since: Instant) {
         insert(listOf(Friendship(user, friend, since), Friendship(friend, user, since)).filterNot { existsById(it.id) })

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Clubs')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('community')}"></nav>
+
+<header th:replace="~{fragments/community :: header('clubs', 'Film clubs: coworkers, or a group of friends, who see what the others watched.')}"></header>
+
+<!-- Clubs need a signed-in account, as friends do. -->
+<section class="section" th:if="${view == null}">
+    <div class="container">
+        <div class="empty-state" id="clubs-signin">
+            Sign in to start a club or join one.
+            <a th:href="@{/signin(rd='/clubs')}">Sign in</a>, with GitHub, or with Freepod if you have no GitHub account.
+        </div>
+    </div>
+</section>
+
+<th:block th:if="${view != null}">
+<section class="section">
+    <div class="container friends-grid">
+        <div class="stat-card" id="clubs-card">
+            <div class="notice" th:if="${closed}">You were the last member, so the club is closed.</div>
+            <h2>Your clubs</h2>
+            <div class="empty-state" th:if="${view.clubs.isEmpty()}">
+                No clubs yet. Start one below, or ask a club's admin for an invite link.
+            </div>
+            <a class="stat-row club-row" th:each="summary : ${view.clubs}" th:href="@{/clubs/{id}(id=${summary.membership.club.id})}">
+                <span class="club-name" th:text="${summary.membership.club.name}">Office film club</span>
+                <span class="stat-end">
+                    <span class="role-badge" th:if="${summary.membership.admin}">Admin</span>
+                    <span class="stat-note" th:text="${summary.memberCount == 1} ? '1 member' : |${summary.memberCount} members|">4 members</span>
+                </span>
+            </a>
+            <!-- Starting a club makes the visitor its first admin. -->
+            <form class="club-create" th:action="@{/clubs}" method="post">
+                <input type="text" name="name" required maxlength="60" placeholder="Name, e.g. Office film club" aria-label="Club name">
+                <button type="submit" class="button button-primary">Start a club</button>
+            </form>
+        </div>
+
+        <!-- What members see of the visitor in every club not set apart. Dates start off: members are not always friends. -->
+        <form class="stat-card" id="club-sharing-card" th:action="@{/clubs/sharing}" method="post">
+            <h2>What you share in clubs</h2>
+            <p class="stat-note">In every club, unless you set one apart on its page. Members see who is in a club either way.</p>
+            <th:block th:replace="~{fragments/community :: switches(${view.defaults.clubShareSeen}, ${view.defaults.clubShareName}, ${view.defaults.clubShareDates}, 'Members', 'a member\'s')}"></th:block>
+            <button type="submit" class="button">Save</button>
+        </form>
+    </div>
+</section>
+</th:block>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

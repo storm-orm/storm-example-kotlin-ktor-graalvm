@@ -9,6 +9,7 @@ import st.orm.template.eq
 import st.orm.template.less
 import java.time.Instant
 
+/** The invites to be friends: the invite rows of the kind 'friend', which only these queries see. */
 interface FriendInviteRepository : EntityRepository<FriendInvite, String> {
 
     /** The user's public invite link, if they made one. */

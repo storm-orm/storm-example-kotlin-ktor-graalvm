@@ -61,6 +61,8 @@ data class Shelf(val seed: Movie, val title: String, val movies: List<Recommende
 data class HomeRecommendations(
     /** Whether the picks come from the visitor's own lists rather than the catalogue's. */
     val personal: Boolean,
+    /** The hero at the top of the page: one of the best picks, at random, so each visit opens on another. */
+    val featured: RecommendedMovie?,
     val watchNext: List<RecommendedMovie>,
     val shelves: List<Shelf>
 )
@@ -142,19 +144,30 @@ class RecommendationService(
 
     /**
      * The recommendation sections of the home page for the visitor. The
-     * picks shown count as shown ([markShown]).
+     * featured movie is drawn at random from the picks the For You page
+     * opens with, and the row under it leaves it out. The picks shown count
+     * as shown ([markShown]).
      */
     suspend fun forHome(user: User): HomeRecommendations = transaction(readOnly = true) {
         val recommendations = recommendationRepository.findAll(user)
         if (recommendations.isEmpty()) {
             refreshIfSeeded(user)
-            HomeRecommendations(personal = false, watchNext = coldStartPicks().take(WATCH_NEXT_LIMIT), shelves = emptyList())
+            val picks = coldStartPicks()
+            val featured = picks.take(PAGE_SIZE).randomOrNull()
+            HomeRecommendations(
+                personal = false,
+                featured = featured,
+                watchNext = picks.filter { it != featured }.take(WATCH_NEXT_LIMIT),
+                shelves = emptyList()
+            )
         } else {
-            val watchNext = recommendations.take(WATCH_NEXT_LIMIT)
+            val featured = recommendations.take(PAGE_SIZE).random()
+            val watchNext = (recommendations - featured).take(WATCH_NEXT_LIMIT)
             val shelves = shelves(recommendations)
-            markShown(user, (watchNext + shelves.flatMap { it.picks }).distinctBy { it.movie.id }, Instant.now())
+            markShown(user, (listOf(featured) + watchNext + shelves.flatMap { it.picks }).distinctBy { it.movie.id }, Instant.now())
             HomeRecommendations(
                 personal = true,
+                featured = featured.toRecommendedMovie(),
                 watchNext = watchNext.map { it.toRecommendedMovie() },
                 shelves = shelves.map { Shelf(it.seed, it.title, it.picks.map { pick -> pick.toRecommendedMovie() }) }
             )

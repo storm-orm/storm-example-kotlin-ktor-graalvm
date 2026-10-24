@@ -2,14 +2,9 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('Friends')}"></head>
 <body>
-<nav th:replace="~{fragments/layout :: navbar('friends')}"></nav>
+<nav th:replace="~{fragments/layout :: navbar('community')}"></nav>
 
-<header class="page-header">
-    <div class="container">
-        <h1 class="page-title">Friends</h1>
-        <p class="page-subtitle">See what your friends watched lately, as far as each of them shares it.</p>
-    </div>
-</header>
+<header th:replace="~{fragments/community :: header('friends', 'See what your friends watched lately, as far as each of them shares it.')}"></header>
 
 <!-- Friends need a signed-in account: who invites whom has to be someone. -->
 <section class="section" th:if="${view == null}">
@@ -22,6 +17,36 @@
 </section>
 
 <th:block th:if="${view != null}">
+<!-- Requests from club members, until accepted or put off: "not now" is never told to the one who asked. -->
+<section class="section" th:unless="${view.requests.isEmpty()}">
+    <div class="container">
+        <div class="stat-card" id="requests-card">
+            <h2>Friend requests</h2>
+            <p class="stat-note">
+                Accepting shares with them what you share with your friends, below. Not now hides the request;
+                they are not told.
+            </p>
+            <div class="stat-row request-row" th:each="request : ${view.requests}">
+                <span class="friend-name">
+                    <span th:replace="~{fragments/community :: avatar(${request.requester}, '')}"></span>
+                    <span>
+                        <span th:text="${request.requester.name}">Bob</span>
+                        <span class="stat-note" th:text="|from ${request.club.name}|">from Office film club</span>
+                    </span>
+                </span>
+                <span class="stat-end">
+                    <form th:action="@{/friends/requests/{userId}/accept(userId=${request.requester.id})}" method="post">
+                        <button type="submit" class="button button-small button-primary">Accept</button>
+                    </form>
+                    <form th:action="@{/friends/requests/{userId}/dismiss(userId=${request.requester.id})}" method="post">
+                        <button type="submit" class="link-button">Not now</button>
+                    </form>
+                </span>
+            </div>
+        </div>
+    </div>
+</section>
+
 <section class="section">
     <div class="container">
         <div class="notice" th:if="${added}">You are friends now.</div>
@@ -33,7 +58,7 @@
         </div>
         <div class="movie-grid" id="friends-feed">
             <th:block th:each="item : ${view.feed}">
-                <a th:replace="~{fragments/cards :: friendSeen(${item})}"></a>
+                <a th:replace="~{fragments/cards :: sharedCheckIn(${item})}"></a>
             </th:block>
         </div>
     </div>
@@ -45,22 +70,31 @@
             <h2>Your friends</h2>
             <p class="stat-note">
                 Invite one friend with a personal link, accepted once within two weeks, or post your public link
-                anywhere: everyone who accepts it becomes your friend, until you replace it.
+                anywhere: everyone who accepts it becomes your friend, until you replace it. In a club, ask a member
+                by their name. Removing a friend ends it both ways; they are not told.
             </p>
-            <div class="empty-state" th:if="${view.friends.isEmpty()}">No friends yet.</div>
+            <div class="empty-state" th:if="${view.friends.isEmpty() and view.sent.isEmpty()}">No friends yet.</div>
             <div class="stat-row" th:each="friend : ${view.friends}">
                 <span class="friend-name">
-                    <span class="nav-account-icon">
-                        <img th:if="${friend.avatarUrl != null}" th:src="${friend.avatarUrl}" alt="">
-                        <span th:unless="${friend.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(friend.name, 0, 1))}">A</span>
-                    </span>
+                    <span th:replace="~{fragments/community :: avatar(${friend}, '')}"></span>
                     <span th:text="${friend.name}">Alice</span>
                 </span>
                 <form class="stat-end" th:action="@{/friends/{id}/remove(id=${friend.id})}" method="post">
                     <button type="submit" class="link-button">Remove</button>
                 </form>
             </div>
-            <div class="invite">
+            <!-- The requests sent to club members, until accepted or withdrawn. -->
+            <div class="stat-row" th:each="request : ${view.sent}">
+                <span class="friend-name">
+                    <span th:replace="~{fragments/community :: avatar(${request.recipient}, '')}"></span>
+                    <span th:text="${request.recipient.name}">Carol</span>
+                    <span class="friend-requested">Requested</span>
+                </span>
+                <form class="stat-end" th:action="@{/friends/requests/{userId}/withdraw(userId=${request.recipient.id})}" method="post">
+                    <button type="submit" class="link-button">Withdraw</button>
+                </form>
+            </div>
+            <div class="invite" data-invite-title="Be my friend on Storm Movies">
                 <div class="invite-buttons">
                     <button type="button" class="button button-primary" data-invite="/api/friends/invite">Invite a friend</button>
                     <button type="button" class="button" data-invite="/api/friends/public-invite">Share public link</button>
@@ -74,18 +108,7 @@
         <form class="stat-card" id="sharing-card" th:action="@{/friends/sharing}" method="post">
             <h2>What you share</h2>
             <p class="stat-note">With your friends only; nobody else sees any of it.</p>
-            <label class="switch-row">
-                <input type="checkbox" name="shareSeen" th:checked="${view.sharing.shareSeen}">
-                <span><strong>What you watch</strong><br>Your friends see the movies you mark as seen.</span>
-            </label>
-            <label class="switch-row">
-                <input type="checkbox" name="shareName" th:checked="${view.sharing.shareName}">
-                <span><strong>That it's you</strong><br>Off, your movies show as a friend's, without your name.</span>
-            </label>
-            <label class="switch-row">
-                <input type="checkbox" name="shareDates" th:checked="${view.sharing.shareDates}">
-                <span><strong>When you watched</strong><br>Off, your movies show without the day.</span>
-            </label>
+            <th:block th:replace="~{fragments/community :: switches(${view.sharing.shareSeen}, ${view.sharing.shareName}, ${view.sharing.shareDates}, 'Your friends', 'a friend\'s')}"></th:block>
             <button type="submit" class="button">Save</button>
         </form>
     </div>

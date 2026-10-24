@@ -1,12 +1,13 @@
 package st.orm.demo.imdb
 
 import st.orm.demo.imdb.model.CheckIn
+import st.orm.demo.imdb.repository.ClubMemberRepository
+import st.orm.demo.imdb.repository.ClubRepository
+import st.orm.demo.imdb.repository.FriendRequestRepository
 import st.orm.demo.imdb.repository.CheckInRepository
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import st.orm.demo.imdb.model.MovieSeen
 import st.orm.demo.imdb.repository.FriendInviteRepository
@@ -15,7 +16,6 @@ import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.UserRepository
 import st.orm.demo.imdb.service.FriendService
-import st.orm.demo.imdb.service.InviteState
 import st.orm.repository.repository
 import st.orm.template.ORMTemplate
 import st.orm.test.StormTest
@@ -28,64 +28,12 @@ class FriendServiceTest {
         orm.repository<UserRepository>(),
         orm.repository<FriendshipRepository>(),
         orm.repository<FriendInviteRepository>(),
+        orm.repository<FriendRequestRepository>(),
+        orm.repository<ClubRepository>(),
+        orm.repository<ClubMemberRepository>(),
         orm.repository<MovieSeenRepository>(),
         orm.repository<CheckInRepository>()
     )
-
-    @Test
-    fun `an invite link, once accepted, makes two friends, and is used up`(orm: ORMTemplate) {
-        val service = service(orm)
-        val alice = orm.insertUser("alice", name = "Alice")
-        val bob = orm.insertUser("bob", name = "Bob")
-        val token = runBlocking { service.createInvite(alice) }
-
-        assertEquals(InviteState.Own, runBlocking { service.invite(token, alice) })
-        assertEquals(InviteState.Open(alice), runBlocking { service.invite(token, bob) })
-        assertFalse(runBlocking { service.accept(token, alice) })
-        assertTrue(runBlocking { service.accept(token, bob) })
-
-        assertEquals(listOf("Bob"), runBlocking { service.friendsOf(alice) }.friends.map { it.name })
-        assertEquals(listOf("Alice"), runBlocking { service.friendsOf(bob) }.friends.map { it.name })
-        assertEquals(InviteState.Gone, runBlocking { service.invite(token, bob) })
-
-        // Either side ends it, both ways.
-        runBlocking { service.remove(bob, alice.id) }
-        assertTrue(runBlocking { service.friendsOf(alice) }.friends.isEmpty())
-    }
-
-    @Test
-    fun `a public link befriends everyone who accepts it, until it is replaced`(orm: ORMTemplate) {
-        val service = service(orm)
-        val alice = orm.insertUser("alice", name = "Alice")
-        val bob = orm.insertUser("bob", name = "Bob")
-        val carol = orm.insertUser("carol", name = "Carol")
-        val dave = orm.insertUser("dave", name = "Dave")
-        val link = runBlocking { service.publicInvite(alice) }
-        // Asked again, it is the same link; a year on it still works.
-        assertEquals(link, runBlocking { service.publicInvite(alice) })
-        val later = Instant.now().plus(java.time.Duration.ofDays(365))
-
-        assertTrue(runBlocking { service.accept(link, bob) })
-        assertTrue(runBlocking { service.accept(link, carol, now = later) })
-        assertEquals(listOf("Bob", "Carol"), runBlocking { service.friendsOf(alice) }.friends.map { it.name })
-
-        // Replaced, the old link stops working.
-        val replaced = runBlocking { service.replacePublicInvite(alice) }
-        assertEquals(InviteState.Gone, runBlocking { service.invite(link, dave) })
-        assertEquals(InviteState.Open(alice), runBlocking { service.invite(replaced, dave) })
-    }
-
-    @Test
-    fun `an invite expires after two weeks`(orm: ORMTemplate) {
-        val service = service(orm)
-        val alice = orm.insertUser("alice", name = "Alice")
-        val bob = orm.insertUser("bob", name = "Bob")
-        val created = Instant.parse("2026-10-01T10:00:00Z")
-        val token = runBlocking { service.createInvite(alice, now = created) }
-
-        assertEquals(InviteState.Gone, runBlocking { service.invite(token, bob, now = created.plus(FriendService.INVITE_VALIDITY).plusSeconds(1)) })
-        assertFalse(runBlocking { service.accept(token, bob, now = created.plus(FriendService.INVITE_VALIDITY).plusSeconds(1)) })
-    }
 
     @Test
     fun `friends see what a friend watched as far as the friend shares it`(orm: ORMTemplate) {
@@ -95,8 +43,9 @@ class FriendServiceTest {
         val alice = orm.insertUser("alice", name = "Alice")
         val bob = orm.insertUser("bob", name = "Bob")
         val carol = orm.insertUser("carol", name = "Carol")
-        runBlocking { service.accept(service.createInvite(alice), bob) }
-        runBlocking { service.accept(service.createInvite(alice), carol) }
+        val friendships = orm.repository<FriendshipRepository>()
+        friendships.befriend(alice, bob, Instant.now())
+        friendships.befriend(alice, carol, Instant.now())
         val seen = orm.repository<MovieSeenRepository>()
         val checkIns = orm.repository<CheckInRepository>()
         fun checkIn(user: st.orm.demo.imdb.model.User, movieId: String, at: String) {
@@ -119,11 +68,15 @@ class FriendServiceTest {
         runBlocking { service.updateSharing(users.getById("bob"), shareSeen = false, shareName = true, shareDates = true) }
         val private = runBlocking { service.friendsOf(alice) }.feed
         assertEquals(listOf("The Shawshank Redemption"), private.map { it.movie.primaryTitle })
-        assertNull(private.single().friendName)
+        assertNull(private.single().name)
         assertNull(private.single().seenAt)
         assertEquals("A friend", private.single().caption)
 
         // The markers: the movies friends saw, history included, as far as each shares; Bob shares nothing now.
         assertEquals(mapOf("tt0111161" to listOf<String?>(null)), runBlocking { service.seenByFriends(alice) })
+
+        // Either side ends a friendship, both ways.
+        runBlocking { service.remove(bob, alice.id) }
+        assertEquals(listOf("Carol"), runBlocking { service.friendsOf(alice) }.friends.map { it.name })
     }
 }

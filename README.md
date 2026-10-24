@@ -201,17 +201,53 @@ tap, a search to find one, and a switch to hide the ones marked. An IMDb
 import makes check-ins of the titles it has days for. The recommendations
 weigh history as old taste, and the friends feed shows check-ins only.
 
-## Friends
+## Friends and clubs
 
-A signed-in visitor invites another with a link, a personal one accepted once
+Friends and clubs share the Community pages. A signed-in visitor invites another with a link, a personal one accepted once
 within two weeks, or a public one to post anywhere, accepted by anyone until
-replaced (`friend_invite`, V10 and V11); accepting needs signing in too. A
+replaced; accepting needs signing in too. A
 friendship is two rows, one each way (`friendship`), so a visitor's friends are
 a lookup of their own rows. Friends see each other's latest check-ins, on the
 Friends page and the home page, as far as each shares them: three switches on
 the account (`share_seen`, `share_name`, `share_dates`), all on by default,
 decide whether friends see the movies at all, the name with them (else "a
-friend"), and the days. There is no user directory: a link is the only way in.
+friend"), and the days. There is no user directory: a link, or a club both
+are in, is the only way in.
+
+A club is a film club of coworkers or friends (`club`, `club_member`, V14).
+Whoever starts one is its first admin; only admins invite, rename the club,
+and make others admins or remove them, and a club always keeps one admin:
+those changes lock the club row first (`ClubRepository.lock`, `SELECT ... FOR
+UPDATE`), so two admins stepping down at once cannot both leave. Members need
+not be friends. What a member shares is their own choice: club defaults on the
+account (`club_share_*`, the days off by default) or settings for one club,
+nullable columns on the membership where `NULL` follows the defaults. A club's
+page shows the members' latest check-ins and what most of them have seen, a
+grouped count on the seen list with `HAVING`
+([`MovieSeenRepository.countSeenBy`](src/main/kotlin/st/orm/demo/imdb/repository/MovieSeenRepository.kt)).
+Movies seen by a friend get a yellow tag on every list, those seen only by
+club members a purple one.
+
+Club members become friends in two taps: each name in the member list has an
+Add friend button, and the request
+([`FriendRequest`](src/main/kotlin/st/orm/demo/imdb/model/FriendRequest.kt),
+V15) waits on the other's Friends page, with a count on the Community tab,
+until they accept. Asking someone who asked you makes you friends at once.
+"Not now" is a flag on the request: it leaves the recipient's list, and the
+requester still sees it as sent, so nobody learns they were turned down. A
+requester withdraws a request, and either friend ends a friendship, both
+silently. A request is keyed by the pair, one each way at most, names the
+club it came from, and goes when either of the two leaves that club.
+
+Invites of both kinds live in one table, as a sealed Single-Table entity:
+[`Invite`](src/main/kotlin/st/orm/demo/imdb/model/Invite.kt) is a
+`FriendInvite` or a `ClubInvite`, told apart by the `kind` column, and the one
+invite page (`/invite/{token}`) reads either by its token and handles both in
+an exhaustive `when`
+([`InviteService`](src/main/kotlin/st/orm/demo/imdb/service/InviteService.kt)).
+This needs foreign keys and subtype queries in single-table hierarchies,
+which Storm adds in 1.16.0
+([storm-framework#754](https://github.com/storm-orm/storm-framework/issues/754)).
 
 ## Insights
 
@@ -253,8 +289,12 @@ marked it: one query reads the seen list as movie ids and days
 so no movie is loaded), the page fetches it once, and a small script tags the
 cards and rows, including those the infinite scroll adds.
 
-Recently viewed on the home page is the visitor's own too, while the
-featured movie above it is the site's latest view. A view records the
+The featured movie at the top of the home page is one of the visitor's For
+You picks, drawn at random from the first window each time the page loads,
+and the "What to watch next" row under it leaves it out; a new visitor gets
+one of the catalogue's picks the same way.
+
+Recently viewed on the home page is the visitor's own too. A view records the
 account (`movie_view.user_id`, V9) when the browser came back with its
 cookie: a first page and a crawler, which keeps no cookies, record none, so
 they write no account rows. A partial index holds just the views with an

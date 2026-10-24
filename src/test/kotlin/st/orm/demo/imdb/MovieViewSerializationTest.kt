@@ -29,7 +29,7 @@ class MovieViewSerializationTest {
     fun `a view with an unloaded ref serializes as the raw movie id`(orm: ORMTemplate) {
         val movieViewRepository = orm.repository<MovieViewRepository>()
         // Views load their movie as an unloaded Ref — just the id.
-        val recentView = movieViewRepository.findRecentViews(1).single()
+        val recentView = movieViewRepository.findAll().first { it.movie.id() == "tt0133093" }
 
         val payload = json.encodeToString(MovieView.serializer(), recentView)
         assertTrue(payload.contains("\"movie\":\"tt0133093\"")) { "Unloaded ref is the raw PK: $payload" }

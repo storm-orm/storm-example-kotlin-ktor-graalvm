@@ -11,6 +11,7 @@
     --accent-strong: #a99bff;
     --gold: #f5c518;
     --seen: #4ade80;
+    --club: #d08cff;
     --radius: 12px;
     --radius-small: 8px;
     --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
@@ -1112,6 +1113,11 @@ img { display: block; }
 
 .poster .seen-tag.friend-tag { background: rgba(11, 13, 20, 0.85); border-color: rgba(245, 197, 24, 0.55); }
 
+/* A movie only members of the visitor's clubs have seen: the same tag in purple. */
+.seen-tag.club-tag { background: rgba(208, 140, 255, 0.14); color: var(--club); }
+
+.poster .seen-tag.club-tag { background: rgba(11, 13, 20, 0.85); border-color: rgba(208, 140, 255, 0.55); }
+
 .ranked-end { margin-left: auto; display: flex; align-items: center; gap: 14px; }
 
 /* ── Statistics ────────────────────────────────────────────────────── */
@@ -1250,6 +1256,13 @@ img { display: block; }
 
 .page-subtitle { color: var(--text-muted); font-size: 15px; margin: 0; }
 
+/* A page header with actions: the title on the left, the actions beside it on the right, under it on phones. */
+.page-header-row { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px 24px; }
+
+.page-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.page-actions [aria-expanded="true"] { border-color: var(--accent); color: var(--accent-strong); }
+
 .empty-state {
     text-align: center;
     color: var(--text-muted);
@@ -1289,7 +1302,9 @@ img { display: block; }
     background: var(--surface);
 }
 
-.import-panel summary { cursor: pointer; font-weight: 600; }
+.import-panel[hidden] { display: none; }
+
+.import-title { margin: 0; font-size: 16px; }
 
 .import-panel p { color: var(--text-muted); font-size: 14px; line-height: 1.55; max-width: 760px; }
 
@@ -1395,10 +1410,6 @@ img { display: block; }
 
 .check-in-menu { min-width: 210px; }
 
-.catch-up-link { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 0 0 18px; }
-
-.catch-up-link .account-hint { margin: 0; }
-
 /* The catch-up toolbar stays in view under the navbar while the list scrolls. */
 .catch-up-toolbar {
     position: sticky;
@@ -1491,6 +1502,98 @@ img { display: block; }
 .invite-from { display: flex; align-items: center; gap: 16px; font-size: 17px; }
 
 .invite-avatar { width: 56px; height: 56px; font-size: 22px; }
+
+/* ── Clubs ─────────────────────────────────────────────────────────── */
+
+.community-tabs { margin: 18px 0 0; }
+
+.club-row { color: var(--text); }
+
+.club-row:hover .club-name { color: var(--accent-strong); }
+
+.club-name { font-weight: 600; }
+
+.club-row .stat-end { display: flex; align-items: center; gap: 10px; }
+
+.club-row .stat-note { margin: 0; }
+
+.club-leave { margin-top: 14px; }
+
+.role-badge {
+    padding: 2px 8px;
+    border: 1px solid rgba(139, 124, 248, 0.45);
+    border-radius: 999px;
+    color: var(--accent-strong);
+    font-size: 11.5px;
+    font-weight: 600;
+}
+
+.member-actions { display: flex; gap: 14px; }
+
+/* Becoming friends with a member: a small button, or where the two stand, in the friends' gold. */
+.button-small { padding: 5px 13px; font-size: 13px; }
+
+.friend-action form { display: flex; align-items: center; gap: 10px; }
+
+/* An admin's links for a member follow the friend button, set apart by a rule. */
+.friend-action + .member-actions { margin-left: 0; padding-left: 14px; border-left: 1px solid var(--border); }
+
+#members-card .stat-row { flex-wrap: wrap; row-gap: 6px; }
+
+#members-card .friend-name { white-space: nowrap; }
+
+.friend-badge {
+    padding: 2px 9px;
+    border: 1px solid rgba(245, 197, 24, 0.45);
+    border-radius: 999px;
+    color: var(--gold);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.friend-requested {
+    padding: 2px 9px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* The friend requests to answer, at the top of the friends page. */
+.request-row .stat-note { margin: 2px 0 0; }
+
+.request-row .stat-end form { display: flex; }
+
+/* The count of friend requests to answer, on the Community tab. */
+.nav-badge {
+    display: inline-block;
+    min-width: 18px;
+    margin-left: 6px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: var(--gold);
+    color: #14101f;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+}
+
+.club-create { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+
+.club-create input {
+    flex: 1 1 200px;
+    min-width: 0;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+    background: var(--background);
+    color: var(--text);
+    font: inherit;
+}
+
+.back-link { display: inline-block; margin-bottom: 8px; color: var(--text-muted); font-size: 14px; }
 
 /* ── Insights ──────────────────────────────────────────────────────── */
 
@@ -1609,6 +1712,9 @@ img { display: block; }
    full width, so its suggestions have room. Side-by-side layouts stack, and rows drop what does
    not fit rather than overflow the screen. */
 @media (max-width: 640px) {
+    /* Phones: the seen page's actions in one row, the catch-up button by its short name. */
+    .label-more { display: none; }
+
     .container { padding: 0 16px; }
 
     .navbar-inner {
@@ -1629,6 +1735,7 @@ img { display: block; }
     .navbar .search-box { flex-basis: 100%; width: auto; margin-left: 0; order: 1; }
     .navbar .search-suggestions { left: 0; right: 0; width: auto; }
     .search-box input { font-size: 16px; }  /* below 16px, iOS zooms the page in on focus */
+    .friend-action + .member-actions { flex-basis: 100%; justify-content: flex-end; padding-left: 0; border-left: 0; }
 
     .hero-content, .movie-hero-content { padding: 28px 16px 32px; gap: 20px; }
     .hero-poster, .movie-hero-poster { width: 150px; }

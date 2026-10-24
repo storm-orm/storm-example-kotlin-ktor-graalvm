@@ -14,6 +14,7 @@ import io.ktor.utils.io.readRemaining
 import kotlinx.io.readString
 import st.orm.demo.imdb.service.CatchUpService
 import st.orm.demo.imdb.service.FriendService
+import st.orm.demo.imdb.service.ClubService
 import st.orm.demo.imdb.service.ImdbExport
 import st.orm.demo.imdb.service.ImdbImport
 import st.orm.demo.imdb.service.MovieSeenService
@@ -21,7 +22,7 @@ import st.orm.demo.imdb.service.MovieSeenService
 /** An export of ten thousand ratings is about two megabytes; anything far larger is not one. */
 private const val MAX_IMPORT_BYTES = 8L * 1024 * 1024
 
-fun Route.movieSeenRoutes(movieSeenService: MovieSeenService, catchUpService: CatchUpService, friendService: FriendService) {
+fun Route.movieSeenRoutes(movieSeenService: MovieSeenService, catchUpService: CatchUpService, friendService: FriendService, clubService: ClubService) {
     // The seen movies, check-ins included, latest first; with ?checkins, every check-in, by month.
     get("/seen") {
         val parameters = call.request.queryParameters
@@ -87,12 +88,13 @@ fun Route.movieSeenRoutes(movieSeenService: MovieSeenService, catchUpService: Ca
         call.respond(SearchWindow(window.content().map { it.movie.toSearchItem() }, window.nextCursor()))
     }
 
-    // The seen marks, by movie id, for the tags the page puts on its lists of movies: the visitor's own, and their friends'.
+    // The seen marks, by movie id, for the tags the page puts on its lists of movies: the visitor's own, their friends' and their clubs'.
     get("/api/seen") {
         val user = call.currentUser()
         call.respond(SeenMarks(
             seen = movieSeenService.seenDates(user).mapValues { it.value?.toString() },
-            friends = friendService.seenByFriends(user)
+            friends = friendService.seenByFriends(user),
+            clubs = clubService.seenInClubs(user)
         ))
     }
 

@@ -9,7 +9,6 @@ import st.orm.demo.imdb.repository.GenreRepository
 import st.orm.demo.imdb.repository.MovieAdditionRepository
 import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieRepository
-import st.orm.demo.imdb.repository.MovieViewRepository
 import st.orm.demo.imdb.repository.PersonRepository
 import st.orm.demo.imdb.repository.PrincipalRepository
 import st.orm.demo.imdb.repository.RatingRepository
@@ -98,7 +97,6 @@ class ImdbDataSyncTest {
         orm.repository<PersonRepository>(),
         orm.repository<PrincipalRepository>(),
         orm.repository<RatingRepository>(),
-        orm.repository<MovieViewRepository>(),
         orm.repository<MovieAdditionRepository>(),
         datasets = { fileName -> datasetDirectory.resolve(fileName) },
         objectMapper = jacksonObjectMapper(),

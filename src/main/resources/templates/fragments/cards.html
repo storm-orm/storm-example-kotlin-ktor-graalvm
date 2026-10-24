@@ -52,8 +52,8 @@
     </div>
 </a>
 
-<!-- A movie a friend saw: the poster card, with the friend and the day as far as the friend shares them. -->
-<a th:fragment="friendSeen(item)" class="movie-card" th:href="@{/movie/{id}(id=${item.movie.id})}">
+<!-- A check-in of a friend or a club member: the poster card, with who and the day as far as they share them. -->
+<a th:fragment="sharedCheckIn(item)" class="movie-card" th:href="@{/movie/{id}(id=${item.movie.id})}">
     <div class="poster">
         <div class="poster-placeholder"><span th:text="${item.movie.primaryTitle}">Title</span></div>
         <img th:src="@{/api/poster/{id}(id=${item.movie.id})}" alt="" loading="lazy"
@@ -62,7 +62,7 @@
     <div class="movie-card-info">
         <div class="movie-card-title" th:text="${item.movie.primaryTitle}">Title</div>
         <div class="friend-seen">
-            <img class="friend-avatar" th:if="${item.friendAvatarUrl != null}" th:src="${item.friendAvatarUrl}" alt="">
+            <img class="friend-avatar" th:if="${item.avatarUrl != null}" th:src="${item.avatarUrl}" alt="">
             <span th:text="${item.caption}">Alice · 14 Mar 2026</span>
         </div>
     </div>

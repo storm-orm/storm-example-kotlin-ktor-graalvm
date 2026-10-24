@@ -267,7 +267,9 @@ private fun Application.configureStorm() {
                     "db/migration/V10__friends.sql",
                     "db/migration/V11__public_friend_invites.sql",
                     "db/migration/V12__seen_history.sql",
-                    "db/migration/V13__check_ins.sql"
+                    "db/migration/V13__check_ins.sql",
+                    "db/migration/V14__clubs.sql",
+                    "db/migration/V15__friend_requests.sql"
                 )))
                 .load()
                 .migrate()

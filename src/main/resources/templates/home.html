@@ -4,7 +4,6 @@
 <body>
 <nav th:replace="~{fragments/layout :: navbar('home')}"></nav>
 
-<!-- Featured: the most recently viewed movie. -->
 <!-- New here: nothing marked or saved yet. The catch-up page is the quickest way to what the site does. -->
 <section class="welcome" id="welcome" th:if="${view.seenEntries.isEmpty() and view.watchlistEntries.isEmpty()}">
     <div class="container welcome-inner">
@@ -19,6 +18,7 @@
     </div>
 </section>
 
+<!-- Featured: one of the visitor's best picks at random, or of the catalogue's for a new visitor. -->
 <section class="hero" th:if="${view.featured != null}" th:with="featured=${view.featured}">
     <div class="hero-backdrop"
          th:style="|background-image: url('/api/poster/${featured.movie.id}')|"
@@ -28,7 +28,7 @@
             <div th:replace="~{fragments/cards :: posterThumb(${featured.movie.id}, ${featured.movie.primaryTitle})}"></div>
         </div>
         <div>
-            <div class="hero-eyebrow">Featured · Last viewed</div>
+            <div class="hero-eyebrow" th:text="${view.recommendations.personal} ? 'Featured · For you' : 'Featured'">Featured · For you</div>
             <h1 class="hero-title" th:text="${featured.movie.primaryTitle}">Title</h1>
             <div class="hero-meta">
                 <span class="rating-badge" th:if="${featured.rating != null}">
@@ -47,7 +47,7 @@
             <p class="hero-extract" hidden
                th:data-summary-endpoint="|/api/summary/movie/${featured.movie.id}|"></p>
             <div class="hero-actions">
-                <a class="button button-primary" th:href="@{/movie/{id}(id=${featured.movie.id})}">View details</a>
+                <a class="button button-primary" th:href="@{/movie/{id}(id=${featured.movie.id}, via='for-you')}">View details</a>
             </div>
         </div>
     </div>
@@ -137,7 +137,7 @@
         </div>
         <div class="movie-row">
             <th:block th:each="item : ${view.friendsSeen}">
-                <a th:replace="~{fragments/cards :: friendSeen(${item})}"></a>
+                <a th:replace="~{fragments/cards :: sharedCheckIn(${item})}"></a>
             </th:block>
         </div>
     </div>

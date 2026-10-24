@@ -3,7 +3,10 @@ package st.orm.demo.imdb
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import st.orm.demo.imdb.model.CheckIn
-import st.orm.demo.imdb.model.FriendInvite
+import st.orm.demo.imdb.model.Club
+import st.orm.demo.imdb.model.ClubMember
+import st.orm.demo.imdb.model.FriendRequest
+import st.orm.demo.imdb.model.Invite
 import st.orm.demo.imdb.model.Friendship
 import st.orm.demo.imdb.model.Genre
 import st.orm.demo.imdb.model.Movie
@@ -36,7 +39,7 @@ import st.orm.test.TestDatabase
  * container starts once per test run; the class receives a database of its
  * own inside it.
  */
-@StormTest(database = TestDatabase.POSTGRESQL, scripts = ["/db/migration/V1__create_schema.sql", "/db/migration/V2__store_folded_titles.sql", "/db/migration/V3__record_movie_additions.sql", "/db/migration/V4__personal_accounts.sql", "/db/migration/V5__recommendations.sql", "/db/migration/V6__recommendation_fatigue.sql", "/db/migration/V7__fold_old_views.sql", "/db/migration/V8__movie_view_day_natural_key.sql", "/db/migration/V9__personal_recently_viewed.sql", "/db/migration/V10__friends.sql", "/db/migration/V11__public_friend_invites.sql", "/db/migration/V12__seen_history.sql", "/db/migration/V13__check_ins.sql"])
+@StormTest(database = TestDatabase.POSTGRESQL, scripts = ["/db/migration/V1__create_schema.sql", "/db/migration/V2__store_folded_titles.sql", "/db/migration/V3__record_movie_additions.sql", "/db/migration/V4__personal_accounts.sql", "/db/migration/V5__recommendations.sql", "/db/migration/V6__recommendation_fatigue.sql", "/db/migration/V7__fold_old_views.sql", "/db/migration/V8__movie_view_day_natural_key.sql", "/db/migration/V9__personal_recently_viewed.sql", "/db/migration/V10__friends.sql", "/db/migration/V11__public_friend_invites.sql", "/db/migration/V12__seen_history.sql", "/db/migration/V13__check_ins.sql", "/db/migration/V14__clubs.sql", "/db/migration/V15__friend_requests.sql"])
 class EntitySchemaValidationTest {
 
     @Test
@@ -60,9 +63,17 @@ class EntitySchemaValidationTest {
             RecommendationDismissal::class,
             PersonGallery::class,
             Friendship::class,
-            FriendInvite::class,
-            CheckIn::class
+            CheckIn::class,
+            Club::class,
+            ClubMember::class,
+            FriendRequest::class
         )
+        assertTrue(errors.isEmpty()) { "Schema validation errors: $errors" }
+    }
+
+    @Test
+    fun `the sealed invite matches its table`(orm: ORMTemplate) {
+        val errors = orm.validateSchema(Invite::class)
         assertTrue(errors.isEmpty()) { "Schema validation errors: $errors" }
     }
 }

@@ -53,7 +53,7 @@ class ViewLogServiceTest {
         val days = movieViewDayRepository.findSince(LocalDate.of(2026, 7, 1))
         assertEquals(listOf("tt0111161" to 1, "tt0133093" to 2), days.map { it.movie.id() to it.viewCount })
         assertTrue(days.all { it.viewDate == LocalDate.of(2026, 7, 1) })
-        assertEquals(listOf("tt0068646"), movieViewRepository.findRecentViews(10).map { it.movie.id() })
+        assertEquals(listOf("tt0068646"), movieViewRepository.findAll().map { it.movie.id() })
 
         // A second run has nothing left to fold.
         assertEquals(0, runBlocking { service.foldOldViews(now) })

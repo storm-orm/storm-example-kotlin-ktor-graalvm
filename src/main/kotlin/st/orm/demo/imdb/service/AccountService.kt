@@ -3,6 +3,9 @@ package st.orm.demo.imdb.service
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.model.UserLogin
 import st.orm.demo.imdb.repository.CheckInRepository
+import st.orm.demo.imdb.repository.ClubInviteRepository
+import st.orm.demo.imdb.repository.ClubMemberRepository
+import st.orm.demo.imdb.repository.FriendRequestRepository
 import st.orm.demo.imdb.repository.FriendshipRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.MovieViewRepository
@@ -30,6 +33,9 @@ class AccountService(
     private val dismissalRepository: RecommendationDismissalRepository,
     private val movieViewRepository: MovieViewRepository,
     private val friendshipRepository: FriendshipRepository,
+    private val clubMemberRepository: ClubMemberRepository,
+    private val clubInviteRepository: ClubInviteRepository,
+    private val friendRequestRepository: FriendRequestRepository,
     private val checkInRepository: CheckInRepository,
     private val recommendationService: RecommendationService
 ) {
@@ -59,7 +65,7 @@ class AccountService(
      * - The provider account is linked to a user already: that user is the
      *   one, with the profile refreshed. Whatever the visitor saved and
      *   viewed under the cookie account moves to it, and so do the cookie
-     *   account's logins and friends, if the visitor was signed in; then the cookie
+     *   account's logins, friends and clubs, if the visitor was signed in; then the cookie
      *   account goes, and every login leads to the one account.
      * - It is not linked yet: it is linked to the cookie account, which gets
      *   the profile's name, and its avatar if it has one. The lists stay
@@ -84,6 +90,9 @@ class AccountService(
                     movieViewRepository.moveTo(it, user)
                     userLoginRepository.moveTo(it, user)
                     friendshipRepository.moveTo(it, user)
+                    clubMemberRepository.moveTo(it, user)
+                    clubInviteRepository.moveTo(it, user)
+                    friendRequestRepository.moveTo(it, user)
                     userRepository.remove(it)
                 }
                 user

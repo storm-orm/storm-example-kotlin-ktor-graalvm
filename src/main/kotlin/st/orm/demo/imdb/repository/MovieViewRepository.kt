@@ -39,17 +39,6 @@ data class MovieViewDayCount(
 interface MovieViewRepository : EntityRepository<MovieView, Long> {
 
     /**
-     * The site's most recent movie views, newest first: the featured movie
-     * on the home page. Views hold a Ref to their movie, so this query stays
-     * on the view table alone — callers fetch the movies they need.
-     */
-    fun findRecentViews(limit: Int) =
-        select()
-            .orderByDescending(MovieView_.viewedAt, MovieView_.id)
-            .limit(limit)
-            .resultList
-
-    /**
      * The user's most recent movie views, newest first: the recently-viewed
      * section on the home page, read by the partial index on the account
      * and the moment (V9). Callers dedupe the refs, as a movie viewed twice

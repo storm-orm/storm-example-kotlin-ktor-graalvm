@@ -87,7 +87,10 @@ CREATE TABLE app_user (
     last_seen_at TIMESTAMP NOT NULL,
     share_seen   BOOLEAN NOT NULL DEFAULT TRUE,
     share_name   BOOLEAN NOT NULL DEFAULT TRUE,
-    share_dates  BOOLEAN NOT NULL DEFAULT TRUE
+    share_dates  BOOLEAN NOT NULL DEFAULT TRUE,
+    club_share_seen  BOOLEAN NOT NULL DEFAULT TRUE,
+    club_share_name  BOOLEAN NOT NULL DEFAULT TRUE,
+    club_share_dates BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE user_login (
@@ -180,13 +183,6 @@ CREATE TABLE friendship (
     CHECK (user_id <> friend_id)
 );
 CREATE INDEX idx_friendship_friend_id ON friendship (friend_id);
-CREATE TABLE friend_invite (
-    token      VARCHAR NOT NULL PRIMARY KEY,
-    inviter_id VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
-    created_at TIMESTAMP NOT NULL,
-    reusable   BOOLEAN NOT NULL DEFAULT FALSE
-);
-CREATE INDEX idx_friend_invite_inviter_id ON friend_invite (inviter_id);
 
 -- V12: the catch-up page reads the most voted movies first.
 CREATE INDEX idx_rating_vote_count ON rating (vote_count DESC, movie_id);
@@ -200,3 +196,46 @@ CREATE TABLE check_in (
 );
 CREATE INDEX idx_check_in_user_id_watched_at ON check_in (user_id, watched_at DESC, id DESC);
 CREATE INDEX idx_check_in_user_id_movie_id ON check_in (user_id, movie_id);
+
+-- V14: clubs.
+CREATE TABLE club (
+    id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name       VARCHAR NOT NULL,
+    created_at TIMESTAMP NOT NULL
+);
+CREATE TABLE club_member (
+    club_id     BIGINT NOT NULL REFERENCES club (id) ON DELETE CASCADE,
+    user_id     VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    admin       BOOLEAN NOT NULL,
+    joined_at   TIMESTAMP NOT NULL,
+    share_seen  BOOLEAN,
+    share_name  BOOLEAN,
+    share_dates BOOLEAN,
+    PRIMARY KEY (club_id, user_id)
+);
+CREATE INDEX idx_club_member_user_id ON club_member (user_id);
+-- The friend invites of V10 and V11 became the invites of both kinds.
+CREATE TABLE invite (
+    token      VARCHAR NOT NULL PRIMARY KEY,
+    kind       VARCHAR NOT NULL,
+    inviter_id VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    created_at TIMESTAMP NOT NULL,
+    reusable   BOOLEAN NOT NULL DEFAULT FALSE,
+    club_id    BIGINT REFERENCES club (id) ON DELETE CASCADE,
+    CHECK ((kind = 'club') = (club_id IS NOT NULL))
+);
+CREATE INDEX idx_invite_inviter_id ON invite (inviter_id);
+CREATE INDEX idx_invite_club_id ON invite (club_id);
+
+-- V15: friend requests between club members.
+CREATE TABLE friend_request (
+    requester_id VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    recipient_id VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    club_id      BIGINT NOT NULL REFERENCES club (id) ON DELETE CASCADE,
+    created_at   TIMESTAMP NOT NULL,
+    dismissed    BOOLEAN NOT NULL DEFAULT FALSE,
+    PRIMARY KEY (requester_id, recipient_id),
+    CHECK (requester_id <> recipient_id)
+);
+CREATE INDEX idx_friend_request_recipient_id ON friend_request (recipient_id);
+CREATE INDEX idx_friend_request_club_id ON friend_request (club_id);

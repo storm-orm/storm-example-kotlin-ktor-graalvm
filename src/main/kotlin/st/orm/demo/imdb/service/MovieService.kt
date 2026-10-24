@@ -78,7 +78,7 @@ class MovieService(
 
     /**
      * Loads the movie detail page for the visitor and records the visit:
-     * the site's latest view is the featured movie on the home page, and a
+     * the views count towards what is trending, and a
      * [returning] visitor's views, a browser that came back with its account
      * cookie, are their recently viewed. Only those record the account, and
      * write its row: a first page and a crawler, which keeps no cookies, do

@@ -16,7 +16,7 @@ import st.orm.demo.imdb.repository.WatchlistRepository
 import st.orm.template.ref
 import st.orm.template.transaction
 
-/** The featured hero section: the site's most recently viewed movie with context. */
+/** The featured hero section: a pick from the visitor's For You list, with its rating and genres. */
 data class FeaturedMovie(
     val movie: Movie,
     val rating: Rating?,
@@ -34,7 +34,7 @@ data class HomeView(
     val seenEntries: List<MovieSeen>,
     val recommendations: HomeRecommendations,
     /** What the visitor's friends saw lately, as far as they share it. */
-    val friendsSeen: List<FriendSeenMovie>
+    val friendsSeen: List<SharedCheckIn>
 )
 
 class HomeService(
@@ -51,23 +51,22 @@ class HomeService(
 
     /** All home page sections for the visitor, read in one read-only transaction. */
     suspend fun buildHomeView(user: User): HomeView = transaction(readOnly = true) {
+        val recommendations = recommendationService.forHome(user)
         HomeView(
-            featured = featured(),
+            featured = recommendations.featured?.let { featured(it) },
             recentlyViewed = recentlyViewed(user),
             topRated = ratingRepository.findTopRated(TOP_RATED_MINIMUM_VOTES, TOP_RATED_LIMIT),
             genreCounts = statisticsService.genreCounts(),
             watchlistEntries = watchlistRepository.findMostRecent(user, LIST_PREVIEW_LIMIT),
             seenEntries = movieSeenRepository.findMostRecent(user, LIST_PREVIEW_LIMIT),
-            recommendations = recommendationService.forHome(user),
+            recommendations = recommendations,
             friendsSeen = friendService.latestOfFriends(user, LIST_PREVIEW_LIMIT)
         )
     }
 
-    /** The site's latest view, with its rating and genres: the hero at the top of the page. */
-    private fun featured(): FeaturedMovie? {
-        val movie = movieViewRepository.findRecentViews(1).firstOrNull()?.movie?.let { movieRepository.findByRef(it) } ?: return null
-        return FeaturedMovie(movie = movie, rating = ratingRepository.findById(movie), genres = movieGenreRepository.findGenres(movie))
-    }
+    /** The featured pick with its rating and genres: the hero at the top of the page. */
+    private fun featured(pick: RecommendedMovie) =
+        FeaturedMovie(movie = pick.movie, rating = ratingRepository.findById(pick.movie), genres = movieGenreRepository.findGenres(pick.movie))
 
     /** The movies the visitor viewed last, each once. Views hold movie refs; the movies are fetched in one query. */
     private fun recentlyViewed(user: User): List<Movie> {

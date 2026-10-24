@@ -33,5 +33,11 @@ data class User(
     /** Whether friends see it as this user's, rather than as "a friend". */
     val shareName: Boolean = true,
     /** Whether friends see the days this user watched on. */
-    val shareDates: Boolean = true
+    val shareDates: Boolean = true,
+    /** What club members see, in every club this user has not set apart ([ClubMember]): what they watch, */
+    val clubShareSeen: Boolean = true,
+    /** as this user's, */
+    val clubShareName: Boolean = true,
+    /** and the days, off by default, as members of a club are not always friends. */
+    val clubShareDates: Boolean = false
 ) : Entity<String>

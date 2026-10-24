@@ -4,11 +4,19 @@
 <body>
 <nav th:replace="~{fragments/layout :: navbar('seen')}"></nav>
 
+<!-- The title and the count, with the two ways to fill the list beside them, so the list starts high. -->
 <header class="page-header">
-    <div class="container">
-        <h1 class="page-title">Seen</h1>
-        <p class="page-subtitle"
-           th:text="|${#numbers.formatInteger(count, 1, 'COMMA')} movies seen|">3 movies seen</p>
+    <div class="container page-header-row">
+        <div>
+            <h1 class="page-title">Seen</h1>
+            <p class="page-subtitle"
+               th:text="|${#numbers.formatInteger(count, 1, 'COMMA')} movies seen|">3 movies seen</p>
+        </div>
+        <div class="page-actions">
+            <a class="button" th:href="@{/seen/catch-up}" title="Tap through the most watched movies to mark the ones you have seen">Catch up<span class="label-more"> on movies you saw before</span></a>
+            <button type="button" class="button" aria-controls="import-panel" data-panel-toggle
+                    th:aria-expanded="${count == 0 or importFailed}">Import from IMDb</button>
+        </div>
     </div>
 </header>
 
@@ -24,14 +32,10 @@
             That file is not an IMDb export. Export your ratings or a list on IMDb and upload the CSV file it gives you.
         </div>
 
-        <p class="catch-up-link">
-            <a class="button" th:href="@{/seen/catch-up}">Catch up on movies you saw before</a>
-            <span class="account-hint">Tap through the most watched movies to mark the ones you have seen.</span>
-        </p>
-
-        <!-- IMDb has no sign-in for other sites, but it exports a user's ratings and lists as CSV. -->
-        <details class="import-panel" th:open="${count == 0}">
-            <summary>Import from IMDb</summary>
+        <!-- IMDb has no sign-in for other sites, but it exports a user's ratings and lists as CSV. Open for an
+             empty list or a failed import; otherwise the header's button opens it. -->
+        <div class="import-panel" id="import-panel" th:hidden="${count > 0 and !importFailed}">
+            <h2 class="import-title">Import from IMDb</h2>
             <p>
                 Bring your history from IMDb. On IMDb, open <em>Your ratings</em> or one of your lists, choose
                 <em>Export</em>, and download the CSV file from <em>Your account › Exports</em>. Upload it here:
@@ -52,7 +56,7 @@
                 <!-- Without JavaScript the file is chosen, then sent with this button. -->
                 <button type="submit" class="button button-primary" data-import-submit>Import</button>
             </form>
-        </details>
+        </div>
 
         <div class="empty-state" th:if="${count == 0}">
             No movies marked as seen yet. Open a movie and press “Mark as seen”, or import your history from IMDb.

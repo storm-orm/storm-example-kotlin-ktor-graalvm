@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupCatchUp();
     setupInvite();
     setupImportDrop();
+    setupPanelToggles();
     setupDismissals();
     setupSummaries();
     setupBackdrops();
@@ -659,6 +660,19 @@ function setupImportDrop() {
     });
 }
 
+// A button that opens and closes a panel elsewhere on the page, the seen
+// page's IMDb import: the panel it controls shows while it is pressed.
+function setupPanelToggles() {
+    document.querySelectorAll('[data-panel-toggle]').forEach(button => {
+        const panel = document.getElementById(button.getAttribute('aria-controls'));
+        button.addEventListener('click', () => {
+            const open = button.getAttribute('aria-expanded') !== 'true';
+            button.setAttribute('aria-expanded', String(open));
+            panel.hidden = !open;
+        });
+    });
+}
+
 // A search box says what it searches where that fits, and just "Search" where
 // it does not: the full placeholder is measured in the box's own font against
 // the room inside it, again when the window resizes and once the web font is in.
@@ -704,6 +718,9 @@ const seenMovies = new Map();
 // The movies the visitor's friends have seen, by id: each friend's name, or null for one who keeps it private.
 const friendsSeen = new Map();
 
+// The movies members of the visitor's clubs have seen, by id: each member's name, or null, and their club.
+const clubsSeen = new Map();
+
 // Every list of movies tags the ones the visitor has seen, with the day of a
 // check-in, or the checkmark alone for history: the seen movies come in one
 // request, and the tags go on the cards and rows on the page, and on those the
@@ -715,6 +732,7 @@ async function setupSeenTags() {
         const marks = await response.json();
         Object.entries(marks.seen).forEach(([id, watchedAt]) => seenMovies.set(id, watchedAt));
         Object.entries(marks.friends).forEach(([id, names]) => friendsSeen.set(id, names));
+        Object.entries(marks.clubs).forEach(([id, members]) => clubsSeen.set(id, members));
     } catch (e) {
         return;
     }
@@ -728,8 +746,9 @@ function tagSeenMovies() {
 }
 
 // Puts the tag on a card or row: green for a movie the visitor has seen, with
-// the day of a check-in; yellow for one only friends have seen, naming the
-// friend or counting them; none otherwise. The tag follows a mark or unmark.
+// the day of a check-in; yellow for one friends have seen, naming the friend
+// or counting them; purple for one only club members have seen, likewise;
+// none otherwise. The tag follows a mark or unmark.
 function tagSeenMovie(link) {
     const id = (link.getAttribute('href').match(/^\/movie\/(tt\d+)/) || [])[1];
     if (!id) return;
@@ -739,24 +758,48 @@ function tagSeenMovie(link) {
     if (existing && (!wanted || existing.textContent !== wanted.text)) existing.remove();
     if (!wanted || (existing && existing.isConnected)) return;
     const tag = document.createElement('span');
-    tag.className = wanted.friend ? 'seen-tag friend-tag' : 'seen-tag';
+    tag.className = 'seen-tag' + (wanted.kind ? ' ' + wanted.kind + '-tag' : '');
     tag.textContent = wanted.text;
     tag.title = wanted.title;
     (link.querySelector('.ranked-sub') || link.querySelector('.poster')).appendChild(tag);
 }
 
-// The tag a movie gets, or null: the visitor's own seen tag first, else the friends' marker.
+// The tag a movie gets, or null: the visitor's own seen tag first, else the
+// friends' marker, else the clubs'.
 function seenTag(id) {
     if (seenMovies.has(id)) {
-        return { text: seenLabel('✓', seenMovies.get(id)), title: seenLabel('Seen', seenMovies.get(id)), friend: false };
+        return { text: seenLabel('✓', seenMovies.get(id)), title: seenLabel('Seen', seenMovies.get(id)), kind: null };
     }
     const friends = friendsSeen.get(id);
-    if (!friends) return null;
-    const named = friends.filter(name => name);
-    const others = friends.length - named.length;
-    const who = friends.length === 1 ? (named[0] ?? 'A friend') : friends.length + ' friends';
-    const all = [...named, ...(others === 1 ? ['a friend'] : others > 1 ? [others + ' friends'] : [])];
-    return { text: '✓ ' + who, title: 'Seen by ' + all.join(', '), friend: true };
+    if (friends) {
+        const named = friends.filter(name => name);
+        const others = friends.length - named.length;
+        const who = friends.length === 1 ? (named[0] ?? 'A friend') : friends.length + ' friends';
+        const all = [...named, ...(others === 1 ? ['a friend'] : others > 1 ? [others + ' friends'] : [])];
+        return { text: '✓ ' + who, title: 'Seen by ' + all.join(', '), kind: 'friend' };
+    }
+    const members = clubsSeen.get(id);
+    if (!members) return null;
+    return { text: '✓ ' + clubTagText(members), title: 'Seen in ' + clubTagTitle(members), kind: 'club' };
+}
+
+// A club tag: the member's name, else their club's, for one; the count, with
+// the club when they all share it, for several.
+function clubTagText(members) {
+    if (members.length === 1) return members[0].member ?? members[0].club;
+    const clubs = new Set(members.map(seen => seen.club));
+    return members.length + (clubs.size === 1 ? ' in ' + members[0].club : ' in your clubs');
+}
+
+// The tag's tooltip, per club: "Office: Alice, Bob, a member; Thursday: Carol".
+function clubTagTitle(members) {
+    const byClub = new Map();
+    members.forEach(seen => byClub.set(seen.club, [...(byClub.get(seen.club) ?? []), seen.member]));
+    return [...byClub].map(([club, names]) => {
+        const named = names.filter(name => name);
+        const others = names.length - named.length;
+        return club + ': ' + [...named, ...(others === 1 ? ['a member'] : others > 1 ? [others + ' members'] : [])].join(', ');
+    }).join('; ');
 }
 
 // The catch-up page: a tap on a movie marks it seen as history, or unmarks
@@ -824,10 +867,11 @@ function showSeenCount() {
     document.querySelectorAll('[data-seen-count]').forEach(count => count.textContent = seenMovies.size.toLocaleString('en-GB'));
 }
 
-// The invite buttons on the friends page: each asks its endpoint for a link,
-// a personal invite, the public one, or a new public one, then hands it to the
-// device's share sheet where there is one, and otherwise copies it; either way
-// the link shows in the field, ready to paste into a message.
+// The invite buttons on the friends page and a club's page: each asks its
+// endpoint for a link, a personal invite, the public one, or a new public one,
+// then hands it to the device's share sheet where there is one, under the
+// title the page gives, and otherwise copies it; either way the link shows in
+// the field, ready to paste into a message.
 function setupInvite() {
     const buttons = document.querySelectorAll('[data-invite]');
     const field = document.querySelector('[data-invite-link]');
@@ -842,7 +886,7 @@ function setupInvite() {
             field.select();
             if (navigator.share) {
                 try {
-                    await navigator.share({ title: 'Be my friend on Storm Movies', url });
+                    await navigator.share({ title: button.closest('[data-invite-title]').dataset.inviteTitle, url });
                 } catch (e) {
                     // The sheet was dismissed; the link stays in the field.
                 }

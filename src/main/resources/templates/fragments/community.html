@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- The header of the community pages: friends and clubs, a tab each. -->
+<header th:fragment="header(active, subtitle)" class="page-header">
+    <div class="container">
+        <h1 class="page-title">Community</h1>
+        <p class="page-subtitle" th:text="${subtitle}">See what your friends and clubs watched lately.</p>
+        <nav class="view-tabs community-tabs">
+            <a th:href="@{/friends}" th:classappend="${active == 'friends'} ? 'active'" id="friends-tab">Friends<span class="nav-badge" th:if="${requestCount > 0}" th:text="${requestCount}">1</span></a>
+            <a th:href="@{/clubs}" th:classappend="${active == 'clubs'} ? 'active'" id="clubs-tab">Clubs</a>
+        </nav>
+    </div>
+</header>
+
+<!-- The three sharing switches, for friends, for clubs by default, or for one club: what the visitor
+     watches, that it is them, and when. Who sees it and how an unnamed movie shows differ per use. -->
+<th:block th:fragment="switches(seen, name, dates, audience, unnamed)">
+    <label class="switch-row">
+        <input type="checkbox" name="shareSeen" th:checked="${seen}">
+        <span><strong>What you watch</strong><br><th:block th:text="${audience}">Your friends</th:block> see the movies you mark as seen.</span>
+    </label>
+    <label class="switch-row">
+        <input type="checkbox" name="shareName" th:checked="${name}">
+        <span><strong>That it's you</strong><br>Off, your movies show as <th:block th:text="${unnamed}">a friend's</th:block>, without your name.</span>
+    </label>
+    <label class="switch-row">
+        <input type="checkbox" name="shareDates" th:checked="${dates}">
+        <span><strong>When you watched</strong><br>Off, your movies show without the day.</span>
+    </label>
+</th:block>
+
+<!-- An account's avatar, or its initial; [size] is an extra class, such as invite-avatar, or empty. -->
+<span th:fragment="avatar(user, size)" class="nav-account-icon" th:classappend="${size}">
+    <img th:if="${user.avatarUrl != null}" th:src="${user.avatarUrl}" alt="">
+    <span th:unless="${user.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(user.name, 0, 1))}">A</span>
+</span>
+
+</body>
+</html>

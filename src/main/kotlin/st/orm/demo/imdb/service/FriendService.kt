@@ -1,81 +1,102 @@
 package st.orm.demo.imdb.service
 
 import st.orm.demo.imdb.model.FriendInvite
+import st.orm.demo.imdb.model.FriendRequest
+import st.orm.demo.imdb.model.Invite
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.repository.CheckInRepository
+import st.orm.demo.imdb.repository.ClubMemberRepository
+import st.orm.demo.imdb.repository.ClubRepository
 import st.orm.demo.imdb.repository.FriendInviteRepository
+import st.orm.demo.imdb.repository.FriendRequestRepository
 import st.orm.demo.imdb.repository.FriendshipRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.UserRepository
 import st.orm.template.entityId
 import st.orm.template.transaction
-import java.security.SecureRandom
-import java.time.Duration
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
-import java.util.Base64
 import java.util.Locale
 
 /**
- * A movie a friend saw lately, as far as the friend shares it: their name,
- * or null to show it as a friend's, and the day, or null without one.
+ * A check-in of a friend or a club member, as far as they share it: their
+ * name, or null to show it as [unnamed] ("A friend", "A member"), and the
+ * day, or null without one.
  */
-data class FriendSeenMovie(
+data class SharedCheckIn(
     val movie: Movie,
-    val friendName: String?,
-    val friendAvatarUrl: String?,
-    val seenAt: Instant?
+    val name: String?,
+    val avatarUrl: String?,
+    val seenAt: Instant?,
+    val unnamed: String
 ) {
     /** The line under the card: "Alice · 14 Mar 2026", "A friend", and so on. */
     val caption: String
-        get() = listOfNotNull(friendName ?: "A friend", seenAt?.let { SEEN_DAY.format(it) }).joinToString(" · ")
+        get() = listOfNotNull(name ?: unnamed, seenAt?.let { SEEN_DAY.format(it) }).joinToString(" · ")
 }
 
 private val SEEN_DAY: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH).withZone(ZoneOffset.UTC)
 
-/** The friends page: the friends, what they saw lately, and what the visitor shares. */
+/**
+ * The friends page: the friend requests to answer and those sent, the
+ * friends, what they saw lately, and what the visitor shares.
+ */
 data class FriendsView(
+    val requests: List<FriendRequest>,
+    val sent: List<FriendRequest>,
     val friends: List<User>,
-    val feed: List<FriendSeenMovie>,
+    val feed: List<SharedCheckIn>,
     val sharing: User
 )
 
-/** What an invite link leads to, for the page that offers it. */
-sealed interface InviteState {
-    /** An invite the visitor can accept, from [inviter]. */
-    data class Open(val inviter: User) : InviteState
-    /** The visitor's own invite, to share rather than accept. */
-    data object Own : InviteState
-    /** An invite that was accepted already, expired, or never was. */
-    data object Gone : InviteState
+/** Where the visitor stands with another member of a club, for the button by their name. */
+enum class FriendStatus {
+    /** The visitor themselves. */
+    YOU,
+    FRIENDS,
+    /** The visitor asked them, and they have not accepted, or said not now, which the visitor is not told. */
+    REQUESTED,
+    /** They asked the visitor. */
+    ASKED_YOU,
+    NONE
 }
 
 /**
- * Friends: a signed-in visitor invites another with a link, and once the
- * other accepts, each sees what the other watched lately, as far as the
- * other shares it ([User.shareSeen], [User.shareName], [User.shareDates]).
- * There is no directory of users: an invite link is the only way to become
- * someone's friend.
+ * Friends: a signed-in visitor invites another with a link, or asks a
+ * member of a club they share, and once the other accepts, each sees what
+ * the other watched lately, as far as the other shares it
+ * ([User.shareSeen], [User.shareName], [User.shareDates]). There is no
+ * directory of users: a link, or a club both are in, is the only way to
+ * become someone's friend. This service makes the links and handles the
+ * requests; accepting a link is [InviteService]'s, behind the page of both
+ * kinds of invite. Nobody is told of a "not now" or of a friendship ended.
  */
 class FriendService(
     private val userRepository: UserRepository,
     private val friendshipRepository: FriendshipRepository,
     private val friendInviteRepository: FriendInviteRepository,
+    private val friendRequestRepository: FriendRequestRepository,
+    private val clubRepository: ClubRepository,
+    private val clubMemberRepository: ClubMemberRepository,
     private val movieSeenRepository: MovieSeenRepository,
     private val checkInRepository: CheckInRepository
 ) {
-    private val random = SecureRandom()
-
     /** The friends page for a signed-in visitor. */
     suspend fun friendsOf(user: User): FriendsView = transaction(readOnly = true) {
         val friends = friendshipRepository.findFriends(user).map { it.friend }
-        FriendsView(friends = friends, feed = feed(friends, FEED_LIMIT), sharing = user)
+        FriendsView(
+            requests = friendRequestRepository.findOpenFor(user),
+            sent = friendRequestRepository.findSentBy(user),
+            friends = friends,
+            feed = feed(friends, FEED_LIMIT),
+            sharing = user
+        )
     }
 
     /** What the visitor's friends saw lately, for the home page row; empty without friends who share. */
-    suspend fun latestOfFriends(user: User, limit: Int): List<FriendSeenMovie> = transaction(readOnly = true) {
+    suspend fun latestOfFriends(user: User, limit: Int): List<SharedCheckIn> = transaction(readOnly = true) {
         feed(friendshipRepository.findFriends(user).map { it.friend }, limit)
     }
 
@@ -99,16 +120,17 @@ class FriendService(
      * all of them, each shown as far as its friend shares their name and
      * the day.
      */
-    private fun feed(friends: List<User>, limit: Int): List<FriendSeenMovie> {
+    private fun feed(friends: List<User>, limit: Int): List<SharedCheckIn> {
         val sharing = friends.filter { it.shareSeen }.associateBy { it.id }
         if (sharing.isEmpty()) return emptyList()
         return checkInRepository.findLatestOf(sharing.values.toList(), limit).map { checkIn ->
             val friend = sharing.getValue(checkIn.user.entityId())
-            FriendSeenMovie(
+            SharedCheckIn(
                 movie = checkIn.movie,
-                friendName = friend.name.takeIf { friend.shareName },
-                friendAvatarUrl = friend.avatarUrl.takeIf { friend.shareName },
-                seenAt = checkIn.watchedAt.takeIf { friend.shareDates }
+                name = friend.name.takeIf { friend.shareName },
+                avatarUrl = friend.avatarUrl.takeIf { friend.shareName },
+                seenAt = checkIn.watchedAt.takeIf { friend.shareDates },
+                unnamed = "A friend"
             )
         }
     }
@@ -119,7 +141,7 @@ class FriendService(
      * same time.
      */
     suspend fun createInvite(user: User, now: Instant = Instant.now()): String = transaction {
-        friendInviteRepository.removeExpired(user, now.minus(INVITE_VALIDITY))
+        friendInviteRepository.removeExpired(user, now.minus(Invite.VALIDITY))
         newInvite(user, now, reusable = false)
     }
 
@@ -139,39 +161,58 @@ class FriendService(
     }
 
     private fun newInvite(user: User, now: Instant, reusable: Boolean): String {
-        val token = Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(18).also { random.nextBytes(it) })
+        val token = Invite.newToken()
         friendInviteRepository.insert(FriendInvite(token = token, inviter = user, createdAt = now, reusable = reusable))
         return token
     }
 
-    /** What an invite link leads to for the visitor opening it. */
-    suspend fun invite(token: String, user: User, now: Instant = Instant.now()): InviteState = transaction(readOnly = true) {
-        val invite = openInvite(token, now)
+    /* ── Requests ─────────────────────────────────────────────────── */
+
+    /**
+     * Asks another member of a club to be friends. Both must be in the club,
+     * and not friends already. When the other asked the visitor already, the
+     * two become friends at once: there is nothing left to accept.
+     */
+    suspend fun request(user: User, otherId: String, clubId: Long, now: Instant = Instant.now()) = transaction {
+        val other = userRepository.findById(otherId)?.takeIf { it.id != user.id } ?: return@transaction
+        val club = clubRepository.findById(clubId) ?: return@transaction
+        if (clubMemberRepository.findMember(club, user.id) == null || clubMemberRepository.findMember(club, other.id) == null) return@transaction
         when {
-            invite == null -> InviteState.Gone
-            invite.inviter.id == user.id -> InviteState.Own
-            else -> InviteState.Open(invite.inviter)
+            friendshipRepository.areFriends(user, other) -> Unit
+            friendRequestRepository.findRequest(other, user) != null -> befriend(user, other, now)
+            friendRequestRepository.findRequest(user, other) == null -> friendRequestRepository.insert(FriendRequest(user, other, club, now))
         }
     }
 
-    /**
-     * Accepts an invite: the visitor and the inviter become friends, and a
-     * personal invite is used up; a public one stays for the next visitor.
-     * Returns whether it was accepted; an invite of the visitor's own, or
-     * one gone, is not.
-     */
-    suspend fun accept(token: String, user: User, now: Instant = Instant.now()): Boolean = transaction {
-        val invite = openInvite(token, now)?.takeIf { it.inviter.id != user.id } ?: return@transaction false
-        friendshipRepository.befriend(user, invite.inviter, now)
-        if (!invite.reusable) friendInviteRepository.remove(invite)
-        true
+    /** Accepts a request: the two are friends from now. */
+    suspend fun accept(user: User, requesterId: String, now: Instant = Instant.now()) = transaction {
+        val requester = userRepository.findById(requesterId) ?: return@transaction
+        if (friendRequestRepository.findRequest(requester, user) != null) befriend(user, requester, now)
     }
 
-    /** An invite that can still be accepted: a public one as long as it exists, a personal one for two weeks. */
-    private fun openInvite(token: String, now: Instant): FriendInvite? =
-        friendInviteRepository.findById(token)?.takeIf { it.reusable || it.createdAt.isAfter(now.minus(INVITE_VALIDITY)) }
+    /** "Not now": the request leaves the visitor's list, and the requester still sees it as sent. */
+    suspend fun dismiss(user: User, requesterId: String) = transaction {
+        val requester = userRepository.findById(requesterId) ?: return@transaction
+        friendRequestRepository.findRequest(requester, user)?.let { friendRequestRepository.update(it.copy(dismissed = true)) }
+    }
 
-    /** Ends a friendship, both ways. */
+    /** Withdraws a request the visitor sent. */
+    suspend fun withdraw(user: User, recipientId: String) = transaction {
+        val recipient = userRepository.findById(recipientId) ?: return@transaction
+        friendRequestRepository.findRequest(user, recipient)?.let { friendRequestRepository.remove(it) }
+    }
+
+    /** How many requests the visitor has to answer, for the badge on the Community tab. */
+    suspend fun countRequests(user: User): Long = transaction(readOnly = true) {
+        friendRequestRepository.countOpenFor(user)
+    }
+
+    private fun befriend(user: User, other: User, now: Instant) {
+        friendshipRepository.befriend(user, other, now)
+        friendRequestRepository.removeBetween(user, other)
+    }
+
+    /** Ends a friendship, both ways; the other is not told. */
     suspend fun remove(user: User, friendId: String) = transaction {
         userRepository.findById(friendId)?.let { friendshipRepository.unfriend(user, it) }
     }
@@ -182,8 +223,6 @@ class FriendService(
     }
 
     companion object {
-        /** How long an invite link can be accepted. */
-        val INVITE_VALIDITY: Duration = Duration.ofDays(14)
         private const val FEED_LIMIT = 36
     }
 }

@@ -1,5 +1,6 @@
 package st.orm.demo.imdb
 
+import st.orm.demo.imdb.repository.FriendRequestRepository
 import st.orm.demo.imdb.repository.CheckInRepository
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -11,6 +12,8 @@ import org.junit.jupiter.api.Test
 import st.orm.demo.imdb.model.MovieSeen
 import st.orm.demo.imdb.model.MovieView
 import st.orm.demo.imdb.model.Watchlist
+import st.orm.demo.imdb.repository.ClubInviteRepository
+import st.orm.demo.imdb.repository.ClubMemberRepository
 import st.orm.demo.imdb.repository.FriendshipRepository
 import st.orm.demo.imdb.repository.MovieAdditionRepository
 import st.orm.demo.imdb.repository.MovieGenreRepository
@@ -208,6 +211,9 @@ class AccountServiceTest {
         orm.repository<RecommendationDismissalRepository>(),
         orm.repository<MovieViewRepository>(),
         orm.repository<FriendshipRepository>(),
+        orm.repository<ClubMemberRepository>(),
+        orm.repository<ClubInviteRepository>(),
+        orm.repository<FriendRequestRepository>(),
         orm.repository<CheckInRepository>(),
         RecommendationService(
             orm.repository<UserRepository>(),

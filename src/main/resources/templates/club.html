@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${view.club.name})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('community')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <a class="back-link" th:href="@{/clubs}">← Clubs</a>
+        <h1 class="page-title" th:text="${view.club.name}">Office film club</h1>
+        <p class="page-subtitle" th:text="${view.members.size() == 1} ? 'Just you so far' : |${view.members.size()} members|">4 members</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container">
+        <div class="notice" th:if="${joined}">Welcome to the club.</div>
+        <div class="notice notice-error" th:if="${lastAdmin}">A club keeps at least one admin: make another member an admin first.</div>
+        <div class="section-header">
+            <h2 class="section-title">Recently Seen in the Club</h2>
+        </div>
+        <div class="empty-state" th:if="${view.feed.isEmpty()}">
+            Nothing yet: check in a movie you watch, and the others see it here, as far as each shares it.
+        </div>
+        <div class="movie-row" id="club-feed">
+            <th:block th:each="item : ${view.feed}">
+                <a th:replace="~{fragments/cards :: sharedCheckIn(${item})}"></a>
+            </th:block>
+        </div>
+    </div>
+</section>
+
+<!-- What most of the members have seen: at least two of them. -->
+<section class="section" th:unless="${view.mostSeen.isEmpty()}" id="most-seen-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Most Seen in the Club</h2>
+        </div>
+        <div class="movie-row">
+            <a class="movie-card" th:each="entry : ${view.mostSeen}" th:href="@{/movie/{id}(id=${entry.movie.id})}">
+                <div class="poster">
+                    <div class="poster-placeholder"><span th:text="${entry.movie.primaryTitle}">Title</span></div>
+                    <img th:src="@{/api/poster/{id}(id=${entry.movie.id})}" alt="" loading="lazy" onerror="this.classList.add('failed')">
+                </div>
+                <div class="movie-card-info">
+                    <div class="movie-card-title" th:text="${entry.movie.primaryTitle}">Title</div>
+                    <div class="movie-card-year" th:text="|Seen by ${entry.seenCount}|">Seen by 3</div>
+                </div>
+            </a>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container friends-grid">
+        <div class="stat-card" id="members-card">
+            <h2>Members</h2>
+            <div class="stat-row" th:each="member : ${view.members}">
+                <span class="friend-name">
+                    <span th:replace="~{fragments/community :: avatar(${member.user}, '')}"></span>
+                    <span th:text="${member.user.id == view.me.user.id} ? |${member.user.name} (you)| : ${member.user.name}">Alice</span>
+                    <span class="role-badge" th:if="${member.admin}">Admin</span>
+                </span>
+                <!-- Becoming friends: one tap to ask, one to accept; asking someone who asked you makes you friends. -->
+                <span class="stat-end friend-action" th:with="status=${view.statusOf(member).name()}">
+                    <span class="friend-badge" th:if="${status == 'FRIENDS'}">Friends</span>
+                    <form th:if="${status == 'NONE'}" th:action="@{/friends/requests/{userId}(userId=${member.user.id})}" method="post">
+                        <input type="hidden" name="clubId" th:value="${view.club.id}">
+                        <button type="submit" class="button button-small">Add friend</button>
+                    </form>
+                    <form th:if="${status == 'ASKED_YOU'}" th:action="@{/friends/requests/{userId}/accept(userId=${member.user.id})}" method="post">
+                        <input type="hidden" name="clubId" th:value="${view.club.id}">
+                        <button type="submit" class="button button-small button-primary">Accept</button>
+                    </form>
+                    <form th:if="${status == 'REQUESTED'}" th:action="@{/friends/requests/{userId}/withdraw(userId=${member.user.id})}" method="post">
+                        <input type="hidden" name="clubId" th:value="${view.club.id}">
+                        <span class="friend-requested">Requested</span>
+                        <button type="submit" class="link-button">Withdraw</button>
+                    </form>
+                </span>
+                <!-- Admins manage the others, and may step down themselves while another admin remains. -->
+                <span class="stat-end member-actions" th:if="${view.me.admin}">
+                    <form th:unless="${member.admin and view.adminCount == 1}" th:action="@{/clubs/{id}/members/{userId}/admin(id=${view.club.id}, userId=${member.user.id})}" method="post">
+                        <input type="hidden" name="admin" th:value="${!member.admin}">
+                        <button type="submit" class="link-button" th:text="${member.admin} ? 'Remove admin' : 'Make admin'">Make admin</button>
+                    </form>
+                    <form th:unless="${member.user.id == view.me.user.id}" th:action="@{/clubs/{id}/members/{userId}/remove(id=${view.club.id}, userId=${member.user.id})}" method="post">
+                        <button type="submit" class="link-button">Remove</button>
+                    </form>
+                </span>
+            </div>
+
+            <!-- Only admins invite, with a personal link or the club's public one. -->
+            <div class="invite" th:if="${view.me.admin}" th:data-invite-title="|Join ${view.club.name} on Storm Movies|">
+                <p class="stat-note">
+                    Invite one person with a personal link, accepted once within two weeks, or share the club's public
+                    link: everyone who accepts it joins, until you replace it.
+                </p>
+                <div class="invite-buttons">
+                    <button type="button" class="button button-primary" th:data-invite="|/api/clubs/${view.club.id}/invite|">Invite someone</button>
+                    <button type="button" class="button" th:data-invite="|/api/clubs/${view.club.id}/public-invite|">Share public link</button>
+                    <button type="button" class="link-button" th:data-invite="|/api/clubs/${view.club.id}/public-invite/new|">New public link</button>
+                </div>
+                <input class="invite-link" type="text" readonly data-invite-link hidden aria-label="Invite link">
+            </div>
+            <p class="stat-note" th:unless="${view.me.admin}">Ask an admin to invite someone.</p>
+
+            <form class="club-create" th:if="${view.me.admin}" th:action="@{/clubs/{id}/rename(id=${view.club.id})}" method="post">
+                <input type="text" name="name" required maxlength="60" th:value="${view.club.name}" aria-label="Club name">
+                <button type="submit" class="button">Rename</button>
+            </form>
+            <form class="club-leave" th:action="@{/clubs/{id}/leave(id=${view.club.id})}" method="post">
+                <button type="submit" class="link-button" id="leave-club">Leave club</button>
+            </form>
+        </div>
+
+        <!-- What the others see of the visitor in this club: their club defaults, or settings of its own. -->
+        <form class="stat-card" id="club-sharing" th:action="@{/clubs/{id}/sharing(id=${view.club.id})}" method="post">
+            <h2>What you share here</h2>
+            <p class="stat-note" th:text="${view.me.followsDefaults} ? 'Your club defaults, from the Clubs page.' : 'Set apart for this club.'">Your club defaults.</p>
+            <th:block th:replace="~{fragments/community :: switches(${view.me.sharesSeen}, ${view.me.sharesName}, ${view.me.sharesDates}, 'Members', 'a member\'s')}"></th:block>
+            <div class="invite-buttons">
+                <button type="submit" class="button">Save for this club</button>
+                <button type="submit" class="link-button" name="defaults" value="true" th:unless="${view.me.followsDefaults}">Use my defaults</button>
+            </div>
+        </form>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

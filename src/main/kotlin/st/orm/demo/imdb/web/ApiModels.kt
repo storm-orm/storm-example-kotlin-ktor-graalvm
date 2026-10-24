@@ -6,17 +6,19 @@ import st.orm.demo.imdb.model.CheckIn
 import st.orm.demo.imdb.model.MovieAddition
 import st.orm.demo.imdb.model.Person
 import st.orm.demo.imdb.model.Recommendation
+import st.orm.demo.imdb.service.ClubSeen
 import st.orm.demo.imdb.service.dayLabel
 import st.orm.demo.imdb.service.monthLabel
 
 /**
  * What the seen tags of every list of movies read, in one request: the
  * visitor's seen movies, by id, with the day of a check-in or null for
- * history; and the movies friends have seen, with each friend's name, or
- * null for a friend who keeps it to themselves.
+ * history; the movies friends have seen, with each friend's name, or null
+ * for a friend who keeps it to themselves; and the movies members of the
+ * visitor's clubs have seen, with each member and their club.
  */
 @Serializable
-data class SeenMarks(val seen: Map<String, String?>, val friends: Map<String, List<String?>>)
+data class SeenMarks(val seen: Map<String, String?>, val friends: Map<String, List<String?>>, val clubs: Map<String, List<ClubSeen>>)
 
 @Serializable
 data class MovieSearchItem(val id: String, val title: String, val year: Int?)

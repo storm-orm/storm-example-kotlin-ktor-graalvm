@@ -22,6 +22,8 @@ import st.orm.demo.imdb.service.PersonGalleryService
 import st.orm.demo.imdb.service.PersonService
 import st.orm.demo.imdb.service.SearchService
 import st.orm.demo.imdb.service.FriendService
+import st.orm.demo.imdb.service.ClubService
+import st.orm.demo.imdb.service.InviteService
 import st.orm.demo.imdb.service.CatchUpService
 import st.orm.demo.imdb.service.InsightsService
 import st.orm.demo.imdb.service.StatisticsService
@@ -75,9 +77,11 @@ fun Application.configureDependencies() {
                 resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(),
             )
         }
-        provide { AccountService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { AccountService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { HomeService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
-        provide { FriendService(resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { FriendService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { ClubService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { InviteService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { TopMoviesService(resolve(), resolve()) }
         provide { WatchlistService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { MovieSeenService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
@@ -96,7 +100,7 @@ fun Application.configureDependencies() {
         provide {
             ImdbDataSync(
                 resolve(), resolve(), resolve(), resolve(), resolve(),
-                resolve(), resolve(), resolve(), resolve(), resolve(), syncProperties.minimumVoteCount,
+                resolve(), resolve(), resolve(), resolve(), syncProperties.minimumVoteCount,
             )
         }
     }

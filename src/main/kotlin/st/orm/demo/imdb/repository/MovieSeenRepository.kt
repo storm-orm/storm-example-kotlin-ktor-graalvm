@@ -44,6 +44,16 @@ data class SeenBy(
     val user: Ref<User>
 )
 
+/**
+ * Query result shape: a movie and how many of several users have seen it.
+ * Not backed by a database table or view, so it is a plain data class —
+ * deliberately not a Data type.
+ */
+data class MovieSeenCount(
+    val movie: Movie,
+    val seenCount: Long
+)
+
 interface MovieSeenRepository : EntityRepository<MovieSeen, MovieSeenPk> {
 
     /** Whether the user has marked the movie as seen: a lookup of the pair key. */
@@ -58,6 +68,20 @@ interface MovieSeenRepository : EntityRepository<MovieSeen, MovieSeenPk> {
     fun findSeenBy(users: List<User>): List<SeenBy> =
         select<SeenBy, _, _> { "${MovieSeen_.movie.id}, ${MovieSeen_.user}" }
             .where(MovieSeen_.user inList users)
+            .resultList
+
+    /**
+     * The movies most of several users have seen, those seen by at least
+     * [minimum] of them, the most seen first: what a club watched most. One
+     * grouped query on the seen list, joined to the movie it shows.
+     */
+    fun countSeenBy(users: List<User>, minimum: Long, limit: Int): List<MovieSeenCount> =
+        select<MovieSeenCount, _, _> { "${Movie::class}, COUNT(*)" }
+            .where(MovieSeen_.user inList users)
+            .groupBy(MovieSeen_.movie)
+            .having { "COUNT(*) >= $minimum" }
+            .orderByDescending { "COUNT(*)" }
+            .limit(limit)
             .resultList
 
     /** The movies the user has seen, as ids: the seen tags of every list. */

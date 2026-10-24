@@ -8,7 +8,6 @@ import st.orm.demo.imdb.model.Genre
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieAddition
 import st.orm.demo.imdb.model.MovieGenre
-import st.orm.demo.imdb.model.MovieView
 import st.orm.demo.imdb.model.Person
 import st.orm.demo.imdb.model.Principal
 import st.orm.demo.imdb.model.Rating
@@ -16,7 +15,6 @@ import st.orm.demo.imdb.repository.GenreRepository
 import st.orm.demo.imdb.repository.MovieAdditionRepository
 import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieRepository
-import st.orm.demo.imdb.repository.MovieViewRepository
 import st.orm.demo.imdb.repository.PersonRepository
 import st.orm.demo.imdb.repository.PrincipalRepository
 import st.orm.demo.imdb.repository.RatingRepository
@@ -59,7 +57,6 @@ class ImdbDataSync(
     private val personRepository: PersonRepository,
     private val principalRepository: PrincipalRepository,
     private val ratingRepository: RatingRepository,
-    private val movieViewRepository: MovieViewRepository,
     private val movieAdditionRepository: MovieAdditionRepository,
     private val datasets: ImdbDatasets,
     private val objectMapper: ObjectMapper,
@@ -101,7 +98,6 @@ class ImdbDataSync(
         val movieIds = syncMovies(titlesFile, catalogue, ratings)
         syncPersons(namesFile, readCreditedPersonIds(creditsFile, movieIds))
         syncCredits(creditsFile, movieIds)
-        seedFeaturedMovie()
 
         logger.info("IMDB sync finished in {} seconds.", (System.currentTimeMillis() - startedAt) / 1000)
     }
@@ -269,17 +265,6 @@ class ImdbDataSync(
         principalRepository.replace(principalRepository.findByMovies(movies), principals)
     }
 
-    /**
-     * Seeds a single view for The Matrix so the home page has a featured movie
-     * after the initial import — a plain database seed, no special-case code.
-     */
-    private fun seedFeaturedMovie() {
-        if (movieViewRepository.exists()) return
-        val theMatrix = movieRepository.findById(FEATURED_MOVIE_ID) ?: return
-        movieViewRepository.insert(MovieView(movie = theMatrix, viewedAt = Instant.now()))
-        logger.info("Seeded an initial view for '{}' as the featured movie.", theMatrix.primaryTitle)
-    }
-
     /** The characters column holds a JSON array, e.g. ["Neo"]. */
     private fun parseCharacters(rawValue: String): String? {
         if (rawValue == NULL_VALUE || rawValue.isBlank()) return null
@@ -291,7 +276,6 @@ class ImdbDataSync(
     }
 
     companion object {
-        private const val FEATURED_MOVIE_ID = "tt0133093" // The Matrix
         private const val NULL_VALUE = "\\N"
         /** Movies or people per transaction. */
         private const val CHUNK_SIZE = 1000

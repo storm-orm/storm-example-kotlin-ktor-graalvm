@@ -54,8 +54,9 @@ class StormMoviesInterfaceTest {
         assertThat(page.locator(".navbar [data-search-input]")).isVisible()
         assertThat(page.locator(".search-hero [data-search-input]")).isVisible()
 
-        // The featured hero is seeded with The Matrix on first launch.
+        // A new visitor's featured movie is one of the catalogue's picks.
         assertThat(page.locator(".hero-title")).isVisible()
+        assertThat(page.locator(".hero-eyebrow")).hasText("Featured")
         assertThat(page.locator(".hero .poster")).isVisible()
 
         assertThat(page.locator("#top-rated-section .movie-card")).hasCount(10)
@@ -532,6 +533,12 @@ class StormMoviesInterfaceTest {
         }, Page.WaitForConditionOptions().setTimeout(30_000.0))
         assertThat(page.locator("#for-you-results .movie-card-reasons span").first()).containsText("Because you saw The Matrix")
 
+        // The home page features one of the picks.
+        page.navigate("$baseUrl/")
+        assertThat(page.locator(".hero-eyebrow")).hasText("Featured · For you")
+        assertThat(page.locator(".hero-reasons")).hasCount(0)
+        page.navigate("$baseUrl/for-you")
+
         // Opening a pick from here counts as a recommendation that led somewhere.
         page.locator("#for-you-results .movie-card").first().click()
         page.waitForURL(Pattern.compile(".*/movie/.*via=for-you.*"))
@@ -578,6 +585,19 @@ class StormMoviesInterfaceTest {
     }
 
     @Test
+    fun `friends and clubs share the community pages, both for signed-in visitors`() {
+        page.navigate("$baseUrl/friends")
+        assertThat(page.locator(".page-title")).hasText("Community")
+        assertThat(page.locator("#friends-tab")).hasClass(Pattern.compile("active"))
+        assertThat(page.locator("#friends-signin")).isVisible()
+
+        page.locator("#clubs-tab").click()
+        page.waitForURL(Pattern.compile(".*/clubs$"))
+        assertThat(page.locator("#clubs-tab")).hasClass(Pattern.compile("active"))
+        assertThat(page.locator("#clubs-signin a")).hasAttribute("href", Pattern.compile("/signin\\?rd=.*clubs"))
+    }
+
+    @Test
     fun `the sign-in page offers the configured providers or says there are none`() {
         page.navigate("$baseUrl/signin?rd=/watchlist")
         assertThat(page.locator(".page-title")).hasText("Sign in")
@@ -594,24 +614,22 @@ class StormMoviesInterfaceTest {
     /* ── Recently viewed ──────────────────────────────────────────── */
 
     @Test
-    fun `the featured movie is the site's latest view, recently viewed the browser's own`() {
+    fun `recently viewed is the browser's own`() {
         // The browser gets its account on the first page; the views after it are its own.
         page.navigate("$baseUrl/")
         page.navigate("$baseUrl/movie/tt0111161")
         page.navigate("$baseUrl/movie/tt0068646")
 
         page.navigate("$baseUrl/")
-        assertThat(page.locator(".hero-title")).hasText("The Godfather")
         assertThat(page.locator("#recently-viewed-section .movie-card-title").first()).hasText("The Godfather")
         assertThat(page.locator("#recently-viewed-section .movie-card-title", Page.LocatorOptions())
             .filter(Locator.FilterOptions().setHasText("The Shawshank Redemption")).first()).isVisible()
 
-        // Another browser sees the same featured movie, but none of these views as its own.
+        // Another browser sees none of these views as its own.
         val other = browser.newContext()
         try {
             val otherPage = other.newPage()
             otherPage.navigate("$baseUrl/")
-            assertThat(otherPage.locator(".hero-title")).hasText("The Godfather")
             assertThat(otherPage.locator("#recently-viewed-section")).hasCount(0)
         } finally {
             other.close()
@@ -733,7 +751,7 @@ class StormMoviesInterfaceTest {
             for ((path, name) in listOf(
                 "/" to "home", "/top" to "top", "/watchlist" to "watchlist", "/seen" to "seen",
                 "/signin" to "signin", "/statistics" to "statistics", "/insights" to "insights",
-                "/seen/catch-up" to "catch-up", "/friends" to "friends",
+                "/seen/catch-up" to "catch-up", "/friends" to "friends", "/clubs" to "clubs",
                 "/search?query=matrix" to "search", "/movie/tt0133093" to "movie",
                 "/person/nm0000206" to "person", "/browse/Drama" to "browse"
             )) {
