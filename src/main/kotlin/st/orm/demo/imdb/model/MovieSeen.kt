@@ -18,18 +18,21 @@ data class MovieSeenPk(
  * A movie a user has marked as seen: the same shape as [Watchlist], keyed by
  * the pair of user and movie, so marking a movie seen twice is a key
  * violation and the toggle has its semantics. Marking a movie seen takes it
- * off the watchlist (MovieSeenService).
+ * off the watchlist (MovieSeenService). A thumbs up or down ([liked]) is
+ * optional and sharpens the recommendations; most seen movies have none.
  */
 data class MovieSeen(
     @PK(generation = NONE) val id: MovieSeenPk,
     @FK @Persist(insertable = false, updatable = false) val user: Ref<User>,
     @FK @Persist(insertable = false, updatable = false) val movie: Movie,
-    val seenAt: Instant
+    val seenAt: Instant,
+    val liked: Boolean? = null
 ) : Entity<MovieSeenPk> {
-    constructor(user: User, movie: Movie, seenAt: Instant) : this(
+    constructor(user: User, movie: Movie, seenAt: Instant, liked: Boolean? = null) : this(
         id = MovieSeenPk(userId = user.id, movieId = movie.id),
         user = user.ref(),
         movie = movie,
-        seenAt = seenAt
+        seenAt = seenAt,
+        liked = liked
     )
 }

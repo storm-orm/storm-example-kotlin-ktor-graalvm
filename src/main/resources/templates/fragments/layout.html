@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="|${title} · Storm Movies|">Storm Movies</title>
     <link rel="icon" type="image/png" th:href="@{/img/favicon.png}">
+    <!-- A page that can be shared sets a share card: the link then unfurls into the card in a chat or a timeline. -->
+    <th:block th:if="${share != null}">
+        <link rel="canonical" th:href="${share.url}">
+        <meta property="og:type" content="video.movie">
+        <meta property="og:site_name" content="Storm Movies">
+        <meta property="og:title" th:content="${share.title}">
+        <meta property="og:description" th:content="${share.description}">
+        <meta property="og:image" th:content="${share.imageUrl}">
+        <meta property="og:url" th:content="${share.url}">
+        <meta name="twitter:card" content="summary">
+    </th:block>
     <!-- Posters and photos redirect to IMDB's image CDN: connect before the first image asks. -->
     <link rel="preconnect" href="https://m.media-amazon.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,6 +36,7 @@
         </div>
         <div class="nav-links">
             <a th:href="@{/}" th:classappend="${active == 'home'} ? 'active'">Home</a>
+            <a th:href="@{/for-you}" th:classappend="${active == 'for-you'} ? 'active'">For You</a>
             <a th:href="@{/top}" th:classappend="${active == 'top'} ? 'active'">Top Movies</a>
             <a th:href="@{/recent}" th:classappend="${active == 'recent'} ? 'active'">Recently Added</a>
             <a th:href="@{/watchlist}" th:classappend="${active == 'watchlist'} ? 'active'">Watchlist</a>

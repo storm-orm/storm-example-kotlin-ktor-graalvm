@@ -16,6 +16,10 @@ interface WatchlistRepository : EntityRepository<Watchlist, WatchlistPk> {
     fun contains(user: User, movie: Movie): Boolean =
         existsById(WatchlistPk(userId = user.id, movieId = movie.id))
 
+    /** The whole watchlist of the user, in no particular order: seeds of the recommendations. */
+    fun findAll(user: User): List<Watchlist> =
+        findAll(Watchlist_.user eq user)
+
     /** Takes the movie off the user's watchlist, if it is on it. */
     fun remove(user: User, movie: Movie) {
         removeAll((Watchlist_.user eq user) and (Watchlist_.movie eq movie))

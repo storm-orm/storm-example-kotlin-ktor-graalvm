@@ -9,14 +9,23 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import st.orm.demo.imdb.model.MovieSeen
 import st.orm.demo.imdb.model.Watchlist
+import st.orm.demo.imdb.repository.MovieAdditionRepository
+import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
+import st.orm.demo.imdb.repository.MovieViewRepository
+import st.orm.demo.imdb.repository.PrincipalRepository
+import st.orm.demo.imdb.repository.RatingRepository
+import st.orm.demo.imdb.repository.RecommendationDismissalRepository
+import st.orm.demo.imdb.repository.RecommendationEventRepository
+import st.orm.demo.imdb.repository.RecommendationRepository
 import st.orm.demo.imdb.repository.UserLoginRepository
 import st.orm.demo.imdb.repository.UserRepository
 import st.orm.demo.imdb.repository.WatchlistRepository
 import st.orm.demo.imdb.service.AccountService
 import st.orm.demo.imdb.service.GitProvider
 import st.orm.demo.imdb.service.ProviderProfile
+import st.orm.demo.imdb.service.RecommendationService
 import st.orm.repository.repository
 import st.orm.template.ORMTemplate
 import st.orm.test.StormTest
@@ -147,6 +156,21 @@ class AccountServiceTest {
         orm.repository<UserRepository>(),
         orm.repository<UserLoginRepository>(),
         orm.repository<WatchlistRepository>(),
-        orm.repository<MovieSeenRepository>()
+        orm.repository<MovieSeenRepository>(),
+        orm.repository<RecommendationDismissalRepository>(),
+        RecommendationService(
+            orm.repository<UserRepository>(),
+            orm.repository<MovieRepository>(),
+            orm.repository<MovieSeenRepository>(),
+            orm.repository<WatchlistRepository>(),
+            orm.repository<RecommendationDismissalRepository>(),
+            orm.repository<MovieAdditionRepository>(),
+            orm.repository<MovieGenreRepository>(),
+            orm.repository<PrincipalRepository>(),
+            orm.repository<RatingRepository>(),
+            orm.repository<MovieViewRepository>(),
+            orm.repository<RecommendationRepository>(),
+            orm.repository<RecommendationEventRepository>()
+        )
     )
 }

@@ -17,6 +17,27 @@
     </div>
 </a>
 
+<!-- A recommended movie: the poster card with its reasons underneath, and a "Not interested"
+     control beside it. The link says where it came from, so the visit counts as a recommendation
+     that led somewhere. -->
+<div th:fragment="recommended(id, title, year, reasons)" class="recommended" th:data-movie-id="${id}">
+    <a class="movie-card" th:href="@{/movie/{id}(id=${id}, via='for-you')}">
+        <div class="poster">
+            <div class="poster-placeholder"><span th:text="${title}">Title</span></div>
+            <img th:src="@{/api/poster/{id}(id=${id})}" alt="" loading="lazy"
+                 onerror="this.classList.add('failed')">
+        </div>
+        <div class="movie-card-info">
+            <div class="movie-card-title" th:text="${title}">Title</div>
+            <div class="movie-card-year" th:text="${year}">Year</div>
+            <div class="movie-card-reasons">
+                <span th:each="reason : ${reasons}" th:text="${reason.text}">Because you saw The Matrix</span>
+            </div>
+        </div>
+    </a>
+    <button type="button" class="dismiss-button" data-dismiss th:data-movie-id="${id}" title="Not interested" aria-label="Not interested">×</button>
+</div>
+
 <!-- A movie poster card with a rank badge, for top-10 style rows. -->
 <a th:fragment="rankedMovie(rank, id, title, year)" class="movie-card" th:href="@{/movie/{id}(id=${id})}">
     <div class="poster">

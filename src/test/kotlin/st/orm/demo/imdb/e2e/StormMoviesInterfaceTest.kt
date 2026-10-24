@@ -188,6 +188,25 @@ class StormMoviesInterfaceTest {
     /* ── Movie detail ─────────────────────────────────────────────── */
 
     @Test
+    fun `a movie page can be shared, and the link unfurls into a card`() {
+        page.navigate("$baseUrl/movie/tt0133093")
+
+        // The card a chat or a timeline shows for the link: title, line, poster, the page's own URL.
+        assertEquals("The Matrix (1999)", page.locator("meta[property='og:title']").getAttribute("content"))
+        assertThat(page.locator("meta[property='og:description']")).hasAttribute("content", Pattern.compile("1999 · 136 min · .*★ \\d\\.\\d from [\\d,]+ votes"))
+        assertThat(page.locator("meta[property='og:image']")).hasAttribute("content", Pattern.compile("/api/poster/tt0133093$"))
+        assertThat(page.locator("meta[property='og:url']")).hasAttribute("content", Pattern.compile("/movie/tt0133093$"))
+
+        // Without a share sheet, the button opens the menu: copy the link, post on X, email.
+        val menu = page.locator("[data-share-menu]")
+        assertThat(menu).isHidden()
+        page.locator("[data-share]").click()
+        assertThat(menu).isVisible()
+        assertThat(menu.locator("[data-share-x]")).hasAttribute("href", Pattern.compile("^https://x\\.com/intent/post\\?text=The%20Matrix%20\\(1999\\)%20%C2%B7%201999.*&url=.*%2Fmovie%2Ftt0133093$"))
+        assertThat(menu.locator("[data-share-mail]")).hasAttribute("href", Pattern.compile("^mailto:\\?subject=The%20Matrix%20\\(1999\\)&body="))
+    }
+
+    @Test
     fun `movie detail shows info, cast, ambient backdrop, and related movies`() {
         page.navigate("$baseUrl/movie/tt0133093")
 
@@ -289,6 +308,70 @@ class StormMoviesInterfaceTest {
         assertEquals(0, page.locator("#watchlist-results .movie-card").count())
         page.navigate("$baseUrl/")
         assertThat(page.locator("#seen-section .movie-card-title").first()).hasText("The Matrix")
+    }
+
+    @Test
+    fun `a thumbs vote appears once a movie is seen and can be taken back`() {
+        page.navigate("$baseUrl/movie/tt0133093")
+        val votes = page.locator("[data-vote-buttons]")
+        assertThat(votes).isHidden()
+
+        page.locator("[data-list-toggle='seen']").click()
+        assertThat(page.locator("[data-seen-label]")).hasText("Seen")
+        assertThat(votes).isVisible()
+
+        val thumbsUp = page.locator("[data-vote='true']")
+        thumbsUp.click()
+        assertThat(thumbsUp).hasClass(Pattern.compile("active"))
+        page.reload()
+        assertThat(page.locator("[data-vote='true']")).hasClass(Pattern.compile("active"))
+        page.locator("[data-vote='true']").click()
+        assertThat(page.locator("[data-vote='true']")).not().hasClass(Pattern.compile("active"))
+    }
+
+    @Test
+    fun `the For You page shows picks with reasons, personal once something is seen`() {
+        page.navigate("$baseUrl/for-you")
+        assertThat(page.locator(".page-title")).hasText("For You")
+        assertTrue(page.locator("#for-you-results .movie-card").count() > 0)
+        assertThat(page.locator("#for-you-results .movie-card-reasons span").first()).isVisible()
+        assertThat(page.locator(".page-subtitle")).containsText("whole catalogue")
+
+        // Seeing The Matrix makes the picks personal, computed in the background.
+        page.navigate("$baseUrl/movie/tt0133093")
+        page.locator("[data-list-toggle='seen']").click()
+        assertThat(page.locator("[data-seen-label]")).hasText("Seen")
+        page.waitForCondition({
+            page.navigate("$baseUrl/for-you")
+            page.locator(".page-subtitle").textContent().contains("you have seen")
+        }, Page.WaitForConditionOptions().setTimeout(30_000.0))
+        assertThat(page.locator("#for-you-results .movie-card-reasons span").first()).containsText("Because you saw The Matrix")
+
+        // Opening a pick from here counts as a recommendation that led somewhere.
+        page.locator("#for-you-results .movie-card").first().click()
+        page.waitForURL(Pattern.compile(".*/movie/.*via=for-you.*"))
+        assertThat(page.locator(".movie-title")).isVisible()
+    }
+
+    @Test
+    fun `not interested removes a pick and keeps it out`() {
+        page.navigate("$baseUrl/movie/tt0133093")
+        page.locator("[data-list-toggle='seen']").click()
+        assertThat(page.locator("[data-seen-label]")).hasText("Seen")
+        page.waitForCondition({
+            page.navigate("$baseUrl/for-you")
+            page.locator(".page-subtitle").textContent().contains("you have seen")
+        }, Page.WaitForConditionOptions().setTimeout(30_000.0))
+
+        val first = page.locator("#for-you-results .recommended").first()
+        val dismissedId = first.getAttribute("data-movie-id")
+        first.hover()
+        first.locator("[data-dismiss]").click()
+        assertThat(page.locator("#for-you-results .recommended[data-movie-id='$dismissedId']")).hasCount(0)
+
+        page.reload()
+        assertThat(page.locator("#for-you-results .recommended").first()).isVisible()
+        assertThat(page.locator("#for-you-results .recommended[data-movie-id='$dismissedId']")).hasCount(0)
     }
 
     @Test

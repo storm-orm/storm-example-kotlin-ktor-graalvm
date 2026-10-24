@@ -68,6 +68,14 @@ CREATE TABLE movie_view (
     viewed_at TIMESTAMP NOT NULL
 );
 
+-- Views older than a month, folded into one row per movie and day (V7).
+CREATE TABLE movie_view_day (
+    movie_id   VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
+    view_date  DATE NOT NULL,
+    view_count INTEGER NOT NULL,
+    PRIMARY KEY (movie_id, view_date)
+);
+
 -- Personal accounts (V4): a visitor's account, the git provider accounts
 -- linked to it, and the two lists that belong to it.
 CREATE TABLE app_user (
@@ -98,7 +106,37 @@ CREATE TABLE movie_seen (
     user_id  VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
     movie_id VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
     seen_at  TIMESTAMP NOT NULL,
+    liked    BOOLEAN,
     PRIMARY KEY (user_id, movie_id)
+);
+
+-- Recommendations (V5): a visitor's computed picks with their reasons as JSON,
+-- and what became of them.
+CREATE TABLE recommendation (
+    user_id       VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    movie_id      VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
+    score         NUMERIC(8, 4) NOT NULL,
+    seed_movie_id VARCHAR REFERENCES movie (id) ON DELETE SET NULL,
+    reasons       VARCHAR NOT NULL,
+    computed_at   TIMESTAMP NOT NULL,
+    shown_count   INTEGER NOT NULL DEFAULT 0,
+    last_shown_at TIMESTAMP,
+    PRIMARY KEY (user_id, movie_id)
+);
+
+CREATE TABLE recommendation_dismissal (
+    user_id      VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    movie_id     VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
+    dismissed_at TIMESTAMP NOT NULL,
+    PRIMARY KEY (user_id, movie_id)
+);
+
+CREATE TABLE recommendation_event (
+    id       BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id  VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    movie_id VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
+    kind     VARCHAR NOT NULL,
+    at       TIMESTAMP NOT NULL
 );
 
 -- Photo galleries from the person's Wikipedia article, fetched from Wikimedia
@@ -118,6 +156,9 @@ CREATE INDEX idx_movie_genre_genre_id ON movie_genre (genre_id);
 CREATE INDEX idx_principal_person_id ON principal (person_id);
 CREATE INDEX idx_rating_average_rating ON rating (average_rating DESC);
 CREATE INDEX idx_movie_view_viewed_at ON movie_view (viewed_at DESC);
+CREATE INDEX idx_movie_view_day_view_date ON movie_view_day (view_date);
 CREATE INDEX idx_user_login_user_id ON user_login (user_id);
 CREATE INDEX idx_watchlist_user_id_added_at ON watchlist (user_id, added_at DESC);
 CREATE INDEX idx_movie_seen_user_id_seen_at ON movie_seen (user_id, seen_at DESC);
+CREATE INDEX idx_recommendation_user_id_score ON recommendation (user_id, score DESC, movie_id);
+CREATE INDEX idx_recommendation_event_kind ON recommendation_event (kind);

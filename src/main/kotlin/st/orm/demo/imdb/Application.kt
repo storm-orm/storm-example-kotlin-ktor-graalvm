@@ -31,6 +31,9 @@ import st.orm.demo.imdb.service.ImdbDataSync
 import st.orm.demo.imdb.service.ImdbSyncProperties
 import st.orm.demo.imdb.service.StatisticsService
 import st.orm.demo.imdb.service.PersonGalleryService
+import st.orm.demo.imdb.service.RecommendationService
+import st.orm.demo.imdb.service.ViewLogProperties
+import st.orm.demo.imdb.service.ViewLogService
 import st.orm.demo.imdb.web.configureAccounts
 import st.orm.demo.imdb.web.configureRouting
 import st.orm.ktor.Storm
@@ -62,6 +65,45 @@ fun Application.module() {
     configureStatisticsWarmUp()
 
     configureGalleryRefresh()
+
+    configureRecommendationRefresh()
+
+    configureViewLogFolding()
+}
+
+/**
+ * The view log is folded nightly: the views older than the kept period
+ * become counts per movie and day (ViewLogService), at a fixed time in UTC
+ * after the IMDB sync. The timer runs in the application's own scope, which
+ * cancels it at shutdown; a failed run is logged and the next night's run
+ * folds what it left.
+ */
+private fun Application.configureViewLogFolding() {
+    val properties: ViewLogProperties by dependencies
+    val viewLogService: ViewLogService by dependencies
+    launch {
+        while (isActive) {
+            delay(timeUntil(properties.foldAt).toMillis())
+            try {
+                viewLogService.foldOldViews()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                environment.log.error("Folding the view log failed.", e)
+            }
+        }
+    }
+}
+
+/**
+ * A visitor's recommendations are recomputed in the background whenever
+ * their lists change: the writes queue the visitor, and this worker, one
+ * for the application, computes them (RecommendationService). It runs in
+ * the application's own scope, which cancels it at shutdown.
+ */
+private fun Application.configureRecommendationRefresh() {
+    val recommendationService: RecommendationService by dependencies
+    launch { recommendationService.processRefreshRequests() }
 }
 
 /**
@@ -213,7 +255,11 @@ private fun Application.configureStorm() {
                     "db/migration/V1__create_schema.sql",
                     "db/migration/V2__store_folded_titles.sql",
                     "db/migration/V3__record_movie_additions.sql",
-                    "db/migration/V4__personal_accounts.sql"
+                    "db/migration/V4__personal_accounts.sql",
+                    "db/migration/V5__recommendations.sql",
+                    "db/migration/V6__recommendation_fatigue.sql",
+                    "db/migration/V7__fold_old_views.sql",
+                    "db/migration/V8__movie_view_day_natural_key.sql"
                 )))
                 .load()
                 .migrate()

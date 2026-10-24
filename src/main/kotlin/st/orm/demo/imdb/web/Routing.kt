@@ -13,6 +13,7 @@ import st.orm.demo.imdb.service.MovieService
 import st.orm.demo.imdb.service.PersonGalleryService
 import st.orm.demo.imdb.service.PersonService
 import st.orm.demo.imdb.service.RecentlyAddedService
+import st.orm.demo.imdb.service.RecommendationService
 import st.orm.demo.imdb.service.SearchService
 import st.orm.demo.imdb.service.StatisticsService
 import st.orm.demo.imdb.service.TopMoviesService
@@ -35,6 +36,7 @@ fun Application.configureRouting() {
     val searchService: SearchService by dependencies
     val browseService: BrowseService by dependencies
     val recentlyAddedService: RecentlyAddedService by dependencies
+    val recommendationService: RecommendationService by dependencies
     val movieService: MovieService by dependencies
     val personService: PersonService by dependencies
     val posterController: PosterController by dependencies
@@ -55,6 +57,7 @@ fun Application.configureRouting() {
         searchRoutes(searchService)
         browseRoutes(browseService)
         recentlyAddedRoutes(recentlyAddedService)
+        forYouRoutes(recommendationService)
         movieRoutes(movieService, watchlistService, movieSeenService)
         personRoutes(personService)
         posterRoutes(posterController)

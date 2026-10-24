@@ -65,6 +65,40 @@
     </div>
 </section>
 
+<!-- What to watch next: the visitor's recommendations, or the catalogue's picks for a new visitor. -->
+<section class="section" th:if="${!view.recommendations.watchNext.isEmpty()}" id="watch-next-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">What to watch next</h2>
+            <a class="section-link" th:href="@{/for-you}">View all →</a>
+        </div>
+        <p class="section-note" th:unless="${view.recommendations.personal}">
+            Picks from the whole catalogue. Mark movies as seen, or save them, and these become yours.
+        </p>
+        <div class="movie-row">
+            <th:block th:each="pick : ${view.recommendations.watchNext}">
+                <a th:replace="~{fragments/cards :: recommended(${pick.movie.id}, ${pick.movie.primaryTitle}, ${pick.movie.startYear}, ${pick.reasons})}"></a>
+            </th:block>
+        </div>
+    </div>
+</section>
+
+<!-- Because you saw: a shelf per movie of the visitor's own that argued for the most picks. -->
+<section class="section" th:each="shelf : ${view.recommendations.shelves}" th:id="|shelf-${shelf.seed.id}|">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">
+                <a class="section-title-link" th:href="@{/movie/{id}(id=${shelf.seed.id})}" th:text="${shelf.title}">Because you saw The Matrix</a>
+            </h2>
+        </div>
+        <div class="movie-row">
+            <th:block th:each="pick : ${shelf.movies}">
+                <a th:replace="~{fragments/cards :: recommended(${pick.movie.id}, ${pick.movie.primaryTitle}, ${pick.movie.startYear}, ${pick.reasons})}"></a>
+            </th:block>
+        </div>
+    </div>
+</section>
+
 <!-- My watchlist -->
 <section class="section" th:if="${!view.watchlistEntries.isEmpty()}" id="watchlist-section">
     <div class="container">

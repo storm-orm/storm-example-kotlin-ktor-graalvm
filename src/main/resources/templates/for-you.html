@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('For You')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('for-you')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <h1 class="page-title">For You</h1>
+        <p class="page-subtitle" th:if="${personal}">What to watch next, from what you have seen and saved. Each card says why.</p>
+        <p class="page-subtitle" th:unless="${personal}">Picks from the whole catalogue. Mark movies as seen, or save them, and these become yours.</p>
+    </div>
+</header>
+
+<!-- New arrivals that fit: since the previous visit for a visitor with picks of their own, this month otherwise.
+     Left out when nothing new fits. -->
+<section class="section" th:unless="${newArrivals.isEmpty()}" id="new-arrivals-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title" th:text="${personal} ? 'New since your last visit' : 'New this month'">New since your last visit</h2>
+            <span class="section-note-inline" th:if="${personal}" th:text="|Joined the catalogue in the past ${newSinceDays} days|">Joined the catalogue in the past 7 days</span>
+        </div>
+        <div class="movie-row">
+            <th:block th:each="pick : ${newArrivals}">
+                <a th:replace="~{fragments/cards :: recommended(${pick.movie.id}, ${pick.movie.primaryTitle}, ${pick.movie.startYear}, ${pick.reasons})}"></a>
+            </th:block>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="empty-state" th:if="${movies.isEmpty()}">Nothing to recommend yet. Try again in a moment.</div>
+        <div class="movie-grid" id="for-you-results">
+            <th:block th:each="pick : ${movies}">
+                <a th:replace="~{fragments/cards :: recommended(${pick.movie.id}, ${pick.movie.primaryTitle}, ${pick.movie.startYear}, ${pick.reasons})}"></a>
+            </th:block>
+        </div>
+        <div class="scroll-sentinel" th:if="${nextCursor != null}"
+             data-infinite-scroll
+             data-kind="recommended"
+             data-target="for-you-results"
+             data-endpoint="/api/for-you"
+             th:data-cursor="${nextCursor}">
+            <div class="spinner" hidden></div>
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

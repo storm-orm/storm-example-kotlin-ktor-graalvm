@@ -7,6 +7,8 @@ import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.PersonRepository
 import st.orm.demo.imdb.repository.PrincipalRepository
+import st.orm.demo.imdb.repository.RecommendationEventCount
+import st.orm.demo.imdb.repository.RecommendationEventRepository
 import st.orm.demo.imdb.repository.ProlificActor
 import st.orm.demo.imdb.serialization.KotlinxSerializedCache
 import st.orm.template.transaction
@@ -38,8 +40,17 @@ class StatisticsService(
     private val movieRepository: MovieRepository,
     private val movieGenreRepository: MovieGenreRepository,
     private val personRepository: PersonRepository,
-    private val principalRepository: PrincipalRepository
+    private val principalRepository: PrincipalRepository,
+    private val recommendationEventRepository: RecommendationEventRepository
 ) {
+
+    /**
+     * How often recommendations led somewhere, per kind. Read live, not from
+     * the cache: the events change with every visit, the catalogue statistics
+     * with the daily sync, and the count is one indexed query.
+     */
+    fun countRecommendationEvents(): List<RecommendationEventCount> =
+        recommendationEventRepository.countByKind()
 
     // The statistics view is cached as serialized JSON (see
     // KotlinxSerializedCache) rather than as an object reference — the way an

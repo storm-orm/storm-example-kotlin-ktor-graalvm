@@ -7,13 +7,13 @@
 <header class="page-header">
     <div class="container">
         <h1 class="page-title">Recently Added</h1>
-        <p class="page-subtitle">The movies that joined the catalogue, newest day first.</p>
+        <p class="page-subtitle">This year's releases that joined the catalogue, newest day first.</p>
     </div>
 </header>
 
 <section class="section">
     <div class="container">
-        <div class="empty-state" th:if="${days.isEmpty()}">No movies have joined the catalogue since it was created.</div>
+        <div class="empty-state" th:if="${days.isEmpty()}">No releases of this year have joined the catalogue yet.</div>
         <div id="recent-results">
             <section class="day-group" th:each="day : ${days}" th:data-day="${day.label}">
                 <div class="section-header">

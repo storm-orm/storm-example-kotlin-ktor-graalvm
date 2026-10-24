@@ -3,6 +3,7 @@ package st.orm.demo.imdb.service
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.model.UserLogin
 import st.orm.demo.imdb.repository.MovieSeenRepository
+import st.orm.demo.imdb.repository.RecommendationDismissalRepository
 import st.orm.demo.imdb.repository.UserLoginRepository
 import st.orm.demo.imdb.repository.UserRepository
 import st.orm.demo.imdb.repository.WatchlistRepository
@@ -22,7 +23,9 @@ class AccountService(
     private val userRepository: UserRepository,
     private val userLoginRepository: UserLoginRepository,
     private val watchlistRepository: WatchlistRepository,
-    private val movieSeenRepository: MovieSeenRepository
+    private val movieSeenRepository: MovieSeenRepository,
+    private val dismissalRepository: RecommendationDismissalRepository,
+    private val recommendationService: RecommendationService
 ) {
     private val random = SecureRandom()
 
@@ -50,27 +53,35 @@ class AccountService(
      *   cookie account meanwhile moves to it, and the cookie account goes.
      * - It is not linked yet: it is linked to the cookie account, which gets
      *   the profile's name and avatar. The lists stay where they are.
+     *
+     * Lists that moved change what to recommend, so the user's
+     * recommendations are recomputed in the background afterwards.
      */
-    suspend fun signIn(accountId: String, provider: GitProvider, profile: ProviderProfile): User = transaction {
-        val now = Instant.now()
-        val login = userLoginRepository.findLogin(provider.key, profile.subject)
-        if (login != null) {
-            val user = login.user.withProfile(profile, now)
-            userRepository.update(user)
-            if (user.id != accountId) {
-                userRepository.findById(accountId)?.let { anonymous ->
-                    watchlistRepository.moveTo(anonymous, user)
-                    movieSeenRepository.moveTo(anonymous, user)
-                    userRepository.remove(anonymous)
+    suspend fun signIn(accountId: String, provider: GitProvider, profile: ProviderProfile): User {
+        val user = transaction {
+            val now = Instant.now()
+            val login = userLoginRepository.findLogin(provider.key, profile.subject)
+            if (login != null) {
+                val user = login.user.withProfile(profile, now)
+                userRepository.update(user)
+                if (user.id != accountId) {
+                    userRepository.findById(accountId)?.let { anonymous ->
+                        watchlistRepository.moveTo(anonymous, user)
+                        movieSeenRepository.moveTo(anonymous, user)
+                        dismissalRepository.moveTo(anonymous, user)
+                        userRepository.remove(anonymous)
+                    }
                 }
+                user
+            } else {
+                val user = findUser(accountId).withProfile(profile, now)
+                userRepository.upsert(user)
+                userLoginRepository.insert(UserLogin(provider.key, profile.subject, user, profile.username, now))
+                user
             }
-            user
-        } else {
-            val user = findUser(accountId).withProfile(profile, now)
-            userRepository.upsert(user)
-            userLoginRepository.insert(UserLogin(provider.key, profile.subject, user, profile.username, now))
-            user
         }
+        recommendationService.refreshLater(user)
+        return user
     }
 
     private fun newUser(accountId: String, now: Instant) =

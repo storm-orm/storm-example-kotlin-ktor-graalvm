@@ -638,6 +638,108 @@ img { display: block; }
     color: var(--accent-strong);
 }
 
+/* The thumbs: a vote on a seen movie, pressed again to take it back. */
+.vote-buttons { display: inline-flex; gap: 6px; }
+
+.vote-buttons[hidden] { display: none; }
+
+.vote-button { padding: 10px 13px; font-size: 15px; line-height: 1; }
+
+.vote-button.active {
+    background: rgba(245, 197, 24, 0.16);
+    border-color: var(--gold);
+}
+
+/* The share button, and the menu that stands in for a share sheet on a desktop. */
+.share { position: relative; }
+
+.share-button::before {
+    content: "↗";
+    font-size: 15px;
+    line-height: 1;
+}
+
+.share-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    min-width: 160px;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    z-index: 60;
+}
+
+.share-menu[hidden] { display: none; }
+
+.share-option {
+    padding: 10px 14px;
+    font: inherit;
+    font-size: 14px;
+    color: var(--text);
+    background: none;
+    border: 0;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.1s ease;
+}
+
+.share-option:hover { background: rgba(139, 124, 248, 0.12); }
+
+/* ── Recommendations ───────────────────────────────────────────────── */
+
+.movie-card-reasons { display: flex; flex-direction: column; gap: 2px; margin-top: 5px; }
+
+.movie-card-reasons span {
+    color: var(--accent-strong);
+    font-size: 11.5px;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* A recommended card with its "Not interested" control over the poster's corner, shown on hover. */
+.recommended { position: relative; }
+
+.dismiss-button {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: rgba(13, 12, 22, 0.78);
+    color: var(--text-muted);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.recommended:hover .dismiss-button, .dismiss-button:focus-visible { opacity: 1; }
+
+.dismiss-button:hover { color: var(--text); }
+
+@media (hover: none) { .dismiss-button { opacity: 1; } }
+
+.section-note { margin: -10px 0 18px; color: var(--text-muted); font-size: 14px; }
+
+.section-note-inline { color: var(--text-muted); font-size: 13.5px; }
+
+.section-title-link { color: var(--accent-strong); }
+
+.section-title-link:hover { text-decoration: underline; }
+
+.stat-note { margin: -6px 0 14px; color: var(--text-muted); font-size: 13.5px; }
+
 /* ── Account ───────────────────────────────────────────────────────── */
 
 /* The account gives way after the search box: the name shortens to an ellipsis before anything wraps. */

@@ -2,8 +2,10 @@ package st.orm.demo.imdb.service
 
 import st.orm.demo.imdb.model.Genre
 import st.orm.demo.imdb.model.Movie
+import st.orm.demo.imdb.model.MovieSeenPk
 import st.orm.demo.imdb.model.MovieView
 import st.orm.demo.imdb.model.Person
+import st.orm.demo.imdb.model.RecommendationEventKind
 import st.orm.demo.imdb.model.Principal
 import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.model.User
@@ -16,7 +18,9 @@ import st.orm.demo.imdb.repository.RatingRepository
 import st.orm.demo.imdb.repository.RelatedMovie
 import st.orm.demo.imdb.repository.WatchlistRepository
 import st.orm.template.transaction
+import java.text.NumberFormat
 import java.time.Instant
+import java.util.Locale
 
 /**
  * A person's credits on one movie, listed once: an actor who also directs
@@ -40,7 +44,22 @@ data class MovieDetail(
     val relatedMovies: List<RelatedMovie>,
     /** The state of the visitor's two lists for this movie. */
     val lists: MovieListState
-)
+) {
+    /**
+     * The movie in a line, for where only a line fits: the share message,
+     * and the card a shared link unfurls into. "1999 · 136 min · Action,
+     * Sci-Fi · ★ 8.7 from 2,000,000 votes", with what the movie has.
+     */
+    val caption: String
+        get() = listOfNotNull(
+            movie.startYear?.toString(),
+            movie.runtimeMinutes?.let { "$it min" },
+            genres.takeIf { it.isNotEmpty() }?.joinToString(", ") { it.name },
+            rating?.let { "★ ${it.averageRating} from ${VOTES.format(it.voteCount)} votes" }
+        ).joinToString(" · ")
+}
+
+private val VOTES: NumberFormat = NumberFormat.getIntegerInstance(Locale.ENGLISH)
 
 class MovieService(
     private val movieRepository: MovieRepository,
@@ -49,18 +68,22 @@ class MovieService(
     private val principalRepository: PrincipalRepository,
     private val movieViewRepository: MovieViewRepository,
     private val watchlistRepository: WatchlistRepository,
-    private val movieSeenRepository: MovieSeenRepository
+    private val movieSeenRepository: MovieSeenRepository,
+    private val recommendationService: RecommendationService
 ) {
 
     /**
      * Loads the movie detail page for the visitor and records the visit, so
      * the movie shows up in the recently-viewed section on the home page.
-     * The view is the site's, not the visitor's: that section is global. The
-     * view insert and the page reads share one explicit Storm transaction.
+     * The view is the site's, not the visitor's: that section is global. A
+     * visit that came from a recommendation surface is recorded as such,
+     * if the movie is one of the visitor's recommendations. The inserts and
+     * the page reads share one explicit Storm transaction.
      */
-    suspend fun viewMovie(movieId: String, user: User): MovieDetail? = transaction {
+    suspend fun viewMovie(movieId: String, user: User, fromRecommendation: Boolean): MovieDetail? = transaction {
         val movie = movieRepository.findById(movieId) ?: return@transaction null
         movieViewRepository.insert(MovieView(movie = movie, viewedAt = Instant.now()))
+        if (fromRecommendation) recommendationService.record(user, movie, RecommendationEventKind.OPENED)
 
         val credits = principalRepository.findCast(movie)
         val cast = castCredits(credits)
@@ -74,10 +97,13 @@ class MovieService(
             genres = movieGenreRepository.findGenres(movie),
             cast = cast,
             relatedMovies = relatedMovies,
-            lists = MovieListState(
-                onWatchlist = watchlistRepository.contains(user, movie),
-                seen = movieSeenRepository.contains(user, movie)
-            )
+            lists = movieSeenRepository.findById(MovieSeenPk(userId = user.id, movieId = movie.id)).let { seen ->
+                MovieListState(
+                    onWatchlist = watchlistRepository.contains(user, movie),
+                    seen = seen != null,
+                    liked = seen?.liked
+                )
+            }
         )
     }
 

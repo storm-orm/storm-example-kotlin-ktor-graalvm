@@ -46,6 +46,28 @@
                     <span data-seen-label
                           th:text="${detail.lists.seen} ? 'Seen' : 'Mark as seen'">Mark as seen</span>
                 </button>
+                <!-- A thumbs up or down on a seen movie sharpens the recommendations; shown once seen. -->
+                <div class="vote-buttons" data-vote-buttons th:hidden="${!detail.lists.seen}">
+                    <button class="button vote-button" data-vote="true" title="Liked it"
+                            th:data-movie-id="${detail.movie.id}"
+                            th:classappend="${detail.lists.liked == true} ? 'active'">👍</button>
+                    <button class="button vote-button" data-vote="false" title="Not for me"
+                            th:data-movie-id="${detail.movie.id}"
+                            th:classappend="${detail.lists.liked == false} ? 'active'">👎</button>
+                </div>
+                <!-- Share: the device's share sheet where there is one, with the poster attached; elsewhere a menu. -->
+                <div class="share">
+                    <button class="button share-button" data-share
+                            th:data-share-title="${share.title}"
+                            th:data-share-text="${share.description}"
+                            th:data-share-url="${share.url}"
+                            th:data-share-image="|/api/poster/${detail.movie.id}|">Share</button>
+                    <div class="share-menu" data-share-menu hidden>
+                        <button class="share-option" data-share-copy>Copy link</button>
+                        <a class="share-option" data-share-x target="_blank" rel="noopener">Post on X</a>
+                        <a class="share-option" data-share-mail>Email</a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

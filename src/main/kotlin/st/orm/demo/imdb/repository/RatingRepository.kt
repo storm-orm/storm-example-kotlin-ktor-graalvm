@@ -7,9 +7,12 @@ import st.orm.demo.imdb.model.MovieGenre_
 import st.orm.demo.imdb.model.Movie_
 import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.model.Rating_
+import st.orm.Ref
 import st.orm.repository.EntityRepository
+import st.orm.template.and
 import st.orm.template.eq
 import st.orm.template.greaterEq
+import st.orm.template.inRefs
 import st.orm.template.isNotNull
 
 /** Sort options for the top movies page. */
@@ -27,6 +30,22 @@ interface RatingRepository : EntityRepository<Rating, Movie> {
             .orderByDescending(Rating_.averageRating)
             .limit(limit)
             .resultList
+
+    /**
+     * The best-rated movies of a genre, with the same vote floor: the
+     * candidates a visitor's favourite genres bring to the recommendations.
+     */
+    fun findTopRatedInGenre(genre: Ref<Genre>, minimumVoteCount: Int, limit: Int) =
+        select {
+            innerJoin<MovieGenre, Movie>()
+            where((MovieGenre_.genre eq genre) and (Rating_.voteCount greaterEq minimumVoteCount))
+            orderByDescending(Rating_.averageRating)
+            limit(limit)
+        }.resultList
+
+    /** The ratings of several movies at once, each carrying its movie. */
+    fun findByMovies(movies: List<Ref<Movie>>) =
+        findAll(Rating_.movie inRefs movies)
 
     /**
      * The top movies page: optionally filtered by genre, sorted by rating

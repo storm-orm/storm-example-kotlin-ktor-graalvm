@@ -17,7 +17,8 @@ fun Route.statisticsRoutes(statisticsService: StatisticsService) {
                     "decades" to view.decades,
                     "maxDecadeCount" to view.maxDecadeCount,
                     "genreStatistics" to view.genreStatistics,
-                    "prolificActors" to view.prolificActors
+                    "prolificActors" to view.prolificActors,
+                    "recommendationEvents" to statisticsService.countRecommendationEvents()
                 )
             )
         )

@@ -1,6 +1,8 @@
 package st.orm.demo.imdb.service
 
 import st.orm.Page
+import st.orm.demo.imdb.model.MovieSeenPk
+import st.orm.demo.imdb.model.RecommendationEventKind
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.model.Watchlist
 import st.orm.demo.imdb.model.WatchlistPk
@@ -14,12 +16,15 @@ class WatchlistService(
     private val movieRepository: MovieRepository,
     private val userRepository: UserRepository,
     private val watchlistRepository: WatchlistRepository,
-    private val movieSeenRepository: MovieSeenRepository
+    private val movieSeenRepository: MovieSeenRepository,
+    private val recommendationService: RecommendationService
 ) {
 
     /**
      * Adds the movie to the user's watchlist, or removes it when already
-     * present, and returns the state of both lists afterwards.
+     * present, and returns the state of both lists afterwards. A movie
+     * saved from a recommendation counts as one that led somewhere, and
+     * either way the user's recommendations are recomputed in the background.
      *
      * The exists/insert/remove cycle must be atomic per request, and the
      * boundary lives in the routing declaration: the toggle route is wrapped
@@ -36,9 +41,12 @@ class WatchlistService(
             false
         } else {
             watchlistRepository.insert(Watchlist(user = stored, movie = movie, addedAt = now))
+            recommendationService.record(stored, movie, RecommendationEventKind.SAVED)
             true
         }
-        return MovieListState(onWatchlist = onWatchlist, seen = movieSeenRepository.contains(stored, movie))
+        recommendationService.refreshLater(stored)
+        val seen = movieSeenRepository.findById(MovieSeenPk(userId = stored.id, movieId = movie.id))
+        return MovieListState(onWatchlist = onWatchlist, seen = seen != null, liked = seen?.liked)
     }
 
     /** One page of the user's watchlist for the watchlist page (0-based). */

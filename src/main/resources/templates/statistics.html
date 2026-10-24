@@ -80,6 +80,23 @@
             </a>
         </div>
 
+        <div class="stat-card" id="recommendations-card">
+            <h2>Recommendations</h2>
+            <p class="stat-note">What came of the picks on the For You page and the home page.</p>
+            <div class="empty-state" th:if="${recommendationEvents.isEmpty()}">Nothing yet.</div>
+            <div class="stat-row" th:each="event : ${recommendationEvents}">
+                <span th:switch="${event.kind.name()}">
+                    <span th:case="'OPENED'">Opened</span>
+                    <span th:case="'SAVED'">Saved to a watchlist</span>
+                    <span th:case="'SEEN'">Marked as seen</span>
+                    <span th:case="'DISMISSED'">Not interested</span>
+                </span>
+                <div class="stat-end">
+                    <span class="stat-count" th:text="${#numbers.formatInteger(event.count, 1, 'COMMA')}">12</span>
+                </div>
+            </div>
+        </div>
+
     </div>
 </section>
 

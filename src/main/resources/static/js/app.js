@@ -7,6 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSearchShortcut();
     setupInfiniteScroll();
     setupListToggles();
+    setupShare();
+    setupDismissals();
     setupSummaries();
     setupBackdrops();
     setupGalleries();
@@ -343,7 +345,9 @@ function setupInfiniteScroll() {
 }
 
 function renderCard(kind, item) {
-    return kind === 'person' ? personCard(item) : movieCard(item);
+    if (kind === 'person') return personCard(item);
+    if (kind === 'recommended') return recommendedCard(item);
+    return movieCard(item);
 }
 
 /**
@@ -375,6 +379,57 @@ function appendItem(kind, target, item) {
         target.appendChild(day);
     }
     day.querySelector('.movie-grid').appendChild(movieCard(item));
+}
+
+// A recommended movie: the movie card, linked as coming from a recommendation,
+// with its reasons underneath and a "Not interested" control beside it, as the
+// server renders it (fragments/cards :: recommended).
+function recommendedCard(item) {
+    const card = movieCard(item);
+    card.href = '/movie/' + item.id + '?via=for-you';
+    const reasons = document.createElement('div');
+    reasons.className = 'movie-card-reasons';
+    item.reasons.forEach(text => {
+        const reason = document.createElement('span');
+        reason.textContent = text;
+        reasons.appendChild(reason);
+    });
+    card.querySelector('.movie-card-info').appendChild(reasons);
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'recommended';
+    wrapper.dataset.movieId = item.id;
+    const dismiss = document.createElement('button');
+    dismiss.type = 'button';
+    dismiss.className = 'dismiss-button';
+    dismiss.dataset.dismiss = '';
+    dismiss.dataset.movieId = item.id;
+    dismiss.title = 'Not interested';
+    dismiss.setAttribute('aria-label', 'Not interested');
+    dismiss.textContent = '×';
+    wrapper.appendChild(card);
+    wrapper.appendChild(dismiss);
+    return wrapper;
+}
+
+/* ── Not interested ───────────────────────────────────────────────── */
+
+// One listener on the document, since the scroll appends cards after load.
+// The card goes at once; the server keeps the movie out of the picks for good.
+function setupDismissals() {
+    document.addEventListener('click', async event => {
+        const button = event.target.closest('[data-dismiss]');
+        if (!button) return;
+        event.preventDefault();
+        button.disabled = true;
+        try {
+            const response = await fetch('/api/for-you/' + button.dataset.movieId + '/dismiss', { method: 'POST' });
+            if (!response.ok) return;
+            document.querySelectorAll('.recommended[data-movie-id="' + button.dataset.movieId + '"]').forEach(card => card.remove());
+        } finally {
+            button.disabled = false;
+        }
+    });
 }
 
 function movieCard(movie) {
@@ -443,10 +498,13 @@ function personCard(person) {
 
 /* ── Watchlist and seen toggles ───────────────────────────────────── */
 
-// Both toggles answer with the state of both lists: marking a movie seen
-// takes it off the watchlist, so the other button follows.
+// Every toggle answers with the state of both lists and the vote: marking a
+// movie seen takes it off the watchlist, so the other button follows, and
+// the thumbs appear once the movie is seen.
 function setupListToggles() {
     const buttons = document.querySelectorAll('[data-list-toggle]');
+    const voteButtons = document.querySelectorAll('[data-vote]');
+    const voteGroup = document.querySelector('[data-vote-buttons]');
     const render = state => {
         buttons.forEach(button => {
             const onList = button.dataset.listToggle === 'watchlist' ? state.onWatchlist : state.seen;
@@ -456,17 +514,88 @@ function setupListToggles() {
                 ? (onList ? 'On watchlist' : 'Add to watchlist')
                 : (onList ? 'Seen' : 'Mark as seen');
         });
+        if (voteGroup) voteGroup.hidden = !state.seen;
+        voteButtons.forEach(button => button.classList.toggle('active', String(state.liked) === button.dataset.vote));
+    };
+    const all = [...buttons, ...voteButtons];
+    const submit = async (url, body) => {
+        all.forEach(button => button.disabled = true);
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: body ? { 'Content-Type': 'application/json' } : {},
+                body: body ? JSON.stringify(body) : undefined,
+            });
+            if (!response.ok) return;
+            render(await response.json());
+        } finally {
+            all.forEach(button => button.disabled = false);
+        }
     };
     buttons.forEach(button => {
-        button.addEventListener('click', async () => {
-            buttons.forEach(other => other.disabled = true);
-            try {
-                const response = await fetch('/api/' + button.dataset.listToggle + '/' + button.dataset.movieId, { method: 'POST' });
-                if (!response.ok) return;
-                render(await response.json());
-            } finally {
-                buttons.forEach(other => other.disabled = false);
-            }
+        button.addEventListener('click', () =>
+            submit('/api/' + button.dataset.listToggle + '/' + button.dataset.movieId));
+    });
+    // A thumb pressed again takes the vote back.
+    voteButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const liked = button.classList.contains('active') ? null : button.dataset.vote === 'true';
+            submit('/api/seen/' + button.dataset.movieId + '/vote', { liked });
         });
     });
+}
+
+// The share button on a movie page. Where the device has a share sheet (phones:
+// messages, WhatsApp, X, ...) it opens that, with the poster attached when the
+// sheet takes files, so the message is visual; the poster is fetched ahead,
+// because the sheet opens only from the click itself. Elsewhere a small menu
+// copies the link, posts on X or emails it. A shared link unfurls into a card
+// either way: the Open Graph tags in the head.
+function setupShare() {
+    const button = document.querySelector('[data-share]');
+    if (!button) return;
+    const menu = document.querySelector('[data-share-menu]');
+    const { shareTitle: title, shareText: text, shareUrl: url, shareImage: image } = button.dataset;
+    const message = title + ' · ' + text;
+    menu.querySelector('[data-share-x]').href =
+        'https://x.com/intent/post?text=' + encodeURIComponent(message) + '&url=' + encodeURIComponent(url);
+    menu.querySelector('[data-share-mail]').href =
+        'mailto:?subject=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(message + '\n' + url);
+    const copy = menu.querySelector('[data-share-copy]');
+    copy.addEventListener('click', async () => {
+        await navigator.clipboard.writeText(url);
+        copy.textContent = 'Link copied';
+        setTimeout(() => { copy.textContent = 'Copy link'; menu.hidden = true; }, 1200);
+    });
+    let poster = null;
+    if (navigator.canShare) posterFile(image, title).then(files => poster = files);
+    button.addEventListener('click', async () => {
+        if (!navigator.share) {
+            menu.hidden = !menu.hidden;
+            return;
+        }
+        const data = { title, text: message, url };
+        if (poster && navigator.canShare({ files: poster })) data.files = poster;
+        try {
+            await navigator.share(data);
+        } catch (e) {
+            // The sheet was dismissed.
+        }
+    });
+    document.addEventListener('click', event => {
+        if (!event.target.closest('.share')) menu.hidden = true;
+    });
+}
+
+// The poster as a file to attach to a share, or null when there is none. The
+// poster endpoint redirects to IMDB's CDN, which allows the read.
+async function posterFile(path, title) {
+    try {
+        const response = await fetch(path);
+        if (!response.ok) return null;
+        const blob = await response.blob();
+        return [new File([blob], title + '.jpg', { type: blob.type })];
+    } catch (e) {
+        return null;
+    }
 }

@@ -15,6 +15,10 @@ interface MovieSeenRepository : EntityRepository<MovieSeen, MovieSeenPk> {
     fun contains(user: User, movie: Movie): Boolean =
         existsById(MovieSeenPk(userId = user.id, movieId = movie.id))
 
+    /** Everything the user has seen, in no particular order: the seeds of the recommendations. */
+    fun findAll(user: User): List<MovieSeen> =
+        findAll(MovieSeen_.user eq user)
+
     /**
      * One page of the movies the user has seen, the most recently marked
      * first, with offset-based pagination. Page numbers are 0-based.

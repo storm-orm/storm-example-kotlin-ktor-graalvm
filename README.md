@@ -26,7 +26,7 @@ The feature activates automatically through storm-core's
 the image build it reports:
 
 ```
-Storm: registered 13 data types, 0 entity callbacks, 0 converters, and 13 repositories from the type index.
+Storm: registered 15 data types, 0 entity callbacks, 0 converters, and 15 repositories from the type index.
 ```
 
 The Ktor plugin's repository auto-registration reads the same index at
@@ -94,7 +94,7 @@ The application also still runs on the JVM with `./gradlew run`.
 
 Measured on an Apple M-series MacBook: the binary is a 97 MB self-contained
 executable that reports `Application started in 0.129 seconds`, including the
-Flyway check and Storm validating all 13 entities against the live schema.
+Flyway check and Storm validating all 15 entities against the live schema.
 
 ## Keeping the data current
 
@@ -109,13 +109,72 @@ writes the day's changes and an interrupted run is completed by the next.
 The initial import on an empty database is the same sync.
 A sync records the movies it adds (`movie_addition`, V3), and the Recently
 Added page scrolls those, newest day first; the initial import is no
-addition, so the page lists what has joined the catalogue since.
+addition, so the page lists what has joined the catalogue since. A sync adds
+older movies too, once they gather the votes, so the page keeps to this
+year's releases, with a month of slack into the new year (`recentYear`); the
+new arrivals of the recommendations keep to the same.
 
 The catalogue holds the movies with at least `imdb.sync.minimumVoteCount`
 votes (1000, or `IMDB_MINIMUM_VOTE_COUNT`). A movie stays once it is in, even
 when its votes drop, because watchlist entries refer to it; lowering the
 threshold adds the movies that newly qualify on the next run.
 `IMDB_SYNC_ENABLED=false` switches both the import and the sync off.
+
+## What to watch next
+
+The For You page and the home page recommend movies from the visitor's
+lists, with a reason on every card, through nothing but Storm and the
+catalogue. A thumbs up or down on a seen movie (`movie_seen.liked`, V5)
+weighs its people and genres for or against. The engine
+([`RecommendationService`](src/main/kotlin/st/orm/demo/imdb/service/RecommendationService.kt))
+runs in three steps: the taste profile from the seen list and the watchlist,
+two queries bringing the seeds' genres and the credits their taste is read
+from, the top-billed cast and the director, weighed per genre, per person
+(a director above an actor) and per decade; the candidates from a few
+bounded queries by index, the filmographies of the favourite people, the
+best-rated movies of the favourite genres and of the catalogue, and the
+most viewed of the week; and the ranking in one Kotlin function
+([`RecommendationRanker`](src/main/kotlin/st/orm/demo/imdb/service/RecommendationRanker.kt))
+that adds up genre, person and decade affinity, a vote-weighted rating,
+recency and trending, scales the sum by how the movie's rating fits the
+range the visitor usually watches in (the mean and spread of their seen
+movies' ratings, once five are seen: a movie rated far outside it keeps a
+share of its score), caps the picks per person, and names the reasons and
+the seed of each pick.
+
+The picks are stored per visitor (`recommendation`, with the reasons as a
+`@Json` column) and replaced in one transaction by a background worker that
+the list toggles and sign-ins queue, so the pages read a table and the slow
+database does the work once per change. A visitor whose lists are empty
+gets the catalogue's picks, the same ranking with an empty profile, shared
+for an hour. What comes of a pick is recorded (`recommendation_event`:
+opened, saved, seen, dismissed) and counted on the statistics page.
+
+Three things keep the picks from going stale. What happened lately counts
+most: a seed's weight halves every ninety days since it was seen, saved or
+dismissed, down to a quarter, so a taste that moved on is followed. Each
+pick counts how often the home page or the first For You window showed it
+(`shown_count`, one batched update per page, V6), and the count decays its
+score at the next computation, so picks passed over make way; a pick the
+visitor opened starts counting afresh. And "Not interested" on a card
+(`recommendation_dismissal`, keyed like the lists) keeps the movie out for
+good and weighs a little against its people, genres and decade.
+
+The view log behind the trending term grows by every visit, a few hundred
+thousand rows a week once crawlers come by. A nightly job
+([`ViewLogService`](src/main/kotlin/st/orm/demo/imdb/service/ViewLogService.kt))
+folds the views older than a month (`imdb.viewLog.keep`) into one row per
+movie and day (`movie_view_day`, V7) and removes them, in one transaction:
+a template SELECT counts them per movie and date, a batched upsert writes
+the days, a predicate delete clears the log. The week's counts themselves
+are made once an hour and shared across computations.
+
+New arrivals get their turn too. A movie that joined the catalogue in the
+last thirty days gets a push that fades over the month, so it enters the
+list when it fits, with "New in the catalogue" on its card. The For You
+page opens with the visitor's picks among what joined since their previous
+visit, never less than a week back and never more than a quarter, and
+leaves that strip out when nothing new fits.
 
 ## Personal lists without a sign-up
 
@@ -126,6 +185,14 @@ row (`app_user`, V4) is written on the first save. Both lists are keyed by
 the pair of user and movie (`Watchlist`, `MovieSeen`), so a toggle is a
 lookup of the pair key, and marking a movie seen takes it off the watchlist
 in the same route transaction.
+
+A movie page has a share button: the device's share sheet where there is
+one, with the poster attached so the message is visual, else a menu that
+copies the link, posts on X or emails it. The page carries Open Graph tags
+(`ShareCard` in
+[`web/MovieController.kt`](src/main/kotlin/st/orm/demo/imdb/web/MovieController.kt)),
+so a shared link unfurls into a card with the poster and the movie's line
+(`MovieDetail.caption`).
 
 Signing in with a git provider (GitHub, GitLab, Bitbucket or Codeberg) links
 the provider account to the cookie account (`user_login`), which is what

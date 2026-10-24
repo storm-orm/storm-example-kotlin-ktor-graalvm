@@ -52,6 +52,7 @@ class StatisticsCachingTest {
         movieRepository = orm.repository(),
         movieGenreRepository = orm.repository(),
         personRepository = orm.repository(),
-        principalRepository = orm.repository()
+        principalRepository = orm.repository(),
+        recommendationEventRepository = orm.repository()
     )
 }

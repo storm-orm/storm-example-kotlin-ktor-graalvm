@@ -8,6 +8,7 @@ import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import st.orm.demo.imdb.service.AccountService
 import st.orm.demo.imdb.service.BrowseService
 import st.orm.demo.imdb.service.RecentlyAddedService
+import st.orm.demo.imdb.service.RecommendationService
 import st.orm.demo.imdb.service.GalleryRefreshProperties
 import st.orm.demo.imdb.service.GitSignIn
 import st.orm.demo.imdb.service.HomeService
@@ -22,11 +23,14 @@ import st.orm.demo.imdb.service.PersonService
 import st.orm.demo.imdb.service.SearchService
 import st.orm.demo.imdb.service.StatisticsService
 import st.orm.demo.imdb.service.TopMoviesService
+import st.orm.demo.imdb.service.ViewLogProperties
+import st.orm.demo.imdb.service.ViewLogService
 import st.orm.demo.imdb.service.WatchlistService
 import st.orm.demo.imdb.service.WikipediaSummaryService
 import st.orm.demo.imdb.service.configuredProviders
 import st.orm.demo.imdb.service.galleryRefreshProperties
 import st.orm.demo.imdb.service.imdbSyncProperties
+import st.orm.demo.imdb.service.viewLogProperties
 import st.orm.demo.imdb.web.PosterController
 import tools.jackson.databind.ObjectMapper
 import tools.jackson.module.kotlin.jacksonObjectMapper
@@ -40,6 +44,7 @@ import tools.jackson.module.kotlin.jacksonObjectMapper
 fun Application.configureDependencies() {
     val syncProperties = environment.config.imdbSyncProperties()
     val galleryRefreshProperties = environment.config.galleryRefreshProperties()
+    val viewLogProperties = environment.config.viewLogProperties()
     val configuredProviders = environment.config.configuredProviders()
     dependencies {
         // With an ObservationRegistry in the container, the Storm plugin observes
@@ -54,18 +59,26 @@ fun Application.configureDependencies() {
         provide<ObjectMapper> { jacksonObjectMapper() }
         provide<ImdbSyncProperties> { syncProperties }
         provide<GalleryRefreshProperties> { galleryRefreshProperties }
+        provide<ViewLogProperties> { viewLogProperties }
+        provide { ViewLogService(resolve(), resolve(), resolve()) }
         // The git providers the deployment has credentials for; see application.conf (accounts).
         provide { GitSignIn(configuredProviders, resolve()) }
-        provide { AccountService(resolve(), resolve(), resolve(), resolve()) }
-        provide { HomeService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide {
+            RecommendationService(
+                resolve(), resolve(), resolve(), resolve(), resolve(), resolve(),
+                resolve(), resolve(), resolve(), resolve(), resolve(), resolve(),
+            )
+        }
+        provide { AccountService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { HomeService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { TopMoviesService(resolve(), resolve()) }
-        provide { WatchlistService(resolve(), resolve(), resolve(), resolve()) }
-        provide { MovieSeenService(resolve(), resolve(), resolve(), resolve()) }
-        provide { StatisticsService(resolve(), resolve(), resolve(), resolve()) }
+        provide { WatchlistService(resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { MovieSeenService(resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { StatisticsService(resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { SearchService(resolve(), resolve()) }
         provide { BrowseService(resolve(), resolve(), resolve()) }
         provide { RecentlyAddedService(resolve()) }
-        provide { MovieService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { MovieService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PersonService(resolve(), resolve()) }
         provide { WikipediaSummaryService(resolve(), resolve(), resolve()) }
         provide { PersonGalleryService(resolve(), resolve(), resolve(), resolve(), resolve<GalleryRefreshProperties>().maxAge) }

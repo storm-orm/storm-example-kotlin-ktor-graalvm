@@ -8,10 +8,14 @@ import st.orm.demo.imdb.model.MovieAddition
 import st.orm.demo.imdb.model.MovieGenre
 import st.orm.demo.imdb.model.MovieSeen
 import st.orm.demo.imdb.model.MovieView
+import st.orm.demo.imdb.model.MovieViewDay
 import st.orm.demo.imdb.model.Person
 import st.orm.demo.imdb.model.PersonGallery
 import st.orm.demo.imdb.model.Principal
 import st.orm.demo.imdb.model.Rating
+import st.orm.demo.imdb.model.Recommendation
+import st.orm.demo.imdb.model.RecommendationDismissal
+import st.orm.demo.imdb.model.RecommendationEvent
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.model.UserLogin
 import st.orm.demo.imdb.model.Watchlist
@@ -29,7 +33,7 @@ import st.orm.test.TestDatabase
  * container starts once per test run; the class receives a database of its
  * own inside it.
  */
-@StormTest(database = TestDatabase.POSTGRESQL, scripts = ["/db/migration/V1__create_schema.sql", "/db/migration/V2__store_folded_titles.sql", "/db/migration/V3__record_movie_additions.sql", "/db/migration/V4__personal_accounts.sql"])
+@StormTest(database = TestDatabase.POSTGRESQL, scripts = ["/db/migration/V1__create_schema.sql", "/db/migration/V2__store_folded_titles.sql", "/db/migration/V3__record_movie_additions.sql", "/db/migration/V4__personal_accounts.sql", "/db/migration/V5__recommendations.sql", "/db/migration/V6__recommendation_fatigue.sql", "/db/migration/V7__fold_old_views.sql", "/db/migration/V8__movie_view_day_natural_key.sql"])
 class EntitySchemaValidationTest {
 
     @Test
@@ -43,10 +47,14 @@ class EntitySchemaValidationTest {
             Rating::class,
             MovieAddition::class,
             MovieView::class,
+            MovieViewDay::class,
             User::class,
             UserLogin::class,
             Watchlist::class,
             MovieSeen::class,
+            Recommendation::class,
+            RecommendationEvent::class,
+            RecommendationDismissal::class,
             PersonGallery::class
         )
         assertTrue(errors.isEmpty()) { "Schema validation errors: $errors" }

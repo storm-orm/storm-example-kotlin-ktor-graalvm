@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieAddition
 import st.orm.demo.imdb.model.Person
+import st.orm.demo.imdb.model.Recommendation
 import st.orm.demo.imdb.service.additionDay
 
 @Serializable
@@ -34,7 +35,18 @@ data class SearchSuggestions(
     val persons: List<PersonSearchItem>
 )
 
+/** A movie of the For You page, with the reasons its card shows. */
+@Serializable
+data class RecommendedMovieItem(val id: String, val title: String, val year: Int?, val reasons: List<String>)
+
+/** A thumbs up (true), a thumbs down (false), or neither (null) on a seen movie. */
+@Serializable
+data class Vote(val liked: Boolean?)
+
 fun Movie.toSearchItem() = MovieSearchItem(id = id, title = primaryTitle, year = startYear)
+
+fun Recommendation.toRecommendedItem() =
+    RecommendedMovieItem(id = movie.id, title = movie.primaryTitle, year = movie.startYear, reasons = reasons.map { it.text })
 
 fun Person.toSearchItem() = PersonSearchItem(id = id, name = primaryName)
 

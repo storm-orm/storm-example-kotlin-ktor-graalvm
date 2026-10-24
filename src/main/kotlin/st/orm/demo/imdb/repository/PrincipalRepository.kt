@@ -16,11 +16,16 @@ import st.orm.template.and
 import st.orm.template.eq
 import st.orm.template.inList
 import st.orm.template.inRefs
+import st.orm.template.lessEq
 import st.orm.template.neq
+import st.orm.template.or
 import java.math.BigDecimal
 
 /** The credit categories that count as acting. */
 private val ACTING_CATEGORIES = listOf("actor", "actress")
+
+/** The credit category of a director, as the IMDB dataset names it. */
+const val DIRECTOR = "director"
 
 /**
  * Query result shape: one movie in a person's filmography — the credit
@@ -76,11 +81,44 @@ data class ActingCreditCount(
     val creditCount: Long
 )
 
+/**
+ * Query result shape: a credit of one of several people, with the movie's
+ * rating, which carries the movie: the filmographies the recommendations
+ * draw candidates from. Not backed by a database table or view, so it is a
+ * plain data class — deliberately not a Data type.
+ */
+data class CandidateCredit(
+    val person: Person,
+    val category: String,
+    val rating: Rating
+)
+
 interface PrincipalRepository : EntityRepository<Principal, PrincipalPk> {
 
     /** The cast and crew of several movies at once, in no particular order. */
     fun findByMovies(movies: List<Ref<Movie>>) =
         findAll(Principal_.movie inRefs movies)
+
+    /**
+     * The credits a visitor's taste is read from, for several movies at once:
+     * the top-billed cast, by the credit's own billing order, and the
+     * director whatever the billing, since IMDB lists directors after the
+     * cast.
+     */
+    fun findTasteCredits(movies: List<Ref<Movie>>, maxOrdering: Int) =
+        findAll((Principal_.movie inRefs movies) and ((Principal_.ordering lessEq maxOrdering) or (Principal_.category eq DIRECTOR)))
+
+    /**
+     * The filmographies of several people at once, each credit with the
+     * movie's rating: the candidates a visitor's favourite people bring in.
+     * The person comes with the credit, since the reason on the card names
+     * them, and the rating brings the movie.
+     */
+    fun findFilmographies(people: List<Ref<Person>>) =
+        select<CandidateCredit, _, _> { "${Person::class}, ${Principal_.category}, ${Rating::class}" }
+            .innerJoin<Rating>().on<Movie>()
+            .where(Principal_.person inRefs people)
+            .resultList
 
     /** The cast and crew of a movie in IMDB billing order. */
     fun findCast(movie: Movie) =
