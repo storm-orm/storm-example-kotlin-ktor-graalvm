@@ -50,16 +50,14 @@
             <div class="search-suggestions" data-search-suggestions hidden></div>
         </div>
         <!-- The account: a name once signed in with a git provider, else the way to. -->
+        <!-- Signed in, the account icon opens the account page: the logins, linking another, signing out. -->
         <div class="nav-account">
-            <th:block th:if="${account.name != null}">
-                <span class="nav-user" th:title="${account.name}">
-                    <img class="nav-avatar" th:if="${account.avatarUrl != null}" th:src="${account.avatarUrl}" alt="">
-                    <span class="nav-user-name" th:text="${account.name}">Name</span>
-                </span>
-                <form th:action="@{/signout}" method="post" class="nav-signout-form">
-                    <button type="submit" class="nav-signout">Sign out</button>
-                </form>
-            </th:block>
+            <a th:if="${account.name != null}" class="nav-account-icon" th:href="@{/signin}"
+               th:classappend="${active == 'signin'} ? 'active'"
+               th:title="|${account.name}: your account|" aria-label="Your account">
+                <img th:if="${account.avatarUrl != null}" th:src="${account.avatarUrl}" alt="">
+                <span th:unless="${account.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(account.name, 0, 1))}">A</span>
+            </a>
             <a th:unless="${account.name != null}" class="nav-signin" th:href="@{/signin}">Sign in</a>
         </div>
     </div>
@@ -69,7 +67,8 @@
     <div class="container">
         <div>
             Built with <a href="https://orm.st" target="_blank" rel="noopener">Storm ORM</a> on Ktor ·
-            Data from the public <a href="https://datasets.imdbws.com/" target="_blank" rel="noopener">IMDB dataset</a>
+            Data from the public <a href="https://datasets.imdbws.com/" target="_blank" rel="noopener">IMDB dataset</a><th:block th:if="${hostedOnFreepod}"> ·
+            Hosted on <a href="https://freepod.eu" target="_blank" rel="noopener">Freepod</a></th:block>
         </div>
     </div>
 </footer>

@@ -212,6 +212,17 @@ the pair of user and movie (`Watchlist`, `MovieSeen`), so a toggle is a
 lookup of the pair key, and marking a movie seen takes it off the watchlist
 in the same route transaction.
 
+Deployed on Freepod, visitors can also sign in with Freepod: the platform
+signs them in and hands the application the account in request headers
+([`FreepodSignIn`](src/main/kotlin/st/orm/demo/imdb/service/FreepodSignIn.kt)).
+Anywhere else a client could set those headers, so the application reads
+them, and offers the button, only where `accounts.freepod.enabled` says it
+runs on Freepod with its sign-in on: `auth` enabled in `.freepod.json`, every
+path public, and `FREEPOD_AUTH=true`, the variable meant to come from the
+platform wherever auth is on; until it does, `freepod var set FREEPOD_AUTH=true`. Signed in with one provider, the
+account page links another: a login that is new is added to the account, and
+one that leads to an account of its own joins the two, lists and logins.
+
 Recently viewed on the home page is the visitor's own too, while the
 featured movie above it is the site's latest view. A view records the
 account (`movie_view.user_id`, V9) when the browser came back with its

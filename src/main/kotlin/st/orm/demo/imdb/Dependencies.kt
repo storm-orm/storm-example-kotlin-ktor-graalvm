@@ -29,6 +29,7 @@ import st.orm.demo.imdb.service.ViewLogService
 import st.orm.demo.imdb.service.WatchlistService
 import st.orm.demo.imdb.service.WikipediaSummaryService
 import st.orm.demo.imdb.service.configuredProviders
+import st.orm.demo.imdb.service.freepodSignIn
 import st.orm.demo.imdb.service.galleryRefreshProperties
 import st.orm.demo.imdb.service.imdbSyncProperties
 import st.orm.demo.imdb.service.viewLogProperties
@@ -47,6 +48,7 @@ fun Application.configureDependencies() {
     val galleryRefreshProperties = environment.config.galleryRefreshProperties()
     val viewLogProperties = environment.config.viewLogProperties()
     val configuredProviders = environment.config.configuredProviders()
+    val freepodSignIn = environment.config.freepodSignIn()
     dependencies {
         // With an ObservationRegistry in the container, the Storm plugin observes
         // every query (storm.query) and every transaction (storm.transaction); the
@@ -64,6 +66,7 @@ fun Application.configureDependencies() {
         provide { ViewLogService(resolve(), resolve(), resolve()) }
         // The git providers the deployment has credentials for; see application.conf (accounts).
         provide { GitSignIn(configuredProviders, resolve()) }
+        provide { freepodSignIn }
         provide {
             RecommendationService(
                 resolve(), resolve(), resolve(), resolve(), resolve(), resolve(),

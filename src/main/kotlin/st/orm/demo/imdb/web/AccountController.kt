@@ -12,6 +12,8 @@ import io.ktor.server.routing.post
 import io.ktor.server.thymeleaf.ThymeleafContent
 import io.ktor.server.util.getOrFail
 import st.orm.demo.imdb.service.AccountService
+import st.orm.demo.imdb.service.FreepodSignIn
+import st.orm.demo.imdb.service.GitProvider
 import st.orm.demo.imdb.service.GitSignIn
 import st.orm.demo.imdb.service.SignInFailedException
 import java.net.URLEncoder
@@ -19,27 +21,56 @@ import java.nio.charset.StandardCharsets
 import java.security.SecureRandom
 import java.util.Base64
 
+/** A login of the signed-in account, as the account page lists it. */
+data class AccountLogin(val provider: String, val label: String, val username: String)
+
 /**
  * Signing in with a git provider, in the OAuth 2 authorization code flow:
  * the sign-in page lists the configured providers, choosing one sends the
  * visitor to it, and the provider sends the visitor back to the callback
  * with a code. The state that ties the two requests together, and the page
- * to return to, travel in a short-lived cookie.
+ * to return to, travel in a short-lived cookie. On Freepod, signing in with
+ * Freepod is a round trip through the platform's own sign-in instead.
+ *
+ * Signed in, the same page is the account page: it lists the account's
+ * logins and offers the providers not linked yet, and signing in with one
+ * of them links it (AccountService.signIn).
  */
-fun Route.accountRoutes(accountService: AccountService, gitSignIn: GitSignIn) {
+fun Route.accountRoutes(accountService: AccountService, gitSignIn: GitSignIn, freepodSignIn: FreepodSignIn) {
     val random = SecureRandom()
+    val labels = (GitProvider.ALL + freepodSignIn).associate { it.key to it.label }
 
     get("/signin") {
+        val returnTo = returnPath(call.request.queryParameters["rd"])
+        val logins = accountService.loginsOf(call.currentUser())
+            .map { AccountLogin(it.id.provider, labels[it.id.provider] ?: it.id.provider, it.username) }
         call.respondPage(
             ThymeleafContent(
                 "signin",
                 mapOf(
-                    "providers" to gitSignIn.providers,
-                    "returnTo" to returnPath(call.request.queryParameters["rd"]),
+                    "providers" to gitSignIn.providers.filter { provider -> logins.none { it.provider == provider.key } },
+                    "freepodLoginUrl" to freepodSignIn.loginUrl("/signin/freepod?rd=" + returnTo.urlEncoded())
+                        .takeIf { freepodSignIn.enabled && logins.none { it.provider == freepodSignIn.key } },
+                    "logins" to logins,
+                    "returnTo" to returnTo,
                     "failure" to call.request.queryParameters["failure"]
                 )
             )
         )
+    }
+
+    // The platform signed the visitor in and sent them back here, with the account in its headers.
+    // A constant segment, so it takes precedence over the git providers' route below.
+    get("/signin/freepod") {
+        if (!freepodSignIn.enabled) return@get call.respondText("Unknown sign-in provider", status = HttpStatusCode.NotFound)
+        val returnTo = returnPath(call.request.queryParameters["rd"])
+        val profile = freepodSignIn.profile(
+            call.request.headers[FreepodSignIn.USER_HEADER],
+            call.request.headers[FreepodSignIn.NAME_HEADER]
+        ) ?: return@get call.respondRedirect("/signin?failure=refused&rd=" + returnTo.urlEncoded())
+        val user = accountService.signIn(call.accountId(), freepodSignIn, profile)
+        call.setAccountCookie(user.id)
+        call.respondRedirect(returnTo)
     }
 
     get("/signin/{provider}") {

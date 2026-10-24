@@ -24,6 +24,7 @@ import st.orm.demo.imdb.repository.UserLoginRepository
 import st.orm.demo.imdb.repository.UserRepository
 import st.orm.demo.imdb.repository.WatchlistRepository
 import st.orm.demo.imdb.service.AccountService
+import st.orm.demo.imdb.service.FreepodSignIn
 import st.orm.demo.imdb.service.GitProvider
 import st.orm.demo.imdb.service.ProviderProfile
 import st.orm.demo.imdb.service.RecommendationService
@@ -155,6 +156,39 @@ class AccountServiceTest {
         val logins = orm.repository<UserLoginRepository>()
         assertEquals(original.id, logins.findLogin("github", "1001")?.user?.id)
         assertEquals(original.id, logins.findLogin("codeberg", "77")?.user?.id)
+    }
+
+    @Test
+    fun `signed in with GitHub, a Freepod login with an account of its own joins the two`(orm: ORMTemplate) {
+        val accountService = accountService(orm)
+        val freepod = FreepodSignIn(enabled = true)
+        val movieRepository = orm.repository<MovieRepository>()
+        val movieSeenRepository = orm.repository<MovieSeenRepository>()
+        val logins = orm.repository<UserLoginRepository>()
+        val matrix = movieRepository.getById("tt0133093")
+        val godfather = movieRepository.getById("tt0068646")
+
+        // On one device the visitor signed in with Freepod and saw The Godfather.
+        val tablet = orm.insertUser("visitor-tablet")
+        val freepodAccount = runBlocking { accountService.signIn(tablet.id, freepod, freepod.profile("fp-42", "Alice%20F.")!!) }
+        movieSeenRepository.insert(MovieSeen(freepodAccount, godfather, Instant.now()))
+        // On another, with GitHub, and saw The Matrix.
+        val laptop = orm.insertUser("visitor-laptop")
+        val githubAccount = runBlocking { accountService.signIn(laptop.id, GitProvider.GITHUB, alice) }
+        movieSeenRepository.insert(MovieSeen(githubAccount, matrix, Instant.now()))
+
+        // Signed in with GitHub, the visitor links Freepod.
+        val user = runBlocking { accountService.signIn(githubAccount.id, freepod, freepod.profile("fp-42", "Alice%20F.")!!) }
+
+        // One account now: the Freepod one, with both lists and both logins; GitHub's avatar stays.
+        assertEquals(freepodAccount.id, user.id)
+        assertEquals("Alice F.", user.name)
+        assertEquals("https://avatars.example/alice.png", user.avatarUrl)
+        assertTrue(movieSeenRepository.contains(user, matrix))
+        assertTrue(movieSeenRepository.contains(user, godfather))
+        assertEquals(listOf("freepod", "github"), accountService.loginsOf(user).map { it.id.provider }.sorted())
+        assertEquals(user.id, logins.findLogin("github", "1001")?.user?.id)
+        assertNull(orm.repository<UserRepository>().findById(githubAccount.id))
     }
 
     private fun accountService(orm: ORMTemplate) = AccountService(

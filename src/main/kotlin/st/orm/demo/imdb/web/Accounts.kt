@@ -12,6 +12,7 @@ import io.ktor.util.AttributeKey
 import io.ktor.util.date.GMTDate
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.service.AccountService
+import st.orm.demo.imdb.service.FreepodSignIn
 
 /**
  * The visitor's account on a request. The account is a random id in the
@@ -21,6 +22,7 @@ import st.orm.demo.imdb.service.AccountService
  * the provider login is linked to.
  */
 private val AccountServiceKey = AttributeKey<AccountService>("AccountService")
+private val FreepodSignInKey = AttributeKey<FreepodSignIn>("FreepodSignIn")
 private val AccountIdKey = AttributeKey<String>("AccountId")
 private val CurrentUserKey = AttributeKey<User>("CurrentUser")
 
@@ -29,16 +31,21 @@ private const val ONE_YEAR_SECONDS = 365 * 24 * 60 * 60
 
 fun Application.configureAccounts() {
     val accountService: AccountService by dependencies
+    val freepodSignIn: FreepodSignIn by dependencies
     attributes.put(AccountServiceKey, accountService)
+    attributes.put(FreepodSignInKey, freepodSignIn)
 }
 
 /**
- * Renders a page with the visitor's account in its model, under `account`,
- * for the navbar. Every page responds through here, so no controller
- * passes the account itself.
+ * Renders a page with what the layout shows on every page in its model: the
+ * visitor's account under `account`, for the navbar, and under
+ * `hostedOnFreepod` whether the application runs on Freepod with its
+ * sign-in on, for the footer. Every page responds through here, so no
+ * controller passes them itself.
  */
 suspend fun ApplicationCall.respondPage(content: ThymeleafContent) {
-    respond(ThymeleafContent(content.template, content.model + ("account" to currentUser())))
+    val layout = mapOf("account" to currentUser(), "hostedOnFreepod" to application.attributes[FreepodSignInKey].enabled)
+    respond(ThymeleafContent(content.template, content.model + layout))
 }
 
 /**

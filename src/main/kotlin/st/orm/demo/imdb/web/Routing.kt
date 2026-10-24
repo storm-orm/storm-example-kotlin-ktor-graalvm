@@ -6,6 +6,7 @@ import io.ktor.server.plugins.di.dependencies
 import io.ktor.server.routing.routing
 import st.orm.demo.imdb.service.AccountService
 import st.orm.demo.imdb.service.BrowseService
+import st.orm.demo.imdb.service.FreepodSignIn
 import st.orm.demo.imdb.service.GitSignIn
 import st.orm.demo.imdb.service.HomeService
 import st.orm.demo.imdb.service.MovieSeenService
@@ -29,6 +30,7 @@ import st.orm.demo.imdb.service.WikipediaSummaryService
 fun Application.configureRouting() {
     val accountService: AccountService by dependencies
     val gitSignIn: GitSignIn by dependencies
+    val freepodSignIn: FreepodSignIn by dependencies
     val homeService: HomeService by dependencies
     val topMoviesService: TopMoviesService by dependencies
     val watchlistService: WatchlistService by dependencies
@@ -50,7 +52,7 @@ fun Application.configureRouting() {
         staticResources("/js", "static/js")
         staticResources("/img", "static/img")
 
-        accountRoutes(accountService, gitSignIn)
+        accountRoutes(accountService, gitSignIn, freepodSignIn)
         homeRoutes(homeService)
         topMoviesRoutes(topMoviesService)
         watchlistRoutes(watchlistService)

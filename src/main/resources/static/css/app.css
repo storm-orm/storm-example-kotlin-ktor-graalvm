@@ -742,16 +742,29 @@ img { display: block; }
 
 /* ── Account ───────────────────────────────────────────────────────── */
 
-/* The account gives way after the search box: the name shortens to an ellipsis before anything wraps. */
-.nav-account { display: flex; align-items: center; gap: 10px; min-width: 0; white-space: nowrap; }
+/* The account: "Sign in" while signed out, then an icon, the avatar or else the initial, that opens the account page. */
+.nav-account { display: flex; align-items: center; min-width: 0; white-space: nowrap; }
 
-.nav-user { display: inline-flex; align-items: center; gap: 8px; min-width: 0; color: var(--text); font-size: 14px; font-weight: 500; }
+.nav-account-icon {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--surface-raised);
+    color: var(--accent-strong);
+    font-weight: 700;
+    font-size: 15px;
+    transition: border-color 0.15s ease;
+}
 
-.nav-user-name { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-account-icon:hover, .nav-account-icon.active { border-color: var(--accent); }
 
-.nav-avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; background: var(--surface-raised); }
+.nav-account-icon img { width: 100%; height: 100%; object-fit: cover; }
 
-.nav-signin, .nav-signout {
+.nav-signin {
     padding: 7px 13px;
     border-radius: var(--radius-small);
     border: 1px solid var(--border);
@@ -764,9 +777,66 @@ img { display: block; }
     transition: color 0.15s ease, background 0.15s ease;
 }
 
-.nav-signin:hover, .nav-signout:hover { color: var(--text); background: var(--surface-raised); }
+.nav-signin:hover { color: var(--text); background: var(--surface-raised); }
 
-.nav-signout-form { margin: 0; }
+/* The account page: the logins, each with its provider's mark, and the way out. */
+.account-logins { max-width: 520px; margin-bottom: 20px; }
+
+.account-login { display: inline-flex; align-items: center; gap: 10px; }
+
+.signout-form { margin: 0 0 22px; }
+
+/* The providers in their own colours, each with its mark: the git providers' single-colour marks
+   (Simple Icons, CC0) are masks filled with the button's text colour, Freepod's is its full-colour
+   app icon. */
+.provider-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    border-color: transparent;
+    background: var(--brand);
+    color: var(--brand-text, #fff);
+}
+
+.provider-button:hover { border-color: transparent; filter: brightness(1.08); }
+
+.provider-icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    background: currentColor;
+    -webkit-mask: var(--mark) center / contain no-repeat;
+    mask: var(--mark) center / contain no-repeat;
+}
+
+/* A mark on its own, as the account page lists a login: the brand colour behind it. */
+.provider-badge {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: var(--brand);
+    color: var(--brand-text, #fff);
+}
+
+.provider-badge .provider-icon { width: 16px; height: 16px; }
+
+.provider-github { --brand: #f6f8fa; --brand-text: #1f2328; --mark: url(/img/providers/github.svg); }
+.provider-gitlab { --brand: #fc6d26; --mark: url(/img/providers/gitlab.svg); }
+.provider-bitbucket { --brand: #0052cc; --mark: url(/img/providers/bitbucket.svg); }
+.provider-codeberg { --brand: #2185d0; --mark: url(/img/providers/codeberg.svg); }
+.provider-freepod { --brand: #2563eb; }
+
+.provider-freepod .provider-icon {
+    -webkit-mask: none;
+    mask: none;
+    background: url(/img/providers/freepod.svg) center / contain no-repeat;
+}
+
+.provider-badge.provider-freepod { background: none; }
+
+.provider-badge.provider-freepod .provider-icon { width: 28px; height: 28px; }
 
 .account-hint { margin: 0 0 22px; color: var(--text-muted); font-size: 14px; }
 
@@ -1324,11 +1394,10 @@ img { display: block; }
 
 /* ── Responsive ────────────────────────────────────────────────────── */
 
-/* Narrow desktops: the page links tighten and the name gives way, so the navbar stays one row. */
+/* Narrow desktops: the page links tighten, so the navbar stays one row. */
 @media (max-width: 1200px) {
     .navbar-inner { gap: 16px; }
     .nav-links a { padding: 7px 9px; font-size: 14px; }
-    .nav-user-name { max-width: 90px; }
 }
 
 /* Tablets: the page links scroll in their own strip rather than widen the page. The totals go in
@@ -1378,8 +1447,6 @@ img { display: block; }
     .nav-links a { padding: 7px 10px; white-space: nowrap; }
     .navbar .search-box { flex-basis: 100%; width: auto; margin-left: 0; order: 1; }
     .navbar .search-suggestions { left: 0; right: 0; width: auto; }
-    /* The account stays in the first row, as the avatar alone once signed in. */
-    .nav-user-name { display: none; }
     .search-box input { font-size: 16px; }  /* below 16px, iOS zooms the page in on focus */
 
     .hero-content, .movie-hero-content { padding: 28px 16px 32px; gap: 20px; }

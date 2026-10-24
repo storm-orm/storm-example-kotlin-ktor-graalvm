@@ -1,13 +1,15 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Sign in')}"></head>
+<head th:replace="~{fragments/layout :: head(${account.name != null} ? 'Your account' : 'Sign in')}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar('signin')}"></nav>
 
 <header class="page-header">
     <div class="container">
-        <h1 class="page-title">Sign in</h1>
-        <p class="page-subtitle">Your watchlist and seen list already work in this browser. Sign in with a git account to keep them on every device.</p>
+        <h1 class="page-title" th:text="${account.name != null} ? 'Your account' : 'Sign in'">Sign in</h1>
+        <p class="page-subtitle" th:if="${account.name == null}">Your watchlist and seen list already work in this browser. Sign in to keep them on every device.</p>
+        <p class="page-subtitle" th:if="${account.name != null}"
+           th:text="|Signed in as ${account.name}. Link another account, and either one signs you in to the same lists.|">Signed in.</p>
     </div>
 </header>
 
@@ -17,17 +19,43 @@
         <div class="empty-state" th:if="${failure == 'denied'}">The sign-in was cancelled at the provider.</div>
         <div class="empty-state" th:if="${failure == 'refused'}">The provider did not complete the sign-in. Please try again.</div>
 
-        <div class="empty-state" th:if="${providers.isEmpty()}">
+        <!-- Signed in: the logins of the account, each a way in to it. -->
+        <div class="account-logins" th:unless="${logins.isEmpty()}" id="account-logins">
+            <div class="stat-row" th:each="login : ${logins}">
+                <span class="account-login">
+                    <span class="provider-badge" th:classappend="|provider-${login.provider}|" aria-hidden="true"><span class="provider-icon"></span></span>
+                    <span th:text="${login.label}">GitHub</span>
+                </span>
+                <div class="stat-end"><span class="stat-count" th:text="${login.username}">octocat</span></div>
+            </div>
+        </div>
+
+        <div class="empty-state" th:if="${providers.isEmpty() and freepodLoginUrl == null and logins.isEmpty()}">
             No sign-in providers are configured for this deployment.
         </div>
-        <div class="signin-providers" th:unless="${providers.isEmpty()}">
-            <a class="button signin-button" th:each="provider : ${providers}"
-               th:href="@{/signin/{key}(key=${provider.key}, rd=${returnTo})}"
-               th:text="|Continue with ${provider.label}|">Continue with GitHub</a>
+        <div class="signin-providers" th:unless="${providers.isEmpty() and freepodLoginUrl == null}">
+            <a class="button signin-button provider-button" th:each="provider : ${providers}"
+               th:classappend="|provider-${provider.key}|"
+               th:href="@{/signin/{key}(key=${provider.key}, rd=${returnTo})}">
+                <span class="provider-icon" aria-hidden="true"></span>
+                <span th:text="${logins.isEmpty()} ? |Continue with ${provider.label}| : |Link ${provider.label}|">Continue with GitHub</span>
+            </a>
+            <!-- Only on Freepod with its sign-in on: the platform signs in and comes back with the account. -->
+            <a class="button signin-button provider-button provider-freepod" id="freepod-signin" th:if="${freepodLoginUrl != null}" th:href="${freepodLoginUrl}">
+                <span class="provider-icon" aria-hidden="true"></span>
+                <span th:text="${logins.isEmpty()} ? 'Continue with Freepod' : 'Link Freepod'">Continue with Freepod</span>
+            </a>
         </div>
-        <p class="account-hint">
+        <p class="account-hint" th:if="${logins.isEmpty()}">
             The application reads only the account's id, login name, display name and avatar. Nothing is written to the provider.
         </p>
+        <p class="account-hint" th:unless="${logins.isEmpty()}">
+            Linking an account that has lists of its own here brings both together: the lists of this one move to it,
+            and every linked login leads there.
+        </p>
+        <form class="signout-form" th:if="${account.name != null}" th:action="@{/signout}" method="post">
+            <button type="submit" class="button" id="signout">Sign out</button>
+        </form>
     </div>
 </section>
 

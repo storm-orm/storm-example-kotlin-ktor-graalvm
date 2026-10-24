@@ -465,7 +465,9 @@ class StormMoviesInterfaceTest {
         if (providers == 0) {
             assertThat(page.locator(".empty-state")).containsText("No sign-in providers")
         } else {
-            assertTrue(page.locator(".signin-button").first().getAttribute("href").contains("rd=%2Fwatchlist"))
+            // The page to return to travels along, encoded or not.
+            val href = java.net.URLDecoder.decode(page.locator(".signin-button").first().getAttribute("href"), Charsets.UTF_8)
+            assertTrue(href.contains("rd=/watchlist")) { href }
         }
     }
 

@@ -46,35 +46,39 @@ class AccountService(
         userRepository.findById(accountId) ?: newUser(accountId, Instant.now())
 
     /**
-     * Finishes a sign-in at a provider for the account in the visitor's
-     * cookie and returns the user the visitor continues as, which the caller
-     * puts in the cookie. Two cases, one transaction:
+     * Finishes a sign-in at a provider, a git provider or Freepod, for the
+     * account in the visitor's cookie and returns the user the visitor
+     * continues as, which the caller puts in the cookie. A visitor signed in
+     * with one provider who signs in with another links the two. Two cases,
+     * one transaction:
      *
      * - The provider account is linked to a user already: that user is the
      *   one, with the profile refreshed. Whatever the visitor saved and
-     *   viewed under the cookie account meanwhile moves to it, and the
-     *   cookie account goes.
+     *   viewed under the cookie account moves to it, and so do the cookie
+     *   account's logins, if the visitor was signed in; then the cookie
+     *   account goes, and every login leads to the one account.
      * - It is not linked yet: it is linked to the cookie account, which gets
-     *   the profile's name and avatar. The lists stay where they are.
+     *   the profile's name, and its avatar if it has one. The lists stay
+     *   where they are; signed in already, the account has one login more.
      *
      * Lists that moved change what to recommend, so the user's
      * recommendations are recomputed in the background afterwards.
      */
-    suspend fun signIn(accountId: String, provider: GitProvider, profile: ProviderProfile): User {
+    suspend fun signIn(accountId: String, provider: SignInProvider, profile: ProviderProfile): User {
         val user = transaction {
             val now = Instant.now()
             val login = userLoginRepository.findLogin(provider.key, profile.subject)
             if (login != null) {
-                val user = login.user.withProfile(profile, now)
+                val previous = if (login.user.id != accountId) userRepository.findById(accountId) else null
+                val user = login.user.withProfile(profile, now, previous?.avatarUrl)
                 userRepository.update(user)
-                if (user.id != accountId) {
-                    userRepository.findById(accountId)?.let { anonymous ->
-                        watchlistRepository.moveTo(anonymous, user)
-                        movieSeenRepository.moveTo(anonymous, user)
-                        dismissalRepository.moveTo(anonymous, user)
-                        movieViewRepository.moveTo(anonymous, user)
-                        userRepository.remove(anonymous)
-                    }
+                previous?.let {
+                    watchlistRepository.moveTo(it, user)
+                    movieSeenRepository.moveTo(it, user)
+                    dismissalRepository.moveTo(it, user)
+                    movieViewRepository.moveTo(it, user)
+                    userLoginRepository.moveTo(it, user)
+                    userRepository.remove(it)
                 }
                 user
             } else {
@@ -91,8 +95,16 @@ class AccountService(
     private fun newUser(accountId: String, now: Instant) =
         User(id = accountId, name = null, avatarUrl = null, createdAt = now, lastSeenAt = now)
 
-    private fun User.withProfile(profile: ProviderProfile, now: Instant) =
-        copy(name = profile.name ?: profile.username, avatarUrl = profile.avatarUrl, lastSeenAt = now)
+    /**
+     * The account as the provider just used describes it. A provider without
+     * avatars, Freepod, leaves the one the account had, or else the one of
+     * the account it joins.
+     */
+    private fun User.withProfile(profile: ProviderProfile, now: Instant, joinedAvatarUrl: String? = null) =
+        copy(name = profile.name ?: profile.username, avatarUrl = profile.avatarUrl ?: avatarUrl ?: joinedAvatarUrl, lastSeenAt = now)
+
+    /** The logins linked to the user, for the account page; none for an account nobody signed in to. */
+    fun loginsOf(user: User): List<UserLogin> = userLoginRepository.findAll(user)
 
     companion object {
         private val ACCOUNT_ID = Regex("[A-Za-z0-9_-]{22}")

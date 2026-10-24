@@ -14,8 +14,9 @@ import java.nio.charset.StandardCharsets
 import java.util.Base64
 
 /**
- * What a git provider tells about the account that signed in. The subject is
- * the id the provider keeps stable for the account; the rest is for display.
+ * What a sign-in provider tells about the account that signed in. The
+ * subject is the id the provider keeps stable for the account; the rest is
+ * for display.
  */
 data class ProviderProfile(
     val subject: String,
@@ -34,8 +35,8 @@ data class ProviderProfile(
  * credentials, and the shape of the profile.
  */
 data class GitProvider(
-    val key: String,
-    val label: String,
+    override val key: String,
+    override val label: String,
     val authorizeUrl: String,
     val tokenUrl: String,
     val profileUrl: String,
@@ -44,7 +45,7 @@ data class GitProvider(
     /** Whether the token endpoint takes the client credentials as HTTP basic authentication rather than form fields. */
     val basicClientAuthentication: Boolean = false,
     val parseProfile: (JsonNode) -> ProviderProfile
-) {
+) : SignInProvider {
     companion object {
         val GITHUB = GitProvider(
             key = "github",
