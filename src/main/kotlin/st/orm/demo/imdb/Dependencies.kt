@@ -31,6 +31,9 @@ import st.orm.demo.imdb.service.TopMoviesService
 import st.orm.demo.imdb.service.ViewLogProperties
 import st.orm.demo.imdb.service.ViewLogService
 import st.orm.demo.imdb.service.WatchlistService
+import st.orm.demo.imdb.service.MovieSourceService
+import st.orm.demo.imdb.service.TmdbClient
+import st.orm.demo.imdb.service.TmdbService
 import st.orm.demo.imdb.service.WikipediaSummaryService
 import st.orm.demo.imdb.service.configuredProviders
 import st.orm.demo.imdb.service.freepodSignIn
@@ -53,6 +56,7 @@ fun Application.configureDependencies() {
     val viewLogProperties = environment.config.viewLogProperties()
     val configuredProviders = environment.config.configuredProviders()
     val freepodSignIn = environment.config.freepodSignIn()
+    val tmdbApiKey = environment.config.propertyOrNull("tmdb.apiKey")?.getString()
     dependencies {
         // With an ObservationRegistry in the container, the Storm plugin observes
         // every query (storm.query) and every transaction (storm.transaction); the
@@ -84,7 +88,7 @@ fun Application.configureDependencies() {
         provide { InviteService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { TopMoviesService(resolve(), resolve()) }
         provide { WatchlistService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
-        provide { MovieSeenService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { MovieSeenService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { CatchUpService(resolve(), resolve()) }
         provide { StatisticsService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { InsightsService(resolve(), resolve(), resolve(), resolve()) }
@@ -94,13 +98,17 @@ fun Application.configureDependencies() {
         provide { MovieService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PersonService(resolve(), resolve()) }
         provide { WikipediaSummaryService(resolve(), resolve(), resolve()) }
+        // TMDB, for the trailers and for imports of TMDB exports, with the key from application.conf (tmdb).
+        provide { TmdbClient(tmdbApiKey, resolve()) }
+        provide { TmdbService(resolve(), resolve(), resolve()) }
+        provide { MovieSourceService(resolve(), resolve()) }
         provide { PersonGalleryService(resolve(), resolve(), resolve(), resolve(), resolve<GalleryRefreshProperties>().maxAge) }
         provide { PosterController(resolve()) }
         provide<ImdbDatasets> { CachedImdbDatasets(syncProperties.cacheDirectory, syncProperties.datasetBaseUrl) }
         provide {
             ImdbDataSync(
                 resolve(), resolve(), resolve(), resolve(), resolve(),
-                resolve(), resolve(), resolve(), resolve(), syncProperties.minimumVoteCount,
+                resolve(), resolve(), resolve(), resolve(), resolve(), syncProperties.minimumVoteCount,
             )
         }
     }

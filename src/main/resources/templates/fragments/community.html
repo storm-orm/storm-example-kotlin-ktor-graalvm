@@ -19,7 +19,7 @@
 <th:block th:fragment="switches(seen, name, dates, audience, unnamed)">
     <label class="switch-row">
         <input type="checkbox" name="shareSeen" th:checked="${seen}">
-        <span><strong>What you watch</strong><br><th:block th:text="${audience}">Your friends</th:block> see the movies you mark as seen.</span>
+        <span><strong>What you watch</strong><br><th:block th:text="${audience}">Your friends</th:block> see the movies you mark as watched.</span>
     </label>
     <label class="switch-row">
         <input type="checkbox" name="shareName" th:checked="${name}">

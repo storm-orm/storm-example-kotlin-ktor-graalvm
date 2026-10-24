@@ -24,6 +24,7 @@ import st.orm.demo.imdb.service.InviteService
 import st.orm.demo.imdb.service.StatisticsService
 import st.orm.demo.imdb.service.TopMoviesService
 import st.orm.demo.imdb.service.WatchlistService
+import st.orm.demo.imdb.service.TmdbService
 import st.orm.demo.imdb.service.WikipediaSummaryService
 
 /**
@@ -54,6 +55,7 @@ fun Application.configureRouting() {
     val posterController: PosterController by dependencies
     val personGalleryService: PersonGalleryService by dependencies
     val wikipediaSummaryService: WikipediaSummaryService by dependencies
+    val tmdbService: TmdbService by dependencies
     routing {
         // Static resources at the same URLs the templates reference.
         staticResources("/css", "static/css")
@@ -79,5 +81,6 @@ fun Application.configureRouting() {
         posterRoutes(posterController)
         galleryRoutes(personGalleryService)
         summaryRoutes(wikipediaSummaryService)
+        trailerRoutes(tmdbService)
     }
 }

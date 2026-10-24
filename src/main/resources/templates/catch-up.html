@@ -8,7 +8,7 @@
     <div class="container">
         <h1 class="page-title">Catch up</h1>
         <p class="page-subtitle">
-            Tap the movies you have seen, the most watched first; tap again to undo. They count as seen before,
+            Tap the movies you have watched, the most watched first; tap again to undo. They count as watched before,
             without a date: a check-in is for a movie you watch today, from its own page.
         </p>
     </div>
@@ -16,7 +16,7 @@
 
 <section class="section">
     <div class="container">
-        <p class="account-hint"><a th:href="@{/seen}">← Back to your seen movies</a></p>
+        <p class="account-hint"><a th:href="@{/seen}">← Back to your watched movies</a></p>
 
         <!-- Not signed in, the marks live in this browser alone: say so, and offer the way to keep them. -->
         <div class="notice signin-nudge" th:if="${account.name == null}" data-signin-nudge>

@@ -239,3 +239,17 @@ CREATE TABLE friend_request (
 );
 CREATE INDEX idx_friend_request_recipient_id ON friend_request (recipient_id);
 CREATE INDEX idx_friend_request_club_id ON friend_request (club_id);
+
+-- V16: where a movie is known, every source in one table.
+CREATE TABLE movie_source (
+    id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    kind        VARCHAR NOT NULL,
+    movie_id    VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
+    external_id VARCHAR,
+    trailer_key VARCHAR,
+    fetched_at  TIMESTAMP,
+    UNIQUE (movie_id, kind),
+    CHECK ((kind = 'tmdb') = (fetched_at IS NOT NULL))
+);
+CREATE UNIQUE INDEX idx_movie_source_kind_external_id ON movie_source (kind, external_id);
+CREATE INDEX idx_movie_source_fetched_at ON movie_source (fetched_at);

@@ -40,7 +40,7 @@
             <a th:href="@{/top}" th:classappend="${active == 'top'} ? 'active'">Top Movies</a>
             <a th:href="@{/recent}" th:classappend="${active == 'recent'} ? 'active'">Recently Added</a>
             <a th:href="@{/watchlist}" th:classappend="${active == 'watchlist'} ? 'active'">Watchlist</a>
-            <a th:href="@{/seen}" th:classappend="${active == 'seen'} ? 'active'">Seen</a>
+            <a th:href="@{/seen}" th:classappend="${active == 'seen'} ? 'active'">Watched</a>
             <a th:href="@{/insights}" th:classappend="${active == 'insights'} ? 'active'">Insights</a>
             <a th:if="${account.name != null}" th:href="@{/friends}" th:classappend="${active == 'community'} ? 'active'">Community<span class="nav-badge" th:if="${requestCount > 0}" th:text="${requestCount}" th:title="|${requestCount} friend request${requestCount == 1 ? '' : 's'}|">1</span></a>
             <a th:href="@{/statistics}" th:classappend="${active == 'statistics'} ? 'active'">Statistics</a>
@@ -70,6 +70,11 @@
             Built with <a href="https://orm.st" target="_blank" rel="noopener">Storm ORM</a> on Ktor ·
             Data from the public <a href="https://datasets.imdbws.com/" target="_blank" rel="noopener">IMDB dataset</a><th:block th:if="${hostedOnFreepod}"> ·
             Hosted on <a href="https://freepod.eu" target="_blank" rel="noopener">Freepod</a></th:block>
+        </div>
+        <!-- TMDB's terms ask for this notice wherever its API is used. -->
+        <div class="footer-credit" th:if="${tmdb}">
+            Trailers and TMDB imports use the <a href="https://www.themoviedb.org" target="_blank" rel="noopener">TMDB</a>
+            API but are not endorsed, certified, or otherwise approved by TMDB.
         </div>
     </div>
 </footer>

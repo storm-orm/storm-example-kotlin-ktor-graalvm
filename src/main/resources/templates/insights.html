@@ -7,14 +7,14 @@
 <header class="page-header">
     <div class="container">
         <h1 class="page-title">Insights</h1>
-        <p class="page-subtitle">What your seen list says about you.</p>
+        <p class="page-subtitle">What your watched list says about you.</p>
     </div>
 </header>
 
 <section class="section" th:if="${insights.isEmpty}">
     <div class="container">
         <div class="empty-state" id="insights-empty">
-            Mark the movies you have seen, and this page fills in: your favourite actors and
+            Mark the movies you have watched, and this page fills in: your favourite actors and
             directors, your genres and decades, and the ratings you usually watch.
             <a th:href="@{/top}">Start with the top movies</a>.
         </div>
@@ -26,7 +26,7 @@
     <div class="container stat-chips">
         <div class="stat-chip">
             <div class="value" th:text="${insights.seenCount}">42</div>
-            <div class="label">Seen</div>
+            <div class="label">Watched</div>
         </div>
         <div class="stat-chip">
             <div class="value" th:text="${#numbers.formatInteger(insights.hoursWatched, 1, 'COMMA')}">80</div>
@@ -64,7 +64,7 @@
                 For You favours that range: a movie rated far outside it keeps a share of its score.
             </p>
             <p class="stat-note" th:if="${ratings.range == null}">
-                Once five movies are seen, the curve of your usual range appears here, and For You follows it.
+                Once five movies are watched, the curve of your usual range appears here, and For You follows it.
             </p>
             <div class="histogram">
                 <div class="histogram-range" th:if="${ratings.range != null}"
@@ -98,7 +98,7 @@
             <div class="stat-card" id="thumbs-card">
                 <h2>You and IMDB</h2>
                 <p class="stat-note" th:unless="${insights.likedAverage != null and insights.dislikedAverage != null}">
-                    Give the movies you have seen a thumb up or down on their page: once both are given, this tells
+                    Give the movies you have watched a thumb up or down on their page: once both are given, this tells
                     whether your taste agrees with IMDB's voters, and For You weighs what you liked.
                 </p>
                 <th:block th:if="${insights.likedAverage != null and insights.dislikedAverage != null}">
@@ -122,7 +122,7 @@
 
         <div class="stat-card" id="actors-card">
             <h2>Favourite actors</h2>
-            <p class="stat-note">The cast you have seen most often.</p>
+            <p class="stat-note">The cast you have watched most often.</p>
             <div class="empty-state" th:if="${insights.actors.isEmpty()}">No actor is in more than one of your movies yet.</div>
             <a class="stat-row" th:each="actor, iteration : ${insights.actors}" th:href="@{/person/{id}(id=${actor.person.id})}">
                 <span class="rank-number" th:text="${iteration.count}">1</span>
@@ -170,7 +170,7 @@
     <div class="container">
         <div class="section-header">
             <h2 class="section-title">Standouts</h2>
-            <span class="section-note">from what you have seen</span>
+            <span class="section-note">from what you have watched</span>
         </div>
         <div class="movie-row highlight-grid">
             <a class="movie-card highlight-card" th:each="highlight : ${insights.highlights}"

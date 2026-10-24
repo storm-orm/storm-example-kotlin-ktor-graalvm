@@ -274,7 +274,7 @@ object RecommendationRanker {
                 add(Reason(ReasonKind.NEW, "New in the catalogue"))
             }
             if (size < 3 && likedDecade != null) {
-                add(Reason(ReasonKind.DECADE, "From the ${likedDecade}s, like much of what you've seen"))
+                add(Reason(ReasonKind.DECADE, "From the ${likedDecade}s, like much of what you've watched"))
             }
             if (trending >= 0.5) {
                 add(Reason(ReasonKind.TRENDING, "Popular on Storm Movies this week"))

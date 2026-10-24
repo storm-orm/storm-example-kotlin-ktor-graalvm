@@ -214,7 +214,7 @@ class StormMoviesInterfaceTest {
             document.querySelector("[data-drop-zone]").dispatchEvent(new DragEvent("drop", { dataTransfer: transfer, bubbles: true, cancelable: true }));
         """)
 
-        assertThat(page.locator("#import-result")).containsText("2 movies marked as seen")
+        assertThat(page.locator("#import-result")).containsText("2 movies marked as watched")
         assertThat(page.locator("#import-result")).containsText("1 titles skipped")
         assertThat(page.locator("#seen-results .movie-card-title")).containsText(arrayOf("The Matrix", "The Shawshank Redemption"))
         // Reloading the result does not upload the file again: the import answered with a redirect.
@@ -263,10 +263,12 @@ class StormMoviesInterfaceTest {
             .set("export", FilePayload("ratings.csv", "text/csv", "Const,Your Rating,Date Rated\ntt0068646,9,2020-01-02\n".toByteArray()))))
         page.navigate("$baseUrl/top")
         assertThat(page.locator("a.ranked-row[href='/movie/tt0068646'] .seen-tag")).hasText("✓ 2 Jan 2020")
+        // The movie's Watched button keeps its short label and says the day in its title.
         page.navigate("$baseUrl/movie/tt0068646")
-        assertThat(page.locator("[data-seen-label]")).hasText("Seen 2 Jan 2020")
+        assertThat(page.locator("[data-seen-label]")).hasText("Watched")
+        assertThat(page.locator("[data-list-toggle='seen']")).hasAttribute("title", "Watched 2 Jan 2020")
         page.navigate("$baseUrl/movie/tt0110912")
-        assertThat(page.locator("[data-seen-label]")).hasText("Seen")
+        assertThat(page.locator("[data-list-toggle='seen']")).hasAttribute("title", "Watched")
 
         // A poster card: the tag sits in the poster's corner, on the seen page as well.
         page.navigate("$baseUrl/seen")
@@ -313,7 +315,7 @@ class StormMoviesInterfaceTest {
         assertThat(card.locator(".seen-tag")).hasText("✓")
         assertTrue(page.url().endsWith("/seen/catch-up"))
         page.navigate("$baseUrl/movie/$id")
-        assertThat(page.locator("[data-seen-label]")).hasText("Seen")
+        assertThat(page.locator("[data-seen-label]")).hasText("Watched")
 
         // Another tap unmarks it.
         page.navigate("$baseUrl/seen/catch-up")
@@ -420,16 +422,17 @@ class StormMoviesInterfaceTest {
     fun `the watchlist toggle persists across home and watchlist pages`() {
         page.navigate("$baseUrl/movie/tt0133093")
         val toggleButton = page.locator("[data-list-toggle='watchlist']")
-        val label = page.locator("[data-watchlist-label]")
+        assertThat(page.locator("[data-watchlist-label]")).hasText("Watchlist")
 
         // Make the starting state deterministic: ensure OFF first.
-        if (label.textContent().contains("On watchlist")) {
+        if (toggleButton.getAttribute("aria-pressed") == "true") {
             toggleButton.click()
-            assertThat(label).hasText("Add to watchlist")
+            assertThat(toggleButton).hasAttribute("aria-pressed", "false")
         }
 
         toggleButton.click()
-        assertThat(label).hasText("On watchlist")
+        assertThat(toggleButton).hasAttribute("aria-pressed", "true")
+        assertThat(toggleButton).hasAttribute("title", "On your watchlist")
 
         page.navigate("$baseUrl/")
         assertThat(page.locator("#watchlist-section")).isVisible()
@@ -441,7 +444,7 @@ class StormMoviesInterfaceTest {
         // Toggle back off to leave no residue.
         page.navigate("$baseUrl/movie/tt0133093")
         toggleButton.click()
-        assertThat(label).hasText("Add to watchlist")
+        assertThat(toggleButton).hasAttribute("aria-pressed", "false")
     }
 
     @Test
@@ -471,22 +474,23 @@ class StormMoviesInterfaceTest {
         page.navigate("$baseUrl/movie/tt0133093")
         val watchlistButton = page.locator("[data-list-toggle='watchlist']")
         val seenButton = page.locator("[data-list-toggle='seen']")
-        val watchlistLabel = page.locator("[data-watchlist-label]")
-        val seenLabel = page.locator("[data-seen-label]")
 
         // Each browser context is a new account, so both lists start empty.
-        assertThat(watchlistLabel).hasText("Add to watchlist")
-        assertThat(seenLabel).hasText("Mark as seen")
+        assertThat(watchlistButton).hasAttribute("aria-pressed", "false")
+        assertThat(seenButton).hasAttribute("aria-pressed", "false")
+        assertThat(seenButton).hasAttribute("title", "Mark as watched")
 
         watchlistButton.click()
-        assertThat(watchlistLabel).hasText("On watchlist")
-        // Check in opens the days of the past week; today it is, which the seen button shows with its day.
+        assertThat(watchlistButton).hasAttribute("aria-pressed", "true")
+        // Check-in opens the days of the past week; today it is, which the seen button's title shows with its day.
         page.locator("[data-check-in]").click()
         assertThat(page.locator("[data-check-in-day]")).hasCount(7)
         page.locator("[data-check-in-day]").first().click()
-        assertThat(page.locator("[data-check-in-label]")).hasText("Checked in today")
-        assertThat(seenLabel).hasText(Pattern.compile("Seen \\d{1,2} \\w{3} \\d{4}"))
-        assertThat(watchlistLabel).hasText("Add to watchlist")
+        assertThat(page.locator("[data-check-in-label]")).hasText("Checked in")
+        assertThat(page.locator("[data-check-in]")).hasAttribute("title", "Checked in today")
+        assertThat(seenButton).hasAttribute("aria-pressed", "true")
+        assertThat(seenButton).hasAttribute("title", Pattern.compile("Watched \\d{1,2} \\w{3} \\d{4}"))
+        assertThat(watchlistButton).hasAttribute("aria-pressed", "false")
 
         page.navigate("$baseUrl/seen")
         assertThat(page.locator("#seen-results .movie-card-title").first()).hasText("The Matrix")
@@ -503,7 +507,7 @@ class StormMoviesInterfaceTest {
         assertThat(votes).isHidden()
 
         page.markSeenEarlier()
-        assertThat(page.locator("[data-seen-label]")).hasText("Seen")
+        assertThat(page.locator("[data-seen-label]")).hasText("Watched")
         assertThat(votes).isVisible()
 
         val thumbsUp = page.locator("[data-vote='true']")
@@ -526,10 +530,10 @@ class StormMoviesInterfaceTest {
         // Seeing The Matrix makes the picks personal, computed in the background.
         page.navigate("$baseUrl/movie/tt0133093")
         page.markSeenEarlier()
-        assertThat(page.locator("[data-seen-label]")).hasText("Seen")
+        assertThat(page.locator("[data-seen-label]")).hasText("Watched")
         page.waitForCondition({
             page.navigate("$baseUrl/for-you")
-            page.locator(".page-subtitle").textContent().contains("you have seen")
+            page.locator(".page-subtitle").textContent().contains("you have watched")
         }, Page.WaitForConditionOptions().setTimeout(30_000.0))
         assertThat(page.locator("#for-you-results .movie-card-reasons span").first()).containsText("Because you saw The Matrix")
 
@@ -549,10 +553,10 @@ class StormMoviesInterfaceTest {
     fun `not interested removes a pick and keeps it out`() {
         page.navigate("$baseUrl/movie/tt0133093")
         page.markSeenEarlier()
-        assertThat(page.locator("[data-seen-label]")).hasText("Seen")
+        assertThat(page.locator("[data-seen-label]")).hasText("Watched")
         page.waitForCondition({
             page.navigate("$baseUrl/for-you")
-            page.locator(".page-subtitle").textContent().contains("you have seen")
+            page.locator(".page-subtitle").textContent().contains("you have watched")
         }, Page.WaitForConditionOptions().setTimeout(30_000.0))
 
         val first = page.locator("#for-you-results .recommended").first()
@@ -570,7 +574,7 @@ class StormMoviesInterfaceTest {
     fun `the lists belong to the browser's account`() {
         page.navigate("$baseUrl/movie/tt0133093")
         page.locator("[data-list-toggle='watchlist']").click()
-        assertThat(page.locator("[data-watchlist-label]")).hasText("On watchlist")
+        assertThat(page.locator("[data-list-toggle='watchlist']")).hasAttribute("aria-pressed", "true")
 
         // Another browser, another account: an empty watchlist.
         val otherContext = browser.newContext()
@@ -779,7 +783,7 @@ class StormMoviesInterfaceTest {
 
     /* ── Helpers ──────────────────────────────────────────────────── */
 
-    /** Marks the movie on the page as seen, without a day: the Mark as seen button. */
+    /** Marks the movie on the page as watched, without a day: the Watched button. */
     private fun Page.markSeenEarlier() {
         locator("[data-list-toggle='seen']").click()
     }

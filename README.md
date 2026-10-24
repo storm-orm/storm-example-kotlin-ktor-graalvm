@@ -176,18 +176,57 @@ page opens with the visitor's picks among what joined since their previous
 visit, never less than a week back and never more than a quarter, and
 leaves that strip out when nothing new fits.
 
-## Importing from IMDb
+## Importing from IMDb or TMDB
 
 IMDb has no API and no sign-in for other sites, but it exports a user's
-ratings and lists as CSV. The Seen page takes that file: every movie in it is
-marked as seen on the day IMDb has for it, the day rated or else added to the
-list, which also replaces the day of a movie already marked; a rating of 8 or
-more becomes a thumbs up and 5 or less a thumbs down, unless the visitor gave
-one here. The columns are found by name
-([`ImdbExport`](src/main/kotlin/st/orm/demo/imdb/service/ImdbExport.kt)), the
+ratings and lists as CSV, and so does TMDB. The Seen page takes either file
+and tells them apart by the header: every movie in it is marked as seen on
+the day the export has for it, the day rated or else added to the list,
+which also replaces the day of a movie already marked; a rating of 8 or more
+becomes a thumbs up and 5 or less a thumbs down, unless the visitor gave one
+here. The columns are found by name
+([`ImdbExport`](src/main/kotlin/st/orm/demo/imdb/service/ImdbExport.kt),
+[`TmdbExport`](src/main/kotlin/st/orm/demo/imdb/service/TmdbExport.kt)), the
 movies read by id in one query, the seen rows written in one batched upsert
 keyed by the pair of user and movie, and the watchlist cleared in one delete
-(`MovieSeenService.importFromImdb`).
+(`MovieSeenService.importHistory`).
+
+## Movie sources
+
+IMDb and TMDB have the same place in the data model: one table, `movie_source`
+(V16), holds where each movie is known, a row per source, told apart by its
+`kind`. It is a sealed Single-Table entity,
+[`MovieSource`](src/main/kotlin/st/orm/demo/imdb/model/MovieSource.kt): every
+source names the movie's id there (`externalId`), and what a source gives
+besides is a field of its own subtype, like TMDB's trailer. Each kind has its
+own repository, whose queries see only its rows. Adding a source is adding a
+subtype, and the compiler points at each `when` over the sources that has to
+handle it. The
+catalogue is synced from IMDb's datasets, so a movie's own key is its IMDb id,
+and the sync records the IMDb source of every new movie.
+
+An export names its movies by a source's ids
+([`ExportRow`](src/main/kotlin/st/orm/demo/imdb/service/ImdbExport.kt)), and
+the import finds them through that source's rows
+([`MovieSourceService`](src/main/kotlin/st/orm/demo/imdb/service/MovieSourceService.kt)):
+an IMDb id among the IMDb sources, a TMDB id among the TMDB ones, and a TMDB
+id not stored yet from TMDB's API, a few calls at a time, stored for the next
+import ([`TmdbService.movieIds`](src/main/kotlin/st/orm/demo/imdb/service/TmdbService.kt)).
+
+## Trailers
+
+The movie page and the featured movie on the home page get a Trailer button
+when TMDB has a trailer for the movie, which plays from YouTube without its
+cookies in a dialog over the page. The trailer also plays behind the hero,
+muted and blurred, in place of the backdrop image: a small player, so YouTube
+sends a small stream, scaled up to cover, phones included; it is left out
+for visitors who ask for less motion or less data. The page asks for it after it loads
+(`/api/trailer/{id}`); the first ask looks the movie up on TMDB by its IMDb
+id and stores the TMDB id and the trailer, none included, as the movie's TMDB
+source. A stored answer is kept six months, the most TMDB's terms allow: until
+then pages read it from the database, without a call to TMDB. Both need a TMDB API key (`TMDB_API_KEY`, a v3 key or a
+v4 read access token); without one there are no trailers, and a TMDB export
+brings only the movies it gives IMDb ids for.
 
 ## Check-ins and history
 

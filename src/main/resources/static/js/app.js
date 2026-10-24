@@ -18,7 +18,214 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSummaries();
     setupBackdrops();
     setupGalleries();
+    setupHeroBands();
+    setupTrailers();
 });
+
+/* ── Trailers (from TMDB, played from YouTube without its cookies) ── */
+
+// A Trailer button shows once its movie has a trailer. Where the hero plays the trailer behind it,
+// muted and blurred, the button brings that same player forward, in the space the hero has: the
+// page's content gives way, the blur and the dimming go, the sound comes on and YouTube's controls
+// answer, and Exit trailer (or Escape) sends it back behind the content, playing on. Without the
+// player behind the hero, for visitors who ask for less motion or less data, the trailer plays in a
+// dialog.
+// A hero has two Trailer buttons, one on the backdrop for phones and one with the other buttons; they
+// share the one trailer, asked for once.
+function setupTrailers() {
+    document.querySelectorAll('.hero, .movie-hero').forEach(async hero => {
+        const buttons = [...hero.querySelectorAll('[data-trailer-endpoint]')];
+        if (buttons.length === 0) return;
+        try {
+            const response = await fetch(buttons[0].dataset.trailerEndpoint);
+            if (!response.ok) return;
+            const trailer = await response.json();
+            const title = buttons[0].dataset.trailerTitle;
+            const backdrop = hero.querySelector('.hero-backdrop, .movie-backdrop');
+            const behind = backdrop ? playBehind(hero, backdrop, trailer.youtubeKey) : null;
+            buttons.forEach(button => {
+                button.hidden = false;
+                button.addEventListener('click', async () => {
+                    if (hero.sendTrailerBack) hero.sendTrailerBack();
+                    else if (behind && await behind.ready) bringForward(hero, behind, buttons, title);
+                    else openTrailer(trailer.youtubeKey, title);
+                });
+            });
+        } catch (e) {
+            // No trailer then: the page is complete without it.
+        }
+    });
+}
+
+// On a phone, the hero's head (poster, title, genres) lies on the backdrop, or the trailer behind it,
+// and its body (description, buttons) follows below: the backdrop band ends where the body begins.
+function setupHeroBands() {
+    document.querySelectorAll('.hero, .movie-hero').forEach(hero => {
+        const body = hero.querySelector('.hero-body');
+        if (!body) return;
+        const measure = () => {
+            const band = body.getBoundingClientRect().top - hero.getBoundingClientRect().top - 14;
+            hero.style.setProperty('--band', `${Math.round(band)}px`);
+        };
+        new ResizeObserver(measure).observe(hero);
+        measure();
+    });
+}
+
+function openTrailer(youtubeKey, title) {
+    const dialog = document.createElement('dialog');
+    dialog.className = 'trailer-dialog';
+    const frame = document.createElement('iframe');
+    frame.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(youtubeKey)}?autoplay=1&rel=0`;
+    frame.title = `${title} trailer`;
+    frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+    frame.allowFullscreen = true;
+    const close = document.createElement('button');
+    close.className = 'trailer-close';
+    close.type = 'button';
+    close.setAttribute('aria-label', 'Close the trailer');
+    close.textContent = '×';
+    close.addEventListener('click', () => dialog.close());
+    dialog.append(close, frame);
+    // A click on the backdrop, outside the player, closes it too.
+    dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+    dialog.addEventListener('close', () => dialog.remove());
+    document.body.append(dialog);
+    dialog.showModal();
+}
+
+// YouTube's IFrame API, loaded once, the first time a hero plays a trailer: it is what turns the
+// sound on and off on the player that keeps playing.
+let youtubeApi = null;
+
+function loadYoutubeApi() {
+    youtubeApi ??= new Promise(resolve => {
+        window.onYouTubeIframeAPIReady = () => resolve(window.YT);
+        const script = document.createElement('script');
+        script.src = 'https://www.youtube.com/iframe_api';
+        document.head.append(script);
+    });
+    return youtubeApi;
+}
+
+// Behind the hero, the player is small, so YouTube sends a small stream, phones included, scaled up to
+// cover the hero and blurred, so its low quality does not show. It fades in once YouTube says it plays,
+// past its title overlay; where a browser holds back autoplay, the backdrop image simply stays.
+const BACKDROP_VIDEO_WIDTH = 480;
+const BACKDROP_VIDEO_HEIGHT = 270;
+
+function playBehind(hero, backdrop, youtubeKey) {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
+    if (navigator.connection?.saveData) return null;
+    const layer = document.createElement('div');
+    layer.className = 'backdrop-video';
+    // The player's frame is made here, so it carries the autoplay permission from its first load: the
+    // browser reads it then, and only with it does a tap on Trailer let the playing video take sound.
+    const frame = document.createElement('iframe');
+    const key = encodeURIComponent(youtubeKey);
+    frame.src = `https://www.youtube-nocookie.com/embed/${key}?enablejsapi=1&autoplay=1&mute=1&loop=1&playlist=${key}`
+        + `&controls=1&playsinline=1&rel=0&iv_load_policy=3&origin=${encodeURIComponent(location.origin)}`;
+    frame.width = BACKDROP_VIDEO_WIDTH;
+    frame.height = BACKDROP_VIDEO_HEIGHT;
+    frame.title = 'Trailer';
+    frame.tabIndex = -1;
+    frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+    frame.allowFullscreen = true;
+    layer.append(frame);
+    backdrop.after(layer);
+    const cover = () => {
+        const scale = Math.max(layer.clientWidth / BACKDROP_VIDEO_WIDTH, layer.clientHeight / BACKDROP_VIDEO_HEIGHT);
+        // More than covering: the player's edges stay out of sight, and so do the black bars of a
+        // trailer that is not 16:9, at the sides of a 4:3 one or above and below a widescreen one.
+        // A phone shows it unblurred in a 16:9 band, so it is cropped less there.
+        const crop = matchMedia('(max-width: 640px)').matches ? 1.2 : 1.4;
+        layer.style.setProperty('--video-scale', String(scale * crop));
+    };
+    cover();
+    new ResizeObserver(cover).observe(layer);
+    const ready = loadYoutubeApi().then(YT => new Promise(resolve => {
+        const player = new YT.Player(frame, {
+            events: {
+                onReady: () => {
+                    player.mute();
+                    player.playVideo();
+                    resolve(player);
+                },
+                onStateChange: event => {
+                    if (event.data === YT.PlayerState.PLAYING && !layer.classList.contains('visible')) {
+                        // YouTube shows its title and controls for the first seconds of playing; on a
+                        // phone the band is not blurred, so it waits until they are gone.
+                        setTimeout(() => layer.classList.add('visible'), 5000);
+                    }
+                }
+            }
+        });
+    })).catch(() => null);
+    return { layer, ready };
+}
+
+// Brings the player behind the hero forward, under a bar of its own with the title and Exit trailer,
+// clear of YouTube's controls; Exit trailer or Escape sends it back. A phone turned to landscape
+// meanwhile gets the trailer on the whole screen, and back in the hero when turned upright again:
+// browsers take a fullscreen request only from a tap, so the player covers the screen itself, and
+// asks for fullscreen besides where the browser grants it. On a phone, the band comes forward in
+// place: the head on it gives way, the body below stays, and its Trailer button reads Exit trailer.
+function bringForward(hero, behind, buttons, title) {
+    behind.ready.then(player => {
+        const frame = player.getIframe();
+        buttons.forEach(button => { button.textContent = 'Exit trailer'; });
+        hero.classList.add('trailer-playing');
+        frame.tabIndex = 0;
+        // On from where it is, with sound; a browser that pauses rather than let the page unmute
+        // (iOS) gets it playing on, muted, and YouTube's volume button gives the sound.
+        player.unMute();
+        player.setVolume(80);
+        player.playVideo();
+        setTimeout(() => {
+            if (player.getPlayerState() !== YT.PlayerState.PLAYING) {
+                player.mute();
+                player.playVideo();
+            }
+        }, 700);
+
+        const bar = document.createElement('div');
+        bar.className = 'trailer-bar';
+        const heading = document.createElement('span');
+        heading.className = 'trailer-bar-title';
+        heading.textContent = `${title} · Trailer`;
+        const exit = document.createElement('button');
+        exit.type = 'button';
+        exit.className = 'button button-small trailer-exit';
+        exit.textContent = 'Exit trailer';
+        bar.append(heading, exit);
+        hero.append(bar);
+        const landscape = matchMedia('(orientation: landscape) and (pointer: coarse)');
+        const fitScreen = () => {
+            hero.classList.toggle('trailer-fullscreen', landscape.matches);
+            if (landscape.matches) frame.requestFullscreen?.().catch(() => {});
+            else if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+        };
+        landscape.addEventListener('change', fitScreen);
+        fitScreen();
+        const onKey = event => { if (event.key === 'Escape') sendBack(); };
+        const sendBack = () => {
+            landscape.removeEventListener('change', fitScreen);
+            hero.classList.remove('trailer-fullscreen');
+            if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+            player.mute();
+            frame.tabIndex = -1;
+            bar.remove();
+            document.removeEventListener('keydown', onKey);
+            hero.classList.remove('trailer-playing');
+            buttons.forEach(button => { button.textContent = 'Trailer'; });
+            delete hero.sendTrailerBack;
+        };
+        hero.sendTrailerBack = sendBack;
+        exit.addEventListener('click', sendBack);
+        document.addEventListener('keydown', onKey);
+        exit.focus({ preventScroll: true });
+    });
+}
 
 /* ── Photo galleries (fetched once, then served from the database) ── */
 
@@ -507,8 +714,9 @@ function personCard(person) {
 
 // Every toggle answers with the state of both lists and the vote: marking a
 // movie seen takes it off the watchlist, so the other button follows, and
-// the thumbs appear once the movie is seen. Mark as seen records having seen
-// it, as history, and unmarks it again; Check in records watching it today.
+// the thumbs appear once the movie is watched. Watched records having watched
+// it, as history, and unmarks it again; Check-in records watching it on a day. The
+// labels stay short and the same; the pressed look and the title say the state.
 function setupListToggles() {
     const buttons = document.querySelectorAll('[data-list-toggle]');
     const checkIn = document.querySelector('[data-check-in]');
@@ -520,25 +728,26 @@ function setupListToggles() {
         const ago = watchedAt ? daysAgo(new Date(watchedAt)) : null;
         const recent = ago !== null && ago < 7;
         checkIn.classList.toggle('active', recent);
-        checkIn.querySelector('span').textContent = !recent ? 'Check in'
+        checkIn.querySelector('span').textContent = recent ? 'Checked in' : 'Check-in';
+        checkIn.title = !recent ? 'Check in on a day of the past week'
             : 'Checked in ' + (ago === 0 ? 'today' : ago === 1 ? 'yesterday' : SHORT_DAY.format(new Date(watchedAt)));
     };
     const render = state => {
         buttons.forEach(button => {
             const onList = button.dataset.listToggle === 'watchlist' ? state.onWatchlist : state.seen;
             button.classList.toggle('active', onList);
-            const label = button.querySelector('span');
-            label.textContent = button.dataset.listToggle === 'watchlist'
-                ? (onList ? 'On watchlist' : 'Add to watchlist')
-                : (onList ? seenLabel('Seen', state.seenAt) : 'Mark as seen');
+            button.setAttribute('aria-pressed', String(onList));
+            button.title = button.dataset.listToggle === 'watchlist'
+                ? (onList ? 'On your watchlist' : 'Add to your watchlist')
+                : (onList ? seenLabel('Watched', state.seenAt) : 'Mark as watched');
         });
         showCheckIn(state.seenAt);
         if (voteGroup) voteGroup.hidden = !state.seen;
         voteButtons.forEach(button => button.classList.toggle('active', String(state.liked) === button.dataset.vote));
     };
-    // The page renders the plain labels; the day of a check-in joins them here, as on the tags.
+    // The page renders the plain titles; the day of a check-in joins them here, as on the tags.
     buttons.forEach(button => {
-        if (button.dataset.seenAt) button.querySelector('span').textContent = seenLabel('Seen', button.dataset.seenAt);
+        if (button.dataset.seenAt) button.title = seenLabel('Watched', button.dataset.seenAt);
     });
     showCheckIn(checkIn?.dataset.seenAt);
     const all = [...buttons, ...voteButtons, ...(checkIn ? [checkIn] : [])];
@@ -768,7 +977,7 @@ function tagSeenMovie(link) {
 // friends' marker, else the clubs'.
 function seenTag(id) {
     if (seenMovies.has(id)) {
-        return { text: seenLabel('✓', seenMovies.get(id)), title: seenLabel('Seen', seenMovies.get(id)), kind: null };
+        return { text: seenLabel('✓', seenMovies.get(id)), title: seenLabel('Watched', seenMovies.get(id)), kind: null };
     }
     const friends = friendsSeen.get(id);
     if (friends) {
@@ -776,11 +985,11 @@ function seenTag(id) {
         const others = friends.length - named.length;
         const who = friends.length === 1 ? (named[0] ?? 'A friend') : friends.length + ' friends';
         const all = [...named, ...(others === 1 ? ['a friend'] : others > 1 ? [others + ' friends'] : [])];
-        return { text: '✓ ' + who, title: 'Seen by ' + all.join(', '), kind: 'friend' };
+        return { text: '✓ ' + who, title: 'Watched by ' + all.join(', '), kind: 'friend' };
     }
     const members = clubsSeen.get(id);
     if (!members) return null;
-    return { text: '✓ ' + clubTagText(members), title: 'Seen in ' + clubTagTitle(members), kind: 'club' };
+    return { text: '✓ ' + clubTagText(members), title: 'Watched in ' + clubTagTitle(members), kind: 'club' };
 }
 
 // A club tag: the member's name, else their club's, for one; the count, with

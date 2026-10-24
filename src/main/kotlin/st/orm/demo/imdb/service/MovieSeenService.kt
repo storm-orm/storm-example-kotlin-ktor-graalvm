@@ -40,7 +40,7 @@ data class CheckInsView(
  * already, the check-ins it recorded, and the titles the catalogue does not
  * hold (series, episodes, and movies with too few votes).
  */
-data class ImdbImport(val added: Int, val updated: Int, val checkIns: Int, val skipped: Int)
+data class HistoryImport(val added: Int, val updated: Int, val checkIns: Int, val skipped: Int)
 
 /**
  * A movie being seen, and its check-ins. Seen is one row per movie
@@ -54,7 +54,8 @@ class MovieSeenService(
     private val watchlistRepository: WatchlistRepository,
     private val movieSeenRepository: MovieSeenRepository,
     private val checkInRepository: CheckInRepository,
-    private val recommendationService: RecommendationService
+    private val recommendationService: RecommendationService,
+    private val movieSourceService: MovieSourceService
 ) {
 
     /**
@@ -100,7 +101,7 @@ class MovieSeenService(
     suspend fun checkIn(user: User, movieId: String, day: LocalDate? = null, now: Instant = Instant.now()): MovieListState {
         val today = LocalDate.ofInstant(now, ZoneOffset.UTC)
         require(day == null || (!day.isAfter(today.plusDays(1)) && !day.isBefore(today.minus(CHECK_IN_WINDOW)))) {
-            "A check-in is for a day of the past week; further back, mark the movie as seen."
+            "A check-in is for a day of the past week; further back, mark the movie as watched."
         }
         val watchedAt = if (day == null || !day.isBefore(today)) now else noonOf(day)
         val movie = movieRepository.getById(movieId)
@@ -143,11 +144,13 @@ class MovieSeenService(
         }
 
     /**
-     * Marks the titles of an IMDb export as seen ([ImdbExport]), with a
-     * check-in for every day IMDb has for a title: the day it was rated, or
-     * else added to the list, so a title an export lists on several days has
-     * a check-in for each. A day matches a check-in made here within a week
-     * of it ([matchCheckIns]), which then takes IMDb's day rather than being
+     * Marks the titles of an export as seen ([ImdbExport], [TmdbExport]),
+     * found first by the ids their sources give them ([MovieSourceService]);
+     * a title no movie is known by counts as skipped. Every day the export
+     * has for a title, the day it was rated or else added to the list, is a
+     * check-in, so a title an export lists on several days has one for each.
+     * A day matches a check-in made here within a week of it
+     * ([matchCheckIns]), which then takes the export's day rather than being
      * counted twice; importing the same export again changes nothing. A title
      * without a day is seen without a check-in. The latest rating becomes a
      * thumb, 8 and up for a thumbs up and 5 and down for a thumbs down,
@@ -160,9 +163,22 @@ class MovieSeenService(
      * delete, in one transaction; then the recommendations are recomputed in
      * the background.
      */
-    suspend fun importFromImdb(user: User, rows: List<ImdbExportRow>, now: Instant = Instant.now()): ImdbImport = transaction {
+    suspend fun importHistory(user: User, rows: List<ExportRow>, now: Instant = Instant.now()): HistoryImport {
+        val movieIds = rows.groupBy { it.source }.mapValues { (source, sourceRows) ->
+            movieSourceService.movieIds(source, sourceRows.mapTo(HashSet()) { it.externalId })
+        }
+        val (placed, unplaced) = rows.partition { movieIds.getValue(it.source)[it.externalId] != null }
+        val titles = placed.map { ImportedTitle(movieIds.getValue(it.source).getValue(it.externalId), it.date, it.rating) }
+        val result = markImported(user, titles, now)
+        return result.copy(skipped = result.skipped + unplaced.distinctBy { it.source to it.externalId }.size)
+    }
+
+    /** A title of an export once its movie is found. */
+    private data class ImportedTitle(val movieId: String, val date: LocalDate?, val rating: Int?)
+
+    private suspend fun markImported(user: User, titles: List<ImportedTitle>, now: Instant): HistoryImport = transaction {
         val stored = userRepository.touch(user, now)
-        val rowsByTitle = rows.groupBy { it.movieId }
+        val rowsByTitle = titles.groupBy { it.movieId }
         val movies = movieRepository.findAllById(rowsByTitle.keys)
         val seenBefore = movieSeenRepository.findAll(stored).associateBy { it.movie.id }
         val checkInsBefore = checkInRepository.findAll(stored).groupBy { it.movie.id }
@@ -188,7 +204,7 @@ class MovieSeenService(
         checkInRepository.update(moved)
         watchlistRepository.removeAll(stored, movies)
         recommendationService.refreshLater(stored)
-        ImdbImport(
+        HistoryImport(
             added = movies.count { it.id !in seenBefore },
             updated = movies.count { it.id in seenBefore },
             checkIns = added.size,

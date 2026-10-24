@@ -27,6 +27,7 @@ import kotlinx.coroutines.runBlocking
 import st.orm.InvalidCursorException
 import st.orm.NoResultException
 import st.orm.demo.imdb.service.GalleryRefreshProperties
+import st.orm.demo.imdb.service.TmdbService
 import st.orm.demo.imdb.service.ImdbDataSync
 import st.orm.demo.imdb.service.ImdbSyncProperties
 import st.orm.demo.imdb.service.StatisticsService
@@ -65,6 +66,7 @@ fun Application.module() {
     configureStatisticsWarmUp()
 
     configureGalleryRefresh()
+    configureTmdbExpiry()
 
     configureRecommendationRefresh()
 
@@ -191,6 +193,20 @@ private fun Application.configureGalleryRefresh() {
     }
 }
 
+/**
+ * TMDB's terms let what it returns be kept six months at most: once a day, the
+ * stored TMDB lookups older than that are removed (TmdbService.removeExpired).
+ */
+private fun Application.configureTmdbExpiry() {
+    val tmdbService: TmdbService by dependencies
+    launch {
+        while (isActive) {
+            runCatching { tmdbService.removeExpired() }
+                .onFailure { environment.log.warn("Could not remove the expired TMDB lookups.", it) }
+            delay(Duration.ofDays(1).toMillis())
+        }
+    }
+}
 
 /**
  * Storm reports every query (storm.query) and every transaction (storm.transaction)
@@ -269,7 +285,8 @@ private fun Application.configureStorm() {
                     "db/migration/V12__seen_history.sql",
                     "db/migration/V13__check_ins.sql",
                     "db/migration/V14__clubs.sql",
-                    "db/migration/V15__friend_requests.sql"
+                    "db/migration/V15__friend_requests.sql",
+                    "db/migration/V16__movie_sources.sql"
                 )))
                 .load()
                 .migrate()

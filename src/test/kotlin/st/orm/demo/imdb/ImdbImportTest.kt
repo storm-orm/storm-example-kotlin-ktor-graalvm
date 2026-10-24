@@ -11,22 +11,13 @@ import org.junit.jupiter.api.assertThrows
 import st.orm.demo.imdb.model.MovieSeen
 import st.orm.demo.imdb.model.MovieSeenPk
 import st.orm.demo.imdb.model.Watchlist
-import st.orm.demo.imdb.repository.MovieAdditionRepository
-import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
-import st.orm.demo.imdb.repository.MovieViewRepository
-import st.orm.demo.imdb.repository.PrincipalRepository
-import st.orm.demo.imdb.repository.RatingRepository
-import st.orm.demo.imdb.repository.RecommendationDismissalRepository
-import st.orm.demo.imdb.repository.RecommendationEventRepository
-import st.orm.demo.imdb.repository.RecommendationRepository
-import st.orm.demo.imdb.repository.UserRepository
 import st.orm.demo.imdb.repository.WatchlistRepository
-import st.orm.demo.imdb.service.ImdbExportRow
-import st.orm.demo.imdb.service.ImdbImport
+import st.orm.demo.imdb.model.Source
+import st.orm.demo.imdb.service.ExportRow
+import st.orm.demo.imdb.service.HistoryImport
 import st.orm.demo.imdb.service.MovieSeenService
-import st.orm.demo.imdb.service.RecommendationService
 import st.orm.demo.imdb.printStatements
 import st.orm.repository.repository
 import st.orm.template.ORMTemplate
@@ -39,28 +30,7 @@ import java.time.LocalDate
 @StormTest(scripts = ["/schema.sql", "/data.sql"])
 class ImdbImportTest {
 
-    private fun service(orm: ORMTemplate) = MovieSeenService(
-        orm.repository<MovieRepository>(),
-        orm.repository<UserRepository>(),
-        orm.repository<WatchlistRepository>(),
-        orm.repository<MovieSeenRepository>(),
-        orm.repository<CheckInRepository>(),
-        RecommendationService(
-            orm.repository<UserRepository>(),
-            orm.repository<MovieRepository>(),
-            orm.repository<MovieSeenRepository>(),
-            orm.repository<WatchlistRepository>(),
-            orm.repository<RecommendationDismissalRepository>(),
-            orm.repository<MovieAdditionRepository>(),
-            orm.repository<MovieGenreRepository>(),
-            orm.repository<PrincipalRepository>(),
-            orm.repository<RatingRepository>(),
-            orm.repository<MovieViewRepository>(),
-            orm.repository<RecommendationRepository>(),
-            orm.repository<RecommendationEventRepository>(),
-            orm.repository<CheckInRepository>()
-        )
-    )
+    private fun service(orm: ORMTemplate) = movieSeenService(orm)
 
     @Test
     fun `an import marks the movies seen on IMDb's day, keeps the thumbs given here, and skips what the catalogue lacks`(orm: ORMTemplate, capture: SqlCapture) {
@@ -73,15 +43,15 @@ class ImdbImportTest {
         watchlist.insert(Watchlist(user, movies.getById("tt0234215"), Instant.parse("2026-10-01T10:00:00Z")))
 
         val rows = listOf(
-            ImdbExportRow("tt0133093", LocalDate.of(2021, 3, 14), 4),
-            ImdbExportRow("tt0234215", LocalDate.of(2021, 3, 15), 9),
-            ImdbExportRow("tt0110912", LocalDate.of(2019, 1, 6), 7),
-            ImdbExportRow("tt0903747", LocalDate.of(2020, 6, 1), 10) // a series: not in the catalogue
+            ExportRow(Source.IMDB, "tt0133093", LocalDate.of(2021, 3, 14), 4),
+            ExportRow(Source.IMDB, "tt0234215", LocalDate.of(2021, 3, 15), 9),
+            ExportRow(Source.IMDB, "tt0110912", LocalDate.of(2019, 1, 6), 7),
+            ExportRow(Source.IMDB, "tt0903747", LocalDate.of(2020, 6, 1), 10) // a series: not in the catalogue
         )
-        val result = capture.execute { runBlocking { service(orm).importFromImdb(user, rows) } }
-        capture.printStatements("importFromImdb")
+        val result = capture.execute { runBlocking { service(orm).importHistory(user, rows) } }
+        capture.printStatements("importHistory")
 
-        assertEquals(ImdbImport(added = 2, updated = 1, checkIns = 3, skipped = 1), result)
+        assertEquals(HistoryImport(added = 2, updated = 1, checkIns = 3, skipped = 1), result)
         // Each day is a check-in, at noon UTC, also for the movie seen here already; its thumb stays.
         val matrix = seen.getById(MovieSeenPk(user.id, "tt0133093"))
         assertEquals(Instant.parse("2021-03-14T12:00:00Z"), matrix.seenAt)
@@ -98,15 +68,15 @@ class ImdbImportTest {
     fun `a title listed on several days is a check-in on each, the latest rating given its thumb`(orm: ORMTemplate) {
         val user = orm.insertUser("visitor-check-ins")
         val rows = listOf(
-            ImdbExportRow("tt0133093", LocalDate.of(2019, 5, 1), 9),
-            ImdbExportRow("tt0133093", LocalDate.of(2023, 8, 12), null),
-            ImdbExportRow("tt0133093", null, 4),
-            ImdbExportRow("tt0133093", LocalDate.of(2021, 1, 3), 6)
+            ExportRow(Source.IMDB, "tt0133093", LocalDate.of(2019, 5, 1), 9),
+            ExportRow(Source.IMDB, "tt0133093", LocalDate.of(2023, 8, 12), null),
+            ExportRow(Source.IMDB, "tt0133093", null, 4),
+            ExportRow(Source.IMDB, "tt0133093", LocalDate.of(2021, 1, 3), 6)
         )
 
-        val result = runBlocking { service(orm).importFromImdb(user, rows) }
+        val result = runBlocking { service(orm).importHistory(user, rows) }
 
-        assertEquals(ImdbImport(added = 1, updated = 0, checkIns = 3, skipped = 0), result)
+        assertEquals(HistoryImport(added = 1, updated = 0, checkIns = 3, skipped = 0), result)
         val checkIns = orm.repository<CheckInRepository>().findAll(user).map { it.watchedAt }.sorted()
         assertEquals(listOf("2019-05-01", "2021-01-03", "2023-08-12").map { Instant.parse(it + "T12:00:00Z") }, checkIns)
         val matrix = orm.repository<MovieSeenRepository>().getById(MovieSeenPk(user.id, "tt0133093"))
@@ -115,7 +85,7 @@ class ImdbImportTest {
         assertNull(matrix.liked)
 
         // The same export again changes nothing.
-        assertEquals(0, runBlocking { service(orm).importFromImdb(user, rows) }.checkIns)
+        assertEquals(0, runBlocking { service(orm).importHistory(user, rows) }.checkIns)
         assertEquals(3, orm.repository<CheckInRepository>().findAll(user).size)
     }
 
@@ -125,9 +95,9 @@ class ImdbImportTest {
         val service = service(orm)
         // Checked in here on the 20th; IMDb says the 17th, and also has an older watch.
         runBlocking { service.checkIn(user, "tt0133093", LocalDate.of(2026, 10, 20), Instant.parse("2026-10-24T20:00:00Z")) }
-        val rows = listOf(ImdbExportRow("tt0133093", LocalDate.of(2026, 10, 17), 9), ImdbExportRow("tt0133093", LocalDate.of(2024, 2, 2), 8))
+        val rows = listOf(ExportRow(Source.IMDB, "tt0133093", LocalDate.of(2026, 10, 17), 9), ExportRow(Source.IMDB, "tt0133093", LocalDate.of(2024, 2, 2), 8))
 
-        val result = runBlocking { service.importFromImdb(user, rows) }
+        val result = runBlocking { service.importHistory(user, rows) }
 
         assertEquals(1, result.checkIns)
         assertEquals(
@@ -140,7 +110,7 @@ class ImdbImportTest {
     fun `a title with a day is a check-in, one without is history, and either way the seen dates say so`(orm: ORMTemplate) {
         val user = orm.insertUser("visitor-history")
         val service = service(orm)
-        runBlocking { service.importFromImdb(user, listOf(ImdbExportRow("tt0133093", LocalDate.of(2021, 3, 14), null), ImdbExportRow("tt0111161", null, null))) }
+        runBlocking { service.importHistory(user, listOf(ExportRow(Source.IMDB, "tt0133093", LocalDate.of(2021, 3, 14), null), ExportRow(Source.IMDB, "tt0111161", null, null))) }
         // Marked from the catch-up page, as seen before: history too.
         runBlocking { service.toggle(user, "tt0110912", historic = true) }
         // Marked as seen today: a check-in.

@@ -1,10 +1,15 @@
 package st.orm.demo.imdb.service
 
+import st.orm.demo.imdb.model.Source
 import java.time.LocalDate
-import java.time.format.DateTimeParseException
 
-/** One title of an IMDb export: its id, the day it was rated or added to the list, and the user's rating, if any. */
-data class ImdbExportRow(val movieId: String, val date: LocalDate?, val rating: Int?)
+/**
+ * One title of an export, by the id a source gives it ([Source]): the day it
+ * was rated or added to the list, and the user's rating, 1 to 10, if any.
+ * Every format reads into these, and the import finds the movies by their
+ * sources, so a new format is a parser and nothing more.
+ */
+data class ExportRow(val source: Source, val externalId: String, val date: LocalDate?, val rating: Int?)
 
 /**
  * Reads the CSV file IMDb exports for a user's ratings or for one of their
@@ -23,63 +28,22 @@ object ImdbExport {
     private const val RATING = "Your Rating"
 
     /** The titles of an export, in its order. Throws [IllegalArgumentException] for a file that is not one. */
-    fun parse(text: String): List<ImdbExportRow> {
-        val records = records(text.removePrefix("﻿"))
-        val header = records.firstOrNull()?.map { it.trim() }.orEmpty()
+    fun parse(text: String): List<ExportRow> {
+        val (header, records) = Csv.read(text)
         val id = header.indexOf(ID)
         require(id >= 0) { "Not an IMDb export: the file has no $ID column." }
         val dateRated = header.indexOf(DATE_RATED)
         val dateAdded = header.indexOf(DATE_ADDED)
         val rating = header.indexOf(RATING)
-        return records.drop(1)
+        return records
             .filter { it.getOrNull(id)?.startsWith("tt") == true }
             .map { record ->
-                ImdbExportRow(
-                    movieId = record[id].trim(),
-                    date = date(record.getOrNull(dateRated)) ?: date(record.getOrNull(dateAdded)),
+                ExportRow(
+                    source = Source.IMDB,
+                    externalId = record[id].trim(),
+                    date = Csv.date(record.getOrNull(dateRated)) ?: Csv.date(record.getOrNull(dateAdded)),
                     rating = record.getOrNull(rating)?.trim()?.toIntOrNull()?.takeIf { it in 1..10 }
                 )
             }
-    }
-
-    private fun date(value: String?): LocalDate? =
-        value?.trim()?.takeIf { it.isNotEmpty() }?.let {
-            try {
-                LocalDate.parse(it)
-            } catch (e: DateTimeParseException) {
-                null
-            }
-        }
-
-    /**
-     * The records of a CSV text (RFC 4180): fields separated by commas, a
-     * field in double quotes may hold commas, line breaks and doubled quotes.
-     */
-    private fun records(text: String): List<List<String>> {
-        val records = mutableListOf<List<String>>()
-        var record = mutableListOf<String>()
-        val field = StringBuilder()
-        var quoted = false
-        var i = 0
-        while (i < text.length) {
-            val c = text[i]
-            when {
-                quoted && c == '"' && text.getOrNull(i + 1) == '"' -> { field.append('"'); i++ }
-                c == '"' -> quoted = !quoted
-                quoted -> field.append(c)
-                c == ',' -> { record.add(field.toString()); field.clear() }
-                c == '\n' || c == '\r' -> {
-                    if (c == '\r' && text.getOrNull(i + 1) == '\n') i++
-                    record.add(field.toString()); field.clear()
-                    if (record.any { it.isNotEmpty() }) records.add(record)
-                    record = mutableListOf()
-                }
-                else -> field.append(c)
-            }
-            i++
-        }
-        record.add(field.toString())
-        if (record.any { it.isNotEmpty() }) records.add(record)
-        return records
     }
 }

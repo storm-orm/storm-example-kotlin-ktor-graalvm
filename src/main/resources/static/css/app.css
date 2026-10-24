@@ -615,24 +615,28 @@ img { display: block; }
     box-shadow: 0 8px 26px rgba(139, 124, 248, 0.45);
 }
 
-.watchlist-button::before {
-    content: "+";
-    font-size: 17px;
-    font-weight: 700;
-    line-height: 1;
-}
-
-.watchlist-button.active::before { content: "✓"; }
-
+/* The watchlist's clock and the seen list's eye: drawn in the text's color, the same on every device. */
+.watchlist-button::before,
 .seen-button::before {
-    content: "○";
-    font-size: 15px;
-    line-height: 1;
+    content: "";
+    width: 15px;
+    height: 15px;
+    background: currentColor;
+    -webkit-mask: var(--icon) center / contain no-repeat;
+    mask: var(--icon) center / contain no-repeat;
 }
 
-.seen-button.active::before { content: "✓"; }
+.watchlist-button { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5l3 2'/%3E%3C/svg%3E"); }
 
-.list-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+.seen-button { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E"); }
+
+.list-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* The action buttons by a movie: small, so they fit a row. */
+.list-buttons .button,
+.hero-actions .button { gap: 6px; padding: 7px 14px; font-size: 13.5px; }
+
+.list-buttons .vote-button { padding: 7px 10px; font-size: 14px; }
 
 .list-button.active {
     background: rgba(139, 124, 248, 0.16);
@@ -646,6 +650,19 @@ img { display: block; }
 .vote-buttons[hidden] { display: none; }
 
 .vote-button { padding: 10px 13px; font-size: 15px; line-height: 1; }
+
+/* By a movie, the thumbs keep to the end of the button row, bottom right however it wraps, in silver:
+   see-through, the icons grey until one is given. */
+.list-buttons .vote-buttons { order: 1; margin-left: auto; }
+
+.list-buttons .vote-button {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.22);
+    filter: grayscale(1) brightness(1.5);
+    opacity: 0.8;
+}
+
+.list-buttons .vote-button.active { filter: none; opacity: 1; background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.5); }
 
 .vote-button.active {
     background: rgba(245, 197, 24, 0.16);
@@ -1281,6 +1298,111 @@ img { display: block; }
 
 .footer a { color: var(--accent-strong); }
 
+.footer-credit { margin-top: 6px; font-size: 12px; opacity: 0.8; }
+
+/* ── Trailers ──────────────────────────────────────────────────────── */
+
+/* The trailer behind a hero, over the backdrop image and under the hero's shading: a small player
+   scaled to cover (--video-scale, set by the script), blurred and dimmed, that cannot be clicked. */
+.backdrop-video {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0;
+    transition: top 0.5s ease, opacity 1.6s ease;
+}
+
+/* Shown once the player says it plays (the script adds it), so a held-back autoplay shows no player. */
+.backdrop-video.visible { opacity: 1; }
+
+.backdrop-video iframe {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 480px;
+    height: 270px;
+    border: 0;
+    transform: translate(-50%, -50%) scale(var(--video-scale, 3));
+    filter: blur(2px) brightness(0.55) saturate(1.25);
+    transition: width 0.5s ease, height 0.5s ease, transform 0.5s ease, filter 0.5s ease;
+}
+
+/* The trailer brought forward (Trailer, then Exit trailer), in the hero's own space: its content
+   and shading give way, and the player, sharp and as large as the hero, takes clicks. */
+.hero::before, .movie-hero::before, .hero-content, .movie-hero-content { transition: opacity 0.4s ease; }
+
+.trailer-playing::before,
+.trailer-playing .hero-content,
+.trailer-playing .movie-hero-content { opacity: 0; pointer-events: none; }
+
+.trailer-playing .backdrop-video { z-index: 3; top: 56px; opacity: 1; pointer-events: auto; }
+
+.trailer-playing .backdrop-video iframe { width: 100%; height: 100%; transform: translate(-50%, -50%); filter: none; }
+
+/* A phone turned to landscape: the trailer covers the screen, above the navbar, the page held still. */
+.trailer-fullscreen .backdrop-video { position: fixed; inset: 0; z-index: 1000; background: #000; }
+
+.trailer-fullscreen .trailer-bar { display: none; }
+
+:root:has(.trailer-fullscreen) { overflow: hidden; }
+
+.trailer-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 4;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 0 24px;
+    background: var(--background);
+}
+
+.trailer-bar-title { overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+
+.trailer-button::before { content: "▶"; font-size: 11px; }
+
+/* Shown once the movie turns out to have a trailer; the button style would show it before. */
+.trailer-button[hidden] { display: none; }
+
+/* The Trailer button on the backdrop, and the rating and genres under it, are a phone's (see the phone hero below). */
+.trailer-overlay,
+.hero-summary { display: none; }
+
+.hero-head, .hero-poster, .movie-hero-poster { transition: opacity 0.4s ease; }
+
+.trailer-dialog {
+    width: min(960px, calc(100vw - 32px));
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: #000;
+    overflow: visible;
+}
+
+.trailer-dialog::backdrop { background: rgba(5, 6, 10, 0.85); backdrop-filter: blur(4px); }
+
+.trailer-dialog iframe { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: var(--radius); }
+
+.trailer-close {
+    position: absolute;
+    top: -42px;
+    right: 0;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface-raised);
+    color: var(--text);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+}
+
 /* ── IMDb import ───────────────────────────────────────────────────── */
 
 .notice {
@@ -1399,8 +1521,9 @@ img { display: block; }
 .signin-nudge.urgent { border-color: var(--gold); background: rgba(245, 197, 24, 0.12); }
 
 .check-in-button::before {
-    content: "◷";
-    font-size: 15px;
+    content: "+";
+    font-size: 16px;
+    font-weight: 700;
     line-height: 1;
 }
 
@@ -1735,10 +1858,60 @@ img { display: block; }
     .navbar .search-box { flex-basis: 100%; width: auto; margin-left: 0; order: 1; }
     .navbar .search-suggestions { left: 0; right: 0; width: auto; }
     .search-box input { font-size: 16px; }  /* below 16px, iOS zooms the page in on focus */
+
+    /* The hero on a phone: the poster, the title and the genres, with a Trailer button, lie on the
+       backdrop, or on the trailer playing behind it, blurred; the description and the buttons follow
+       below, on the page. The band ends where they begin (--band, measured by the script). */
+    .hero-content, .movie-hero-content {
+        display: grid;
+        grid-template-columns: 112px minmax(0, 1fr);
+        gap: 0 16px;
+        align-items: stretch;
+        padding-top: 28px;
+    }
+    .hero-main { display: contents; }
+    .hero-poster, .movie-hero-poster { width: auto; grid-column: 1; grid-row: 1; }
+    /* The head spans the poster's height: the title level with its top, the Trailer button with its bottom. */
+    .hero-head { grid-column: 2; grid-row: 1; display: flex; flex-direction: column; align-items: flex-start; }
+    .hero-head .trailer-overlay { margin-top: auto; }
+    .hero-head .hero-eyebrow { font-size: 11px; letter-spacing: 1.4px; margin-bottom: 6px; }
+    .hero-head .hero-title, .hero-head .movie-title { font-size: 24px; margin: 0 0 6px; }
+    .hero-head .hero-meta, .hero-head .movie-meta { gap: 10px; margin-bottom: 10px; font-size: 13.5px; }
+    .hero-head .meta-rating, .hero-head .meta-original { display: none; }
+    .hero-head :is(.hero-meta, .movie-meta) > span:not(.meta-rating) ~ span::before { content: "·"; margin-right: 10px; }
+    .hero-head .movie-genres { display: none; }
+    .hero-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 14px; }
+    .hero-summary .genre-chip { padding: 3px 9px; font-size: 11px; }
+    .hero-body { grid-column: 1 / -1; grid-row: 2; margin-top: 28px; }
+    .movie-hero { background: var(--background); }
+    .hero-backdrop, .movie-backdrop, .backdrop-video { inset: 0 0 auto 0; height: var(--band, 320px); transform: none; }
+    .hero::before, .movie-hero::before {
+        bottom: auto;
+        height: var(--band, 320px);
+        background: linear-gradient(180deg, rgba(11, 13, 20, 0.25) 0%, rgba(11, 13, 20, 0.15) 55%, var(--background) 100%);
+    }
+    .backdrop-video iframe { filter: blur(4px) brightness(0.55) saturate(1.25); }
+    .hero-backdrop.backdrop-image, .movie-backdrop.backdrop-image { filter: blur(4px) brightness(0.45) saturate(1.2); }
+    /* On the trailer, the button is glass rather than a colour of its own, so the head stays quiet. */
+    .trailer-overlay:not([hidden]) {
+        display: inline-flex;
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.28);
+        color: var(--text);
+        backdrop-filter: blur(6px);
+    }
+    .hero-body .trailer-button { display: none; }
+
+    /* The trailer forward on a phone: the band itself, sharp; the head on it gives way, the body below
+       stays, and its Trailer button, reading Exit trailer, takes the place of the bar. */
+    .trailer-playing .hero-content, .trailer-playing .movie-hero-content { opacity: 1; pointer-events: auto; }
+    .trailer-playing .hero-head, .trailer-playing .hero-poster, .trailer-playing .movie-hero-poster { opacity: 0; pointer-events: none; }
+    .trailer-playing .hero-body .trailer-button:not([hidden]) { display: inline-flex; }
+    .trailer-playing .backdrop-video { top: 0; }
+    .trailer-playing .trailer-bar { display: none; }
     .friend-action + .member-actions { flex-basis: 100%; justify-content: flex-end; padding-left: 0; border-left: 0; }
 
-    .hero-content, .movie-hero-content { padding: 28px 16px 32px; gap: 20px; }
-    .hero-poster, .movie-hero-poster { width: 150px; }
+    .hero-content, .movie-hero-content { padding: 28px 16px 32px; }
     .hero-title, .movie-title { font-size: 28px; }
     .page-title { font-size: 28px; }
 

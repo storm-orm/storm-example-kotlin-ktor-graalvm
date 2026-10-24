@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.repository.GenreRepository
+import st.orm.demo.imdb.repository.ImdbSourceRepository
 import st.orm.demo.imdb.repository.MovieAdditionRepository
 import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieRepository
@@ -46,6 +47,8 @@ class ImdbDataSyncTest {
 
         // The movie below the threshold and the series stay out.
         assertEquals(listOf("tt0000001"), orm.repository<MovieRepository>().findAll().map { it.id })
+        // Each movie is known on IMDb, by its own id, in the sources table.
+        assertEquals(listOf("tt0000001"), orm.repository<ImdbSourceRepository>().findAll().map { it.externalId })
         assertEquals(2, orm.repository<MovieGenreRepository>().count())
         // Only the credited people are imported.
         assertEquals(listOf("nm0000001", "nm0000002"), orm.repository<PersonRepository>().findAll().map { it.id }.sorted())
@@ -98,6 +101,7 @@ class ImdbDataSyncTest {
         orm.repository<PrincipalRepository>(),
         orm.repository<RatingRepository>(),
         orm.repository<MovieAdditionRepository>(),
+        orm.repository<ImdbSourceRepository>(),
         datasets = { fileName -> datasetDirectory.resolve(fileName) },
         objectMapper = jacksonObjectMapper(),
         minimumVoteCount = 1000

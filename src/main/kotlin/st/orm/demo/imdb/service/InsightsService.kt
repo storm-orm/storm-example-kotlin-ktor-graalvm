@@ -199,7 +199,7 @@ class InsightsService(
             withYear.minByOrNull { it.movie.startYear!! }?.let { Highlight("Oldest", it.movie, "From ${it.movie.startYear}") },
             withYear.maxByOrNull { it.movie.startYear!! }?.let { Highlight("Newest", it.movie, "From ${it.movie.startYear}") },
             withRuntime.minByOrNull { it.movie.runtimeMinutes!! }?.let { Highlight("Shortest", it.movie, "${it.movie.runtimeMinutes} min") },
-            ratings.firstOrNull { it.movie.id == lastMarked }?.let { Highlight("Seen last", it.movie, "The latest you marked") }
+            ratings.firstOrNull { it.movie.id == lastMarked }?.let { Highlight("Watched last", it.movie, "The latest you marked") }
         ).distinctBy { it.movie.id }.take(HIGHLIGHT_LIMIT)
     }
 

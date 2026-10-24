@@ -6,12 +6,14 @@ import org.slf4j.LoggerFactory
 import st.orm.Entity
 import st.orm.demo.imdb.model.Genre
 import st.orm.demo.imdb.model.Movie
+import st.orm.demo.imdb.model.ImdbSource
 import st.orm.demo.imdb.model.MovieAddition
 import st.orm.demo.imdb.model.MovieGenre
 import st.orm.demo.imdb.model.Person
 import st.orm.demo.imdb.model.Principal
 import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.repository.GenreRepository
+import st.orm.demo.imdb.repository.ImdbSourceRepository
 import st.orm.demo.imdb.repository.MovieAdditionRepository
 import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieRepository
@@ -58,6 +60,7 @@ class ImdbDataSync(
     private val principalRepository: PrincipalRepository,
     private val ratingRepository: RatingRepository,
     private val movieAdditionRepository: MovieAdditionRepository,
+    private val imdbSourceRepository: ImdbSourceRepository,
     private val datasets: ImdbDatasets,
     private val objectMapper: ObjectMapper,
     private val minimumVoteCount: Int
@@ -162,8 +165,8 @@ class ImdbDataSync(
 
     /**
      * Writes a chunk of titles: the movies, their ratings and their genres,
-     * and, for a run that records its [addition]s, an addition for each movie
-     * that was not stored yet.
+     * the IMDb source of each movie that was not stored yet, and, for a run
+     * that records its [addition]s, an addition for each of those.
      */
     private suspend fun writeTitles(titles: List<Title>, genresByName: MutableMap<String, Genre>, addition: Addition?): Int =
         transaction {
@@ -178,9 +181,10 @@ class ImdbDataSync(
             }
             val storedMovies = movieRepository.findAllById(movies.map { it.id })
             var writeCount = movieRepository.merge(storedMovies, movies)
+            val storedIds = storedMovies.mapTo(HashSet()) { it.id }
+            val added = movies.filter { it.id !in storedIds }
+            imdbSourceRepository.insert(added.map { ImdbSource(it) })
             if (addition != null) {
-                val storedIds = storedMovies.mapTo(HashSet()) { it.id }
-                val added = movies.filter { it.id !in storedIds }
                 movieAdditionRepository.insert(added.map { MovieAddition(it, addition.at) })
                 writeCount += added.size
             }

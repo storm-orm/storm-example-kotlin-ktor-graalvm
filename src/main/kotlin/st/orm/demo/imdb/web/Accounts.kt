@@ -14,6 +14,7 @@ import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.service.AccountService
 import st.orm.demo.imdb.service.FreepodSignIn
 import st.orm.demo.imdb.service.FriendService
+import st.orm.demo.imdb.service.TmdbService
 
 /**
  * The visitor's account on a request. The account is a random id in the
@@ -25,6 +26,7 @@ import st.orm.demo.imdb.service.FriendService
 private val AccountServiceKey = AttributeKey<AccountService>("AccountService")
 private val FreepodSignInKey = AttributeKey<FreepodSignIn>("FreepodSignIn")
 private val FriendServiceKey = AttributeKey<FriendService>("FriendService")
+private val TmdbServiceKey = AttributeKey<TmdbService>("TmdbService")
 private val AccountIdKey = AttributeKey<String>("AccountId")
 private val CurrentUserKey = AttributeKey<User>("CurrentUser")
 
@@ -35,23 +37,31 @@ fun Application.configureAccounts() {
     val accountService: AccountService by dependencies
     val freepodSignIn: FreepodSignIn by dependencies
     val friendService: FriendService by dependencies
+    val tmdbService: TmdbService by dependencies
     attributes.put(AccountServiceKey, accountService)
     attributes.put(FreepodSignInKey, freepodSignIn)
     attributes.put(FriendServiceKey, friendService)
+    attributes.put(TmdbServiceKey, tmdbService)
 }
 
 /**
  * Renders a page with what the layout shows on every page in its model: the
  * visitor's account under `account`, for the navbar, under `requestCount`
  * the friend requests a signed-in visitor has to answer, for the badge on
- * the Community tab, and under `hostedOnFreepod` whether the application
- * runs on Freepod with its sign-in on, for the footer. Every page responds
- * through here, so no controller passes them itself.
+ * the Community tab, under `hostedOnFreepod` whether the application runs
+ * on Freepod with its sign-in on, and under `tmdb` whether TMDB is on, for
+ * the Trailer buttons and the footer's credit. Every page responds through
+ * here, so no controller passes them itself.
  */
 suspend fun ApplicationCall.respondPage(content: ThymeleafContent) {
     val user = currentUser()
     val requestCount = if (user.name != null) application.attributes[FriendServiceKey].countRequests(user) else 0L
-    val layout = mapOf("account" to user, "requestCount" to requestCount, "hostedOnFreepod" to application.attributes[FreepodSignInKey].enabled)
+    val layout = mapOf(
+        "account" to user,
+        "requestCount" to requestCount,
+        "hostedOnFreepod" to application.attributes[FreepodSignInKey].enabled,
+        "tmdb" to application.attributes[TmdbServiceKey].enabled
+    )
     respond(ThymeleafContent(content.template, content.model + layout))
 }
 

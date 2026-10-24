@@ -15,7 +15,7 @@
 <section class="section">
     <div class="container">
         <div class="empty-state" th:if="${watchlistPage.content().isEmpty()}">
-            Your watchlist is empty. Open a movie and press “Add to watchlist”.
+            Your watchlist is empty. Open a movie and press “Watchlist”.
         </div>
         <p class="account-hint" th:if="${account.name == null}">
             Your lists live in this browser. <a th:href="@{/signin(rd='/watchlist')}">Sign in</a> with a git account to keep them on every device.

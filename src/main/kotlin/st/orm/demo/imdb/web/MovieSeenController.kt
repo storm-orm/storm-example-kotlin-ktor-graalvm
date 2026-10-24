@@ -16,8 +16,9 @@ import st.orm.demo.imdb.service.CatchUpService
 import st.orm.demo.imdb.service.FriendService
 import st.orm.demo.imdb.service.ClubService
 import st.orm.demo.imdb.service.ImdbExport
-import st.orm.demo.imdb.service.ImdbImport
+import st.orm.demo.imdb.service.HistoryImport
 import st.orm.demo.imdb.service.MovieSeenService
+import st.orm.demo.imdb.service.TmdbExport
 
 /** An export of ten thousand ratings is about two megabytes; anything far larger is not one. */
 private const val MAX_IMPORT_BYTES = 8L * 1024 * 1024
@@ -32,7 +33,7 @@ fun Route.movieSeenRoutes(movieSeenService: MovieSeenService, catchUpService: Ca
         val checkIns = if (checkInsOnly) movieSeenService.checkInsPage(user) else null
         // The outcome of an import, carried over its redirect.
         val imported = parameters["added"]?.toIntOrNull()?.let { added ->
-            ImdbImport(
+            HistoryImport(
                 added = added,
                 updated = parameters["updated"]?.toIntOrNull() ?: 0,
                 checkIns = parameters["checkIns"]?.toIntOrNull() ?: 0,
@@ -98,21 +99,23 @@ fun Route.movieSeenRoutes(movieSeenService: MovieSeenService, catchUpService: Ca
         ))
     }
 
-    // The IMDb export arrives as a file upload. The file is read before the
-    // import's transaction opens, and the page answers with a redirect to the
-    // seen list, so reloading it does not upload the file again.
+    // The export, of IMDb or of TMDB, told apart by its header, arrives as a
+    // file upload. The file is read before the import's transaction opens,
+    // and the page answers with a redirect to the seen list, so reloading it
+    // does not upload the file again.
     post("/seen/import") {
         var text: String? = null
         call.receiveMultipart(formFieldLimit = MAX_IMPORT_BYTES).forEachPart { part ->
             if (part is PartData.FileItem && text == null) text = part.provider().readRemaining().readString()
             part.dispose()
         }
+        val export = text.orEmpty()
         val rows = try {
-            ImdbExport.parse(text.orEmpty())
+            if (TmdbExport.matches(export)) TmdbExport.parse(export) else ImdbExport.parse(export)
         } catch (e: IllegalArgumentException) {
             return@post call.respondRedirect("/seen?import=failed")
         }
-        val result = movieSeenService.importFromImdb(call.currentUser(), rows)
+        val result = movieSeenService.importHistory(call.currentUser(), rows)
         call.respondRedirect("/seen?added=${result.added}&updated=${result.updated}&checkIns=${result.checkIns}&skipped=${result.skipped}")
     }
 }

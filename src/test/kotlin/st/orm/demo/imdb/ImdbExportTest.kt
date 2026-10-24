@@ -4,7 +4,8 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import st.orm.demo.imdb.service.ImdbExport
-import st.orm.demo.imdb.service.ImdbExportRow
+import st.orm.demo.imdb.model.Source
+import st.orm.demo.imdb.service.ExportRow
 import java.time.LocalDate
 
 class ImdbExportTest {
@@ -17,8 +18,8 @@ class ImdbExportTest {
 
         assertEquals(
             listOf(
-                ImdbExportRow("tt0133093", LocalDate.of(2021, 3, 14), 9),
-                ImdbExportRow("tt0234215", LocalDate.of(2021, 3, 15), 5)
+                ExportRow(Source.IMDB, "tt0133093", LocalDate.of(2021, 3, 14), 9),
+                ExportRow(Source.IMDB, "tt0234215", LocalDate.of(2021, 3, 15), 5)
             ),
             ImdbExport.parse(csv)
         )
@@ -36,8 +37,8 @@ class ImdbExportTest {
         assertEquals(
             listOf(
                 // A description with a comma, quotes and a line break stays one field.
-                ImdbExportRow("tt0111161", LocalDate.of(2019, 2, 1), 10),
-                ImdbExportRow("tt0110912", LocalDate.of(2019, 1, 6), null)
+                ExportRow(Source.IMDB, "tt0111161", LocalDate.of(2019, 2, 1), 10),
+                ExportRow(Source.IMDB, "tt0110912", LocalDate.of(2019, 1, 6), null)
             ),
             ImdbExport.parse(csv)
         )

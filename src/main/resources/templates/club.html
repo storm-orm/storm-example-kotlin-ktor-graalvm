@@ -17,7 +17,7 @@
         <div class="notice" th:if="${joined}">Welcome to the club.</div>
         <div class="notice notice-error" th:if="${lastAdmin}">A club keeps at least one admin: make another member an admin first.</div>
         <div class="section-header">
-            <h2 class="section-title">Recently Seen in the Club</h2>
+            <h2 class="section-title">Recently Watched in the Club</h2>
         </div>
         <div class="empty-state" th:if="${view.feed.isEmpty()}">
             Nothing yet: check in a movie you watch, and the others see it here, as far as each shares it.
@@ -34,7 +34,7 @@
 <section class="section" th:unless="${view.mostSeen.isEmpty()}" id="most-seen-section">
     <div class="container">
         <div class="section-header">
-            <h2 class="section-title">Most Seen in the Club</h2>
+            <h2 class="section-title">Most Watched in the Club</h2>
         </div>
         <div class="movie-row">
             <a class="movie-card" th:each="entry : ${view.mostSeen}" th:href="@{/movie/{id}(id=${entry.movie.id})}">
@@ -44,7 +44,7 @@
                 </div>
                 <div class="movie-card-info">
                     <div class="movie-card-title" th:text="${entry.movie.primaryTitle}">Title</div>
-                    <div class="movie-card-year" th:text="|Seen by ${entry.seenCount}|">Seen by 3</div>
+                    <div class="movie-card-year" th:text="|Watched by ${entry.seenCount}|">Watched by 3</div>
                 </div>
             </a>
         </div>

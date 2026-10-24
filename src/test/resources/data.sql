@@ -66,3 +66,7 @@ INSERT INTO movie_view (movie_id, viewed_at) VALUES
     ('tt0133093', TIMESTAMP '2026-07-01 10:00:00'),
     ('tt0111161', TIMESTAMP '2026-07-01 11:00:00'),
     ('tt0133093', TIMESTAMP '2026-07-01 12:00:00');
+
+-- Every movie is known on IMDb, as the V16 migration records for the catalogue.
+INSERT INTO movie_source (kind, movie_id, external_id)
+SELECT 'imdb', id, id FROM movie;

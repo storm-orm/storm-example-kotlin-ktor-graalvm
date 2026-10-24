@@ -76,7 +76,7 @@ class RecommendationRankerTest {
         // Shawshank shares no person or genre with the profile: no seed, only its decade and its rating speak.
         assertNull(picks.last().seed)
         assertEquals(listOf(ReasonKind.DECADE, ReasonKind.RATING), picks.last().reasons.map { it.kind })
-        assertEquals("From the 1990s, like much of what you've seen", picks.last().reasons[0].text)
+        assertEquals("From the 1990s, like much of what you've watched", picks.last().reasons[0].text)
         assertEquals("Rated 9.3 by 2.9M voters", picks.last().reasons[1].text)
     }
 
@@ -200,7 +200,7 @@ class RecommendationRankerTest {
         // Arrival is newer and better rated; the decade turns it around for Gattaca.
         assertEquals(listOf("Gattaca", "Arrival"), picks.map { it.movie.primaryTitle })
         assertEquals(
-            listOf("Because you saw The Matrix", "Sci-Fi, a genre you like", "From the 1990s, like much of what you've seen"),
+            listOf("Because you saw The Matrix", "Sci-Fi, a genre you like", "From the 1990s, like much of what you've watched"),
             picks.first().reasons.map { it.text }
         )
         assertFalse(picks.last().reasons.any { it.kind == ReasonKind.DECADE })

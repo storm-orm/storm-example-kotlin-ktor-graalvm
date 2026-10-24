@@ -8,13 +8,13 @@
 <section class="welcome" id="welcome" th:if="${view.seenEntries.isEmpty() and view.watchlistEntries.isEmpty()}">
     <div class="container welcome-inner">
         <div>
-            <h2 class="welcome-title">Start with what you have already seen</h2>
+            <h2 class="welcome-title">Start with what you have already watched</h2>
             <p>
                 Tap through the most watched movies and mark the ones you know. A minute is enough: For You turns
                 it into picks of your own, and Insights shows your favourite actors, directors and genres.
             </p>
         </div>
-        <a class="button button-primary welcome-button" th:href="@{/seen/catch-up}">Mark the movies you've seen</a>
+        <a class="button button-primary welcome-button" th:href="@{/seen/catch-up}">Mark the movies you've watched</a>
     </div>
 </section>
 
@@ -27,27 +27,52 @@
         <div class="hero-poster">
             <div th:replace="~{fragments/cards :: posterThumb(${featured.movie.id}, ${featured.movie.primaryTitle})}"></div>
         </div>
-        <div>
-            <div class="hero-eyebrow" th:text="${view.recommendations.personal} ? 'Featured · For you' : 'Featured'">Featured · For you</div>
-            <h1 class="hero-title" th:text="${featured.movie.primaryTitle}">Title</h1>
-            <div class="hero-meta">
-                <span class="rating-badge" th:if="${featured.rating != null}">
-                    <span class="star">★</span>
-                    <span th:text="${featured.rating.averageRating}">8.7</span>
-                </span>
-                <span class="votes" th:if="${featured.rating != null}"
-                      th:text="|${#numbers.formatInteger(featured.rating.voteCount, 1, 'COMMA')} votes|">votes</span>
-                <span th:if="${featured.movie.startYear != null}" th:text="${featured.movie.startYear}">1999</span>
-                <span th:if="${featured.movie.runtimeMinutes != null}" th:text="|${featured.movie.runtimeMinutes} min|">136 min</span>
+        <div class="hero-main">
+            <!-- On a phone the head lies on the backdrop, or the trailer behind it, and the body follows below. -->
+            <div class="hero-head">
+                <div class="hero-eyebrow" th:text="${view.recommendations.personal} ? 'Featured · For you' : 'Featured'">Featured · For you</div>
+                <h1 class="hero-title" th:text="${featured.movie.primaryTitle}">Title</h1>
+                <div class="hero-meta">
+                    <th:block th:if="${featured.rating != null}">
+                        <span class="rating-badge meta-rating">
+                            <span class="star">★</span>
+                            <span th:text="${featured.rating.averageRating}">8.7</span>
+                        </span>
+                        <span class="votes meta-rating"
+                              th:text="|${#numbers.formatInteger(featured.rating.voteCount, 1, 'COMMA')} votes|">votes</span>
+                    </th:block>
+                    <span th:if="${featured.movie.startYear != null}" th:text="${featured.movie.startYear}">1999</span>
+                    <span th:if="${featured.movie.runtimeMinutes != null}" th:text="|${featured.movie.runtimeMinutes} min|">136 min</span>
+                </div>
+                <div class="movie-genres">
+                    <a class="genre-chip" th:each="genre : ${featured.genres}"
+                       th:href="@{/browse/{name}(name=${genre.name})}" th:text="${genre.name}">Genre</a>
+                </div>
+                <button class="button button-small trailer-button trailer-overlay" hidden th:if="${tmdb}"
+                        th:data-trailer-endpoint="|/api/trailer/${featured.movie.id}|"
+                        th:data-trailer-title="${featured.movie.primaryTitle}">Trailer</button>
             </div>
-            <div class="movie-genres">
-                <a class="genre-chip" th:each="genre : ${featured.genres}"
-                   th:href="@{/browse/{name}(name=${genre.name})}" th:text="${genre.name}">Genre</a>
-            </div>
-            <p class="hero-extract" hidden
-               th:data-summary-endpoint="|/api/summary/movie/${featured.movie.id}|"></p>
-            <div class="hero-actions">
-                <a class="button button-primary" th:href="@{/movie/{id}(id=${featured.movie.id}, via='for-you')}">View details</a>
+            <div class="hero-body">
+                <!-- On a phone the rating and the genres leave the head, which keeps to the title and the year. -->
+                <div class="hero-summary" th:if="${featured.rating != null or !featured.genres.isEmpty()}">
+                    <th:block th:if="${featured.rating != null}">
+                        <span class="rating-badge">
+                            <span class="star">★</span>
+                            <span th:text="${featured.rating.averageRating}">8.7</span>
+                        </span>
+                        <span class="votes" th:text="|${#numbers.formatInteger(featured.rating.voteCount, 1, 'COMMA')} votes|">votes</span>
+                    </th:block>
+                    <a class="genre-chip" th:each="genre : ${featured.genres}"
+                       th:href="@{/browse/{name}(name=${genre.name})}" th:text="${genre.name}">Genre</a>
+                </div>
+                <p class="hero-extract" hidden
+                   th:data-summary-endpoint="|/api/summary/movie/${featured.movie.id}|"></p>
+                <div class="hero-actions">
+                    <a class="button button-primary" th:href="@{/movie/{id}(id=${featured.movie.id}, via='for-you')}">View details</a>
+                    <button class="button trailer-button" hidden th:if="${tmdb}"
+                            th:data-trailer-endpoint="|/api/trailer/${featured.movie.id}|"
+                            th:data-trailer-title="${featured.movie.primaryTitle}">Trailer</button>
+                </div>
             </div>
         </div>
     </div>
@@ -87,7 +112,7 @@
             <a class="section-link" th:href="@{/for-you}">View all →</a>
         </div>
         <p class="section-note" th:unless="${view.recommendations.personal}">
-            Picks from the whole catalogue. Mark movies as seen, or save them, and these become yours.
+            Picks from the whole catalogue. Mark movies as watched, or save them, and these become yours.
         </p>
         <div class="movie-row">
             <th:block th:each="pick : ${view.recommendations.watchNext}">
@@ -143,11 +168,11 @@
     </div>
 </section>
 
-<!-- Seen -->
+<!-- Watched -->
 <section class="section" th:if="${!view.seenEntries.isEmpty()}" id="seen-section">
     <div class="container">
         <div class="section-header">
-            <h2 class="section-title">Seen</h2>
+            <h2 class="section-title">Watched</h2>
             <a class="section-link" th:href="@{/seen}">View all →</a>
         </div>
         <div class="movie-row">

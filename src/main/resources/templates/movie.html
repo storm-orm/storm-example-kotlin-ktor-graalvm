@@ -13,69 +13,99 @@
         <div class="movie-hero-poster" id="movie-poster">
             <div th:replace="~{fragments/cards :: posterThumb(${detail.movie.id}, ${detail.movie.primaryTitle})}"></div>
         </div>
-        <div>
-            <h1 class="movie-title" th:text="${detail.movie.primaryTitle}">Title</h1>
-            <div class="movie-meta">
-                <span class="rating-badge" th:if="${detail.rating != null}">
-                    <span class="star">★</span>
-                    <span th:text="${detail.rating.averageRating}">8.7</span>
-                </span>
-                <span class="votes" th:if="${detail.rating != null}"
-                      th:text="|${#numbers.formatInteger(detail.rating.voteCount, 1, 'COMMA')} votes|">votes</span>
-                <span th:if="${detail.movie.startYear != null}" th:text="${detail.movie.startYear}">1999</span>
-                <span th:if="${detail.movie.runtimeMinutes != null}" th:text="|${detail.movie.runtimeMinutes} min|">136 min</span>
-                <span th:if="${detail.movie.originalTitle != detail.movie.primaryTitle}"
-                      th:text="|Original title: ${detail.movie.originalTitle}|">Original title</span>
+        <div class="hero-main">
+            <!-- On a phone the head lies on the backdrop, or the trailer behind it, and the body follows below. -->
+            <div class="hero-head">
+                <h1 class="movie-title" th:text="${detail.movie.primaryTitle}">Title</h1>
+                <div class="movie-meta">
+                    <th:block th:if="${detail.rating != null}">
+                        <span class="rating-badge meta-rating">
+                            <span class="star">★</span>
+                            <span th:text="${detail.rating.averageRating}">8.7</span>
+                        </span>
+                        <span class="votes meta-rating"
+                              th:text="|${#numbers.formatInteger(detail.rating.voteCount, 1, 'COMMA')} votes|">votes</span>
+                    </th:block>
+                    <span th:if="${detail.movie.startYear != null}" th:text="${detail.movie.startYear}">1999</span>
+                    <span th:if="${detail.movie.runtimeMinutes != null}" th:text="|${detail.movie.runtimeMinutes} min|">136 min</span>
+                    <span class="meta-original" th:if="${detail.movie.originalTitle != detail.movie.primaryTitle}"
+                          th:text="|Original title: ${detail.movie.originalTitle}|">Original title</span>
+                </div>
+                <div class="movie-genres">
+                    <a class="genre-chip" th:each="genre : ${detail.genres}"
+                       th:href="@{/browse/{name}(name=${genre.name})}" th:text="${genre.name}">Genre</a>
+                </div>
+                <!-- The trailer, from TMDB, on the backdrop: a phone's way in to it. -->
+                <button class="button button-small trailer-button trailer-overlay" hidden th:if="${tmdb}"
+                        th:data-trailer-endpoint="|/api/trailer/${detail.movie.id}|"
+                        th:data-trailer-title="${detail.movie.primaryTitle}">Trailer</button>
             </div>
-            <div class="movie-genres">
-                <a class="genre-chip" th:each="genre : ${detail.genres}"
-                   th:href="@{/browse/{name}(name=${genre.name})}" th:text="${genre.name}">Genre</a>
-            </div>
-            <p class="movie-extract" id="movie-description" hidden
-               th:data-summary-endpoint="|/api/summary/movie/${detail.movie.id}|"></p>
-            <div class="list-buttons">
-                <button class="button list-button watchlist-button" data-list-toggle="watchlist"
-                        th:data-movie-id="${detail.movie.id}"
-                        th:classappend="${detail.lists.onWatchlist} ? 'active'">
-                    <span data-watchlist-label
-                          th:text="${detail.lists.onWatchlist} ? 'On watchlist' : 'Add to watchlist'">Add to watchlist</span>
-                </button>
-                <button class="button list-button seen-button" data-list-toggle="seen"
-                        th:data-movie-id="${detail.movie.id}"
-                        th:data-seen-at="${detail.lists.seenAt}"
-                        th:classappend="${detail.lists.seen} ? 'active'">
-                    <span data-seen-label
-                          th:text="${detail.lists.seen} ? 'Seen' : 'Mark as seen'">Mark as seen</span>
-                </button>
-                <!-- Mark as seen records having seen it, without a day; Check in records watching it today. -->
-                <!-- Check in opens the days of the past week; the script fills them in the visitor's own calendar. -->
-                <div class="check-in">
-                    <button class="button list-button check-in-button" data-check-in
+            <div class="hero-body">
+                <!-- On a phone the rating and the genres leave the head, which keeps to the title and the year. -->
+                <div class="hero-summary" th:if="${detail.rating != null or !detail.genres.isEmpty()}">
+                    <th:block th:if="${detail.rating != null}">
+                        <span class="rating-badge">
+                            <span class="star">★</span>
+                            <span th:text="${detail.rating.averageRating}">8.7</span>
+                        </span>
+                        <span class="votes" th:text="|${#numbers.formatInteger(detail.rating.voteCount, 1, 'COMMA')} votes|">votes</span>
+                    </th:block>
+                    <a class="genre-chip" th:each="genre : ${detail.genres}"
+                       th:href="@{/browse/{name}(name=${genre.name})}" th:text="${genre.name}">Genre</a>
+                </div>
+                <p class="movie-extract" id="movie-description" hidden
+                   th:data-summary-endpoint="|/api/summary/movie/${detail.movie.id}|"></p>
+                <div class="list-buttons">
+                    <!-- The trailer, from TMDB: shown once the page has found one; it plays on the page. -->
+                    <button class="button button-primary trailer-button" hidden th:if="${tmdb}"
+                            th:data-trailer-endpoint="|/api/trailer/${detail.movie.id}|"
+                            th:data-trailer-title="${detail.movie.primaryTitle}">Trailer</button>
+                    <!-- Short labels, the same either way: the pressed look says the state, the title says it in full. -->
+                    <button class="button list-button watchlist-button" data-list-toggle="watchlist"
                             th:data-movie-id="${detail.movie.id}"
-                            th:data-seen-at="${detail.lists.seenAt}">
-                        <span data-check-in-label>Check in</span>
+                            th:classappend="${detail.lists.onWatchlist} ? 'active'"
+                            th:aria-pressed="${detail.lists.onWatchlist}"
+                            th:title="${detail.lists.onWatchlist} ? 'On your watchlist' : 'Add to your watchlist'">
+                        <span data-watchlist-label>Watchlist</span>
                     </button>
-                    <div class="share-menu check-in-menu" data-check-in-menu hidden></div>
-                </div>
-                <!-- A thumbs up or down on a seen movie sharpens the recommendations; shown once seen. -->
-                <div class="vote-buttons" data-vote-buttons th:hidden="${!detail.lists.seen}">
-                    <button class="button vote-button" data-vote="true" title="Liked it"
+                    <button class="button list-button seen-button" data-list-toggle="seen"
                             th:data-movie-id="${detail.movie.id}"
-                            th:classappend="${detail.lists.liked == true} ? 'active'">👍</button>
-                    <button class="button vote-button" data-vote="false" title="Not for me"
-                            th:data-movie-id="${detail.movie.id}"
-                            th:classappend="${detail.lists.liked == false} ? 'active'">👎</button>
-                </div>
-                <!-- Share: the device's share sheet where there is one, else a menu; the link unfurls into a card with the poster. -->
-                <div class="share">
-                    <button class="button share-button" data-share
-                            th:data-share-title="${share.title}"
-                            th:data-share-text="${share.description}"
-                            th:data-share-url="${share.url}">Share</button>
-                    <div class="share-menu" data-share-menu hidden>
-                        <button class="share-option" data-share-copy>Copy link</button>
-                        <a class="share-option" data-share-x target="_blank" rel="noopener">Post on X</a>
-                        <a class="share-option" data-share-mail>Email</a>
+                            th:data-seen-at="${detail.lists.seenAt}"
+                            th:classappend="${detail.lists.seen} ? 'active'"
+                            th:aria-pressed="${detail.lists.seen}"
+                            th:title="${detail.lists.seen} ? 'Watched' : 'Mark as watched'">
+                        <span data-seen-label>Watched</span>
+                    </button>
+                    <!-- Watched records having watched it, without a day; Check-in records watching it on a day. -->
+                    <!-- Check in opens the days of the past week; the script fills them in the visitor's own calendar. -->
+                    <div class="check-in">
+                        <button class="button list-button check-in-button" data-check-in
+                                th:data-movie-id="${detail.movie.id}"
+                                th:data-seen-at="${detail.lists.seenAt}">
+                            <span data-check-in-label>Check-in</span>
+                        </button>
+                        <div class="share-menu check-in-menu" data-check-in-menu hidden></div>
+                    </div>
+                    <!-- A thumbs up or down on a seen movie sharpens the recommendations; shown once seen. -->
+                    <div class="vote-buttons" data-vote-buttons th:hidden="${!detail.lists.seen}">
+                        <button class="button vote-button" data-vote="true" title="Liked it"
+                                th:data-movie-id="${detail.movie.id}"
+                                th:classappend="${detail.lists.liked == true} ? 'active'">👍</button>
+                        <button class="button vote-button" data-vote="false" title="Not for me"
+                                th:data-movie-id="${detail.movie.id}"
+                                th:classappend="${detail.lists.liked == false} ? 'active'">👎</button>
+                    </div>
+                    <!-- Share: the device's share sheet where there is one, else a menu; the link unfurls into a card with the poster. -->
+                    <div class="share">
+                        <button class="button share-button" data-share
+                                th:data-share-title="${share.title}"
+                                th:data-share-text="${share.description}"
+                                th:data-share-url="${share.url}">Share</button>
+                        <div class="share-menu" data-share-menu hidden>
+                            <button class="share-option" data-share-copy>Copy link</button>
+                            <a class="share-option" data-share-x target="_blank" rel="noopener">Post on X</a>
+                            <a class="share-option" data-share-mail>Email</a>
+                        </div>
                     </div>
                 </div>
             </div>
