@@ -94,15 +94,15 @@ img { display: block; }
 
 /* ── Navbar ────────────────────────────────────────────────────────── */
 
-/* The navbar is glass: what scrolls under it, the hero's trailer included, shows through blurred. */
+/* The navbar is flat glass: what scrolls under it, the hero's trailer included, shows through
+   blurred, barely tinted and without an edge, so over a hero it reads as part of the picture. */
 .navbar {
     position: sticky;
     top: 0;
     z-index: 50;
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    backdrop-filter: blur(24px) saturate(180%);
-    background: rgba(var(--background-rgb), 0.42);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    backdrop-filter: blur(24px) saturate(160%);
+    background: rgba(var(--background-rgb), 0.2);
     transition: transform 0.45s ease;
 }
 
