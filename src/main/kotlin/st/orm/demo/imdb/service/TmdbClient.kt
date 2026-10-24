@@ -79,11 +79,15 @@ class TmdbClient(
      * Per country, the platforms that stream a movie or show it free, in
      * TMDB's order: by subscription first, then free and with ads. Renting
      * and buying are left out, and so is a country where it plays nowhere.
+     * A service resold through another ("HBO Max Amazon Channel") and a
+     * service's plan with ads ("Netflix Standard with Ads") are left out
+     * too: the service itself is what to show.
      */
     private fun watchProvidersOf(countries: JsonNode): Map<String, List<WatchProvider>> =
         countries.properties().associate { (country, offers) ->
             country to OFFER_TYPES
                 .flatMap { type -> offers.path(type).sortedBy { it.path("display_priority").asInt() } }
+                .filterNot { offer -> offer.path("provider_name").asString("").let { it.endsWith(" Channel") || it.endsWith(" with Ads") } }
                 .map { WatchProvider(it.path("provider_id").asInt(), it.path("provider_name").asString(""), it.path("logo_path").asString(null)) }
                 .distinctBy { it.id }
         }.filterValues { it.isNotEmpty() }

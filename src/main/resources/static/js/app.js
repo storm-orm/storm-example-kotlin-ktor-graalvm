@@ -127,7 +127,7 @@ function setupTrailers() {
                 button.hidden = false;
                 button.addEventListener('click', async () => {
                     if (hero.sendTrailerBack) hero.sendTrailerBack();
-                    else if (behind && await behind.ready) bringForward(hero, behind, buttons, title);
+                    else if (behind && await behind.ready) bringForward(hero, behind, buttons);
                     else openTrailer(trailer.youtubeKey, title);
                 });
             });
@@ -270,13 +270,13 @@ function playBehind(hero, backdrop, youtubeKey) {
     return { layer, ready };
 }
 
-// Brings the player behind the hero forward, under a bar of its own with the title and Exit trailer,
-// clear of YouTube's controls; Exit trailer or Escape sends it back. A phone turned to landscape
+// Brings the player behind the hero forward, in the whole of the hero, the navbar sliding out of its
+// way, with an Exit trailer button floating over its corner; Exit trailer or Escape sends it back. A phone turned to landscape
 // meanwhile gets the trailer on the whole screen, and back in the hero when turned upright again:
 // browsers take a fullscreen request only from a tap, so the player covers the screen itself, and
 // asks for fullscreen besides where the browser grants it. On a phone, the band comes forward in
 // place: the head on it gives way, the body below stays, and its Trailer button reads Exit trailer.
-function bringForward(hero, behind, buttons, title) {
+function bringForward(hero, behind, buttons) {
     behind.ready.then(player => {
         const frame = player.getIframe();
         buttons.forEach(button => { button.textContent = 'Exit trailer'; });
@@ -294,17 +294,11 @@ function bringForward(hero, behind, buttons, title) {
             }
         }, 700);
 
-        const bar = document.createElement('div');
-        bar.className = 'trailer-bar';
-        const heading = document.createElement('span');
-        heading.className = 'trailer-bar-title';
-        heading.textContent = `${title} · Trailer`;
         const exit = document.createElement('button');
         exit.type = 'button';
         exit.className = 'button button-small trailer-exit';
         exit.textContent = 'Exit trailer';
-        bar.append(heading, exit);
-        hero.append(bar);
+        hero.append(exit);
         const landscape = matchMedia('(orientation: landscape) and (pointer: coarse)');
         const fitScreen = () => {
             hero.classList.toggle('trailer-fullscreen', landscape.matches);
@@ -320,7 +314,7 @@ function bringForward(hero, behind, buttons, title) {
             if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
             player.mute();
             frame.tabIndex = -1;
-            bar.remove();
+            exit.remove();
             document.removeEventListener('keydown', onKey);
             hero.classList.remove('trailer-playing');
             buttons.forEach(button => { button.textContent = 'Trailer'; });

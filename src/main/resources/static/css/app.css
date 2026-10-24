@@ -60,11 +60,11 @@ body {
     background-color: var(--background);
     /* Sprayed glows behind the page, one color each, for the glass panels to blur. */
     background-image:
-        radial-gradient(720px 520px at 6% 10%, rgba(var(--accent-rgb), 0.2), transparent 65%),
-        radial-gradient(640px 520px at 94% 28%, rgba(var(--green-rgb), 0.11), transparent 65%),
-        radial-gradient(780px 560px at 28% 96%, rgba(var(--violet-rgb), 0.18), transparent 65%),
-        radial-gradient(540px 420px at 82% 94%, rgba(var(--orange-rgb), 0.11), transparent 65%),
-        radial-gradient(480px 380px at 56% 46%, rgba(var(--cyan-rgb), 0.06), transparent 65%);
+        radial-gradient(720px 520px at 6% 10%, rgba(var(--accent-rgb), 0.07), transparent 65%),
+        radial-gradient(640px 520px at 94% 28%, rgba(var(--green-rgb), 0.04), transparent 65%),
+        radial-gradient(780px 560px at 28% 96%, rgba(var(--violet-rgb), 0.065), transparent 65%),
+        radial-gradient(540px 420px at 82% 94%, rgba(var(--orange-rgb), 0.04), transparent 65%),
+        radial-gradient(480px 380px at 56% 46%, rgba(var(--cyan-rgb), 0.025), transparent 65%);
     background-attachment: fixed;
     color: var(--text);
     font-family: var(--font);
@@ -996,6 +996,9 @@ img { display: block; }
 
 .account-hint a { color: var(--accent-strong); }
 
+/* Under an empty list, the hint keeps its distance from the panel. */
+.empty-state + .account-hint { margin-top: 16px; }
+
 /* The provider buttons share one width, wide enough for the longest label; on a phone they span the screen. */
 .signin-providers {
     display: grid;
@@ -1276,8 +1279,12 @@ img { display: block; }
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
     gap: 22px;
-    align-items: start;
 }
+
+/* The cards of a row are as tall as the tallest, their rows spread over that height, so the bottoms line up. */
+.stats-grid .stat-card { display: flex; flex-direction: column; }
+
+.stats-grid .stat-card > :is(.bar-row, .stat-row) { flex: 1 0 auto; }
 
 .stat-card {
     position: relative;
@@ -1477,33 +1484,20 @@ img { display: block; }
 /* A phone turned to landscape: the trailer covers the screen, above the navbar, the page held still. */
 .trailer-fullscreen .backdrop-video { position: fixed; inset: 0; z-index: 1000; background: #000; }
 
-.trailer-fullscreen .trailer-bar { display: none; }
+.trailer-fullscreen .trailer-exit { display: none; }
 
 :root:has(.trailer-fullscreen) { overflow: hidden; }
 
-/* The bar rises with the navbar, from just under it to the top of the screen. */
-@keyframes trailer-bar-rise { from { transform: translateY(var(--under-nav, 0px)); } }
+/* Exit trailer floats over the trailer's corner, rising with the navbar from just under it. */
+@keyframes trailer-exit-rise { from { transform: translateY(var(--under-nav, 0px)); } }
 
-.trailer-bar {
+.trailer-exit {
     position: absolute;
-    top: 0;
-    animation: trailer-bar-rise 0.45s ease;
-    left: 0;
-    right: 0;
+    top: 16px;
+    right: 16px;
     z-index: 4;
-    height: 56px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 0 24px;
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    backdrop-filter: blur(24px) saturate(180%);
-    background: rgba(var(--background-rgb), 0.42);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    animation: trailer-exit-rise 0.45s ease;
 }
-
-.trailer-bar-title { overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 
 .trailer-button::before { content: "▶"; font-size: 11px; }
 
@@ -1898,8 +1892,7 @@ img { display: block; }
     width: 100%;
     min-height: 1px;
     border-radius: 4px 4px 0 0;
-    background: linear-gradient(180deg, var(--orange), var(--accent));
-    opacity: 0.85;
+    background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.42), rgba(var(--accent-rgb), 0.2));
 }
 
 .histogram-range {
@@ -1913,7 +1906,7 @@ img { display: block; }
 
 .histogram-curve { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 
-.histogram-curve polyline { fill: none; stroke: var(--gold); stroke-width: 2.5; }
+.histogram-curve polyline { fill: none; stroke: var(--gold); stroke-width: 2; opacity: 0.6; }
 
 .histogram-ticks { position: relative; height: 22px; margin-top: 6px; border-top: 1px solid var(--border); }
 
@@ -2044,11 +2037,11 @@ img { display: block; }
     .hero-body .trailer-button { display: none; }
 
     /* The trailer forward on a phone: the band itself, sharp; the head on it gives way, the body below
-       stays, and its Trailer button, reading Exit trailer, takes the place of the bar. */
+       stays, and its Trailer button, reading Exit trailer, takes the place of the floating one. */
     .trailer-playing .hero-content, .trailer-playing .movie-hero-content { opacity: 1; pointer-events: auto; }
     .trailer-playing .hero-head, .trailer-playing .hero-poster, .trailer-playing .movie-hero-poster { opacity: 0; pointer-events: none; }
     .trailer-playing .hero-body .trailer-button:not([hidden]) { display: inline-flex; }
-    .trailer-playing .trailer-bar { display: none; }
+    .trailer-playing .trailer-exit { display: none; }
     .friend-action + .member-actions { flex-basis: 100%; justify-content: flex-end; padding-left: 0; border-left: 0; }
 
     .hero-content, .movie-hero-content { padding: 28px 16px 32px; }
@@ -2101,8 +2094,8 @@ img { display: block; }
 
 .stat-chip .value { color: rgb(var(--tone, var(--accent-rgb))); text-shadow: 0 0 14px rgba(var(--tone, var(--accent-rgb)), 0.45); }
 
-/* A bar runs from hot pink into orange. */
-.bar-fill { background: linear-gradient(90deg, var(--accent), var(--orange)); }
+/* A bar is pink, softened, so a chart reads as data rather than as a light. */
+.bar-fill { background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.22), rgba(var(--accent-rgb), 0.42)); }
 
 .movie-card:hover .poster { box-shadow: 0 0 0 2px rgb(var(--tone, var(--accent-rgb))), 0 12px 30px rgba(var(--tone, var(--accent-rgb)), 0.3); }
 
@@ -2149,13 +2142,26 @@ img { display: block; }
     backdrop-filter: blur(22px) saturate(160%);
 }
 
+/* The statistics and insights pages are for reading numbers: their panels are barely tinted, the
+   lines on top fainter, and the totals keep their colors without the glow. */
+.data-page :is(.stat-card, .stat-chip) {
+    background:
+        linear-gradient(135deg, rgba(var(--tone, var(--accent-rgb)), 0.03), rgba(var(--violet-rgb), 0.015)),
+        rgba(22, 20, 29, 0.6);
+}
+
+.data-page .stat-card::before { opacity: 0.3; }
+
+/* The totals in their color, half of it, mixed into the text color. */
+.data-page .stat-chip .value { color: color-mix(in srgb, rgb(var(--tone, var(--accent-rgb))) 55%, var(--text)); text-shadow: none; }
+
 /* The search suggestions hang from the navbar, which is glass itself: a blur inside a blur only sees
    the navbar, so the page would show through sharp. They are near-solid instead, with the same tint
    (scoped to the search box, to outweigh the panel rule above). */
 .search-box .search-suggestions {
     background:
         linear-gradient(135deg, rgba(var(--accent-rgb), 0.1), rgba(var(--violet-rgb), 0.04)),
-        rgba(22, 20, 29, 0.95);
+        rgba(22, 20, 29, 0.85);
 }
 
 /* A fine grain over everything, as on a printed poster. */
@@ -2182,7 +2188,8 @@ body::after {
     z-index: -1;
     background: var(--poster) center / cover no-repeat;
     border-radius: var(--radius);
-    filter: blur(26px) saturate(1.8);
+    /* Dimmed, so a mostly white poster glows a soft gray rather than a bright haze; colors keep their hue. */
+    filter: blur(26px) saturate(1.8) brightness(0.6);
     opacity: 0;
     transform: translateY(14px) scale(1.04);
     transition: opacity 0.6s ease;
@@ -2191,7 +2198,7 @@ body::after {
 
 .movie-card::before { top: 4%; left: 6%; width: 88%; aspect-ratio: 2 / 3; }
 
-.hero-poster::before, .movie-hero-poster::before { inset: 4% 6%; filter: blur(34px) saturate(1.7); }
+.hero-poster::before, .movie-hero-poster::before { inset: 4% 6%; filter: blur(34px) saturate(1.7) brightness(0.6); }
 
 .poster-glow::before { opacity: 0.7; }
 

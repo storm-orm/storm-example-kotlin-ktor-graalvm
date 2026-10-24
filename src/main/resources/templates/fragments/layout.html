@@ -37,12 +37,12 @@
         <div class="nav-links">
             <a th:href="@{/}" th:classappend="${active == 'home'} ? 'active'">Home</a>
             <a th:href="@{/for-you}" th:classappend="${active == 'for-you'} ? 'active'">For You</a>
-            <a th:href="@{/top}" th:classappend="${active == 'top'} ? 'active'">Top Movies</a>
-            <a th:href="@{/recent}" th:classappend="${active == 'recent'} ? 'active'">Recently Added</a>
             <a th:href="@{/watchlist}" th:classappend="${active == 'watchlist'} ? 'active'">Watchlist</a>
             <a th:href="@{/seen}" th:classappend="${active == 'seen'} ? 'active'">Watched</a>
-            <a th:href="@{/insights}" th:classappend="${active == 'insights'} ? 'active'">Insights</a>
+            <a th:href="@{/insights}" th:classappend="${active == 'insights'} ? 'active'">About You</a>
             <a th:if="${account.name != null}" th:href="@{/friends}" th:classappend="${active == 'community'} ? 'active'">Community<span class="nav-badge" th:if="${requestCount > 0}" th:text="${requestCount}" th:title="|${requestCount} friend request${requestCount == 1 ? '' : 's'}|">1</span></a>
+            <a th:href="@{/top}" th:classappend="${active == 'top'} ? 'active'">Top Movies</a>
+            <a th:href="@{/recent}" th:classappend="${active == 'recent'} ? 'active'">Recently Added</a>
             <a th:href="@{/statistics}" th:classappend="${active == 'statistics'} ? 'active'">Statistics</a>
         </div>
         <div class="search-box" data-search-box>

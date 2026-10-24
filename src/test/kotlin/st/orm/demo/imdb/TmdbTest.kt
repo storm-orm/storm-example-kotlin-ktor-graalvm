@@ -164,7 +164,8 @@ class TmdbTest {
         val tmdb = tmdbService(orm, client())
         val now = Instant.parse("2026-10-01T00:00:00Z")
 
-        // Streaming first, in TMDB's order, then free and with ads, each platform once; renting is left out.
+        // Streaming first, in TMDB's order, then free and with ads, each platform once; renting, a service
+        // resold through Amazon and a plan with ads are left out.
         assertEquals(listOf("Disney Plus", "Netflix"), runBlocking { tmdb.watchProviders("tt0133093", "NL", now) }.map { it.name })
         assertEquals(listOf("/disney.jpg", "/netflix.jpg"), runBlocking { tmdb.watchProviders("tt0133093", "NL", now) }.map { it.logoPath })
         assertEquals(listOf("Tubi TV"), runBlocking { tmdb.watchProviders("tt0133093", "US", now) }.map { it.name })
@@ -197,8 +198,10 @@ class TmdbTest {
             ]},"watch/providers":{"results":{
               "NL":{"link":"https://www.themoviedb.org/movie/603/watch?locale=NL",
                 "flatrate":[{"provider_id":8,"provider_name":"Netflix","logo_path":"/netflix.jpg","display_priority":2},
-                            {"provider_id":337,"provider_name":"Disney Plus","logo_path":"/disney.jpg","display_priority":1}],
-                "ads":[{"provider_id":8,"provider_name":"Netflix","logo_path":"/netflix.jpg","display_priority":2}],
+                            {"provider_id":337,"provider_name":"Disney Plus","logo_path":"/disney.jpg","display_priority":1},
+                            {"provider_id":1899,"provider_name":"HBO Max Amazon Channel","logo_path":"/hbo-amazon.jpg","display_priority":3}],
+                "ads":[{"provider_id":8,"provider_name":"Netflix","logo_path":"/netflix.jpg","display_priority":2},
+                       {"provider_id":1796,"provider_name":"Netflix Standard with Ads","logo_path":"/netflix-ads.jpg","display_priority":3}],
                 "rent":[{"provider_id":2,"provider_name":"Apple TV","logo_path":"/apple.jpg","display_priority":0}]},
               "US":{"link":"https://www.themoviedb.org/movie/603/watch?locale=US",
                 "free":[{"provider_id":73,"provider_name":"Tubi TV","logo_path":"/tubi.jpg","display_priority":5}]},
