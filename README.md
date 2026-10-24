@@ -264,8 +264,8 @@ nullable columns on the membership where `NULL` follows the defaults. A club's
 page shows the members' latest check-ins and what most of them have seen, a
 grouped count on the seen list with `HAVING`
 ([`MovieSeenRepository.countSeenBy`](src/main/kotlin/st/orm/demo/imdb/repository/MovieSeenRepository.kt)).
-Movies seen by a friend get a yellow tag on every list, those seen only by
-club members a purple one.
+Movies watched by a friend get a yellow tag on every list, those watched only
+by club members a pink one, and the visitor's own a cyan one.
 
 Club members become friends in two taps: each name in the member list has an
 Add friend button, and the request

@@ -1,27 +1,51 @@
 /* ── Design tokens ─────────────────────────────────────────────────── */
 
+/* A neon street-art palette: hot pink leads, with neon green, cyan, orange, violet and yellow
+   mixed in around it (the spectrum below), on near black. The colors with an alpha take their
+   channels from the -rgb tokens, so the palette lives here. */
 :root {
-    --background: #0b0d14;
-    --surface: #141826;
-    --surface-raised: #1b2032;
-    --border: #262c42;
-    --text: #e9ebf5;
-    --text-muted: #9098b0;
-    --accent: #8b7cf8;
-    --accent-strong: #a99bff;
+    --background: #0a090e;
+    --background-rgb: 10, 9, 14;
+    --surface: #16141d;
+    --surface-raised: #201c29;
+    --border: #2f2a3b;
+    --text: #f4f1f8;
+    --text-muted: #a39db2;
+    --accent: #ff2d8a;
+    --accent-rgb: 255, 45, 138;
+    --accent-strong: #ff5aa6;
+    --accent-light: #ff8fc4;
+    --accent-deep: #d10f60;
+    --on-accent: #16060e;
+    --cyan: #22e3ff;
+    --cyan-rgb: 34, 227, 255;
+    --green: #39ff6a;
+    --green-rgb: 57, 255, 106;
+    --orange: #ff7a1a;
+    --orange-rgb: 255, 122, 26;
+    --violet: #a45cff;
+    --violet-rgb: 164, 92, 255;
+    --yellow: #f3ff3a;
+    --yellow-rgb: 243, 255, 58;
+    /* A gradient mixes two of them at most, never more. */
     --gold: #f5c518;
-    --seen: #4ade80;
-    --club: #d08cff;
+    /* The tags on movies: the visitor's own in cyan, a friend's in toxic yellow, a club's in pink. */
+    --seen: #22e3ff;
+    --seen-rgb: 34, 227, 255;
+    --friend: #d8ff3c;
+    --friend-rgb: 216, 255, 60;
+    --club: #ff5aa6;
+    --club-rgb: 255, 90, 166;
     --radius: 12px;
     --radius-small: 8px;
     --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
     --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+    --font-display: "Anton", Impact, "Arial Narrow", sans-serif;
 }
 
 * { box-sizing: border-box; }
 
-::selection { background: rgba(139, 124, 248, 0.35); }
+::selection { background: rgba(var(--accent-rgb), 0.35); }
 
 :focus-visible {
     outline: 2px solid var(--accent);
@@ -34,36 +58,60 @@ html { scroll-behavior: smooth; }
 body {
     margin: 0;
     background-color: var(--background);
+    /* Sprayed glows behind the page, one color each, for the glass panels to blur. */
     background-image:
-        radial-gradient(900px 500px at 85% -10%, rgba(139, 124, 248, 0.10), transparent 60%),
-        radial-gradient(700px 450px at -10% 30%, rgba(56, 89, 179, 0.09), transparent 60%);
+        radial-gradient(720px 520px at 6% 10%, rgba(var(--accent-rgb), 0.2), transparent 65%),
+        radial-gradient(640px 520px at 94% 28%, rgba(var(--green-rgb), 0.11), transparent 65%),
+        radial-gradient(780px 560px at 28% 96%, rgba(var(--violet-rgb), 0.18), transparent 65%),
+        radial-gradient(540px 420px at 82% 94%, rgba(var(--orange-rgb), 0.11), transparent 65%),
+        radial-gradient(480px 380px at 56% 46%, rgba(var(--cyan-rgb), 0.06), transparent 65%);
     background-attachment: fixed;
     color: var(--text);
     font-family: var(--font);
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
+    font-synthesis: none;
 }
+
+/* The poster face, condensed and upright, with the big titles split a hair into pink and cyan. */
+.page-title, .hero-title, .movie-title {
+    letter-spacing: 0.5px;
+    text-shadow: -1.5px 0 rgba(var(--accent-rgb), 0.45), 1.5px 0 rgba(var(--green-rgb), 0.35);
+}
+
+.page-title, .section-title { text-transform: uppercase; letter-spacing: 1px; }
 
 a { color: inherit; text-decoration: none; }
 
 img { display: block; }
 
 .container {
+    --gutter: 24px;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 24px;
+    padding: 0 var(--gutter);
 }
 
 /* ── Navbar ────────────────────────────────────────────────────────── */
 
+/* The navbar is glass: what scrolls under it, the hero's trailer included, shows through blurred. */
 .navbar {
     position: sticky;
     top: 0;
     z-index: 50;
-    backdrop-filter: blur(18px);
-    background: rgba(11, 13, 20, 0.82);
-    border-bottom: 1px solid var(--border);
-    box-shadow: 0 1px 0 rgba(139, 124, 248, 0.08);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+    background: rgba(var(--background-rgb), 0.42);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* A hero that opens the page reaches up under the navbar (--navbar-height, measured by the script),
+   so the trailer or the backdrop runs to the top of the screen; its content stays below the navbar. */
+.navbar + .hero,
+.navbar + .movie-hero {
+    --under-nav: var(--navbar-height, 64px);
+    margin-top: calc(-1 * var(--under-nav));
+    padding-top: var(--under-nav);
 }
 
 .navbar-inner {
@@ -91,7 +139,7 @@ img { display: block; }
 .brand-logo {
     height: 26px;
     width: auto;
-    filter: drop-shadow(0 0 8px rgba(139, 124, 248, 0.45));
+    filter: drop-shadow(0 0 8px rgba(var(--accent-rgb), 0.45));
 }
 
 .nav-links {
@@ -141,7 +189,7 @@ img { display: block; }
 
 .search-box input:focus {
     border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(139, 124, 248, 0.18);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.18);
 }
 
 .search-suggestions {
@@ -166,7 +214,7 @@ img { display: block; }
     transition: background 0.1s ease;
 }
 
-.suggestion.active { background: rgba(139, 124, 248, 0.12); }
+.suggestion.active { background: rgba(var(--accent-rgb), 0.12); }
 
 .suggestion-media {
     flex-shrink: 0;
@@ -198,7 +246,7 @@ img { display: block; }
     text-transform: uppercase;
 }
 
-.suggestion-type-movie { background: rgba(139, 124, 248, 0.18); color: var(--accent-strong); }
+.suggestion-type-movie { background: rgba(var(--accent-rgb), 0.18); color: var(--accent-strong); }
 
 .suggestion-type-person { background: rgba(245, 197, 24, 0.15); color: var(--gold); }
 
@@ -234,8 +282,8 @@ img { display: block; }
     position: absolute;
     inset: 0;
     background:
-        linear-gradient(90deg, rgba(11, 13, 20, 0.55) 0%, transparent 55%),
-        linear-gradient(180deg, rgba(11, 13, 20, 0.2) 0%, rgba(11, 13, 20, 0.94) 100%);
+        linear-gradient(90deg, rgba(var(--background-rgb), 0.55) 0%, transparent 55%),
+        linear-gradient(180deg, rgba(var(--background-rgb), 0.2) 0%, rgba(var(--background-rgb), 0.94) 100%);
     z-index: 1;
 }
 
@@ -261,7 +309,7 @@ img { display: block; }
 .hero-poster { width: 264px; flex-shrink: 0; }
 
 .hero-eyebrow {
-    color: var(--accent-strong);
+    color: var(--green);
     font-size: 12.5px;
     font-weight: 700;
     letter-spacing: 1.6px;
@@ -330,7 +378,7 @@ img { display: block; }
     height: 18px;
     margin-right: 12px;
     border-radius: 3px;
-    background: linear-gradient(180deg, var(--accent-strong), var(--accent));
+    background: linear-gradient(180deg, var(--accent), var(--cyan));
 }
 
 .section-note { color: var(--text-muted); font-size: 13.5px; }
@@ -369,7 +417,7 @@ img { display: block; }
     transform: translateY(-1px);
 }
 
-.genre-chip.active { border-color: var(--accent); background: rgba(139, 124, 248, 0.15); }
+.genre-chip.active { border-color: var(--accent); background: rgba(var(--accent-rgb), 0.15); }
 
 .genre-chip .count {
     color: var(--text-muted);
@@ -394,6 +442,11 @@ img { display: block; }
     padding-bottom: 10px;
     scrollbar-width: thin;
 }
+
+/* A row scrolls, which clips what spills out of it: the room around its cards lets their glows fade
+   out before the edge, and the negative margin keeps the cards where they were. Sideways the room is
+   the page's gutter, so the row never reaches past the screen. */
+.movie-row { margin: -44px calc(-1 * var(--gutter, 24px)) -18px; padding: 44px var(--gutter, 24px) 28px; }
 
 .movie-row::-webkit-scrollbar { height: 8px; }
 
@@ -456,8 +509,8 @@ img { display: block; }
     padding: 14px;
     text-align: center;
     background:
-        radial-gradient(120% 90% at 20% 0%, rgba(139, 124, 248, 0.18) 0%, transparent 55%),
-        linear-gradient(155deg, #232946 0%, #131628 55%, #0c0e1a 100%);
+        radial-gradient(120% 90% at 20% 0%, rgba(var(--accent-rgb), 0.18) 0%, transparent 55%),
+        linear-gradient(155deg, #2b1630 0%, #0b0a10 100%);
 }
 
 .poster-placeholder span {
@@ -489,7 +542,7 @@ img { display: block; }
     top: 8px;
     left: 8px;
     z-index: 3;
-    background: rgba(11, 13, 20, 0.85);
+    background: rgba(var(--background-rgb), 0.85);
     border: 1px solid var(--border);
     color: var(--gold);
     font-size: 13px;
@@ -529,7 +582,7 @@ img { display: block; }
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(140deg, rgba(139, 124, 248, 0.35), rgba(139, 124, 248, 0.12));
+    background: linear-gradient(140deg, rgba(var(--accent-rgb), 0.35), rgba(var(--accent-rgb), 0.12));
     color: var(--accent-strong);
     font-weight: 700;
     font-size: 17px;
@@ -549,7 +602,7 @@ img { display: block; }
     width: 104px;
     height: 104px;
     font-size: 38px;
-    border: 2px solid rgba(139, 124, 248, 0.35);
+    border: 2px solid rgba(var(--accent-rgb), 0.35);
     box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
 }
 
@@ -585,35 +638,57 @@ img { display: block; }
 
 /* ── Buttons ───────────────────────────────────────────────────────── */
 
+/* A button is glass: see-through over a blur of what is behind it, tinted with a gradient of two
+   colors (--from and --to, as channels), with an edge of the same gradient drawn solid (::after). */
 .button {
+    --from: var(--violet-rgb);
+    --to: var(--cyan-rgb);
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: 8px;
     padding: 10px 20px;
     border-radius: 999px;
-    border: 1px solid var(--border);
-    background: var(--surface-raised);
+    border: 1.5px solid transparent;
+    background: linear-gradient(135deg, rgba(var(--from), 0.2), rgba(var(--to), 0.1));
+    -webkit-backdrop-filter: blur(16px) saturate(170%);
+    backdrop-filter: blur(16px) saturate(170%);
+    box-shadow: 0 6px 20px rgba(var(--from), 0.16);
     color: var(--text);
     font-size: 14.5px;
     font-weight: 600;
     font-family: var(--font);
     cursor: pointer;
-    transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+    transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
 }
 
-.button:hover { border-color: var(--accent); transform: translateY(-1px); }
-
-.button-primary {
-    background: linear-gradient(135deg, var(--accent-strong) 0%, #6b5ce8 100%);
-    border-color: transparent;
-    color: #14101f;
-    box-shadow: 0 6px 20px rgba(139, 124, 248, 0.35);
+.button::after {
+    content: "";
+    position: absolute;
+    inset: -1.5px;
+    padding: 1.5px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgb(var(--from)), rgb(var(--to)));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    opacity: 0.8;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
 }
 
-.button-primary:hover {
-    background: linear-gradient(135deg, #b9aeff 0%, var(--accent) 100%);
-    box-shadow: 0 8px 26px rgba(139, 124, 248, 0.45);
+.button:hover {
+    background: linear-gradient(135deg, rgba(var(--from), 0.32), rgba(var(--to), 0.18));
+    box-shadow: 0 8px 26px rgba(var(--from), 0.28);
+    transform: translateY(-1px);
 }
+
+.button:hover::after { opacity: 1; }
+
+.button-primary { --from: var(--accent-rgb); --to: var(--orange-rgb); }
+
+
 
 /* The watchlist's clock and the seen list's eye: drawn in the text's color, the same on every device. */
 .watchlist-button::before,
@@ -639,9 +714,10 @@ img { display: block; }
 .list-buttons .vote-button { padding: 7px 10px; font-size: 14px; }
 
 .list-button.active {
-    background: rgba(139, 124, 248, 0.16);
-    border-color: var(--accent);
-    color: var(--accent-strong);
+    --from: var(--accent-rgb);
+    --to: var(--violet-rgb);
+    background: linear-gradient(135deg, rgba(var(--from), 0.34), rgba(var(--to), 0.2));
+    color: var(--accent-light);
 }
 
 /* The thumbs: a vote on a seen movie, pressed again to take it back. */
@@ -656,13 +732,18 @@ img { display: block; }
 .list-buttons .vote-buttons { order: 1; margin-left: auto; }
 
 .list-buttons .vote-button {
-    background: transparent;
-    border-color: rgba(255, 255, 255, 0.22);
+    --from: 255, 255, 255;
+    --to: 190, 196, 210;
+    background: linear-gradient(135deg, rgba(var(--from), 0.06), rgba(var(--to), 0.02));
     filter: grayscale(1) brightness(1.5);
     opacity: 0.8;
 }
 
-.list-buttons .vote-button.active { filter: none; opacity: 1; background: rgba(255, 255, 255, 0.08); border-color: rgba(255, 255, 255, 0.5); }
+.list-buttons .vote-button::after { opacity: 0.35; }
+
+.list-buttons .vote-button.active { filter: none; opacity: 1; background: linear-gradient(135deg, rgba(var(--from), 0.14), rgba(var(--to), 0.05)); }
+
+.list-buttons .vote-button.active::after { opacity: 0.7; }
 
 .vote-button.active {
     background: rgba(245, 197, 24, 0.16);
@@ -707,7 +788,7 @@ img { display: block; }
     transition: background 0.1s ease;
 }
 
-.share-option:hover { background: rgba(139, 124, 248, 0.12); }
+.share-option:hover { background: rgba(var(--accent-rgb), 0.12); }
 
 /* ── Recommendations ───────────────────────────────────────────────── */
 
@@ -878,7 +959,7 @@ img { display: block; }
 .movie-hero {
     position: relative;
     overflow: hidden;
-    background: linear-gradient(180deg, #161a2c 0%, var(--background) 100%);
+    background: linear-gradient(180deg, #1b1421 0%, var(--background) 100%);
     border-bottom: 1px solid var(--border);
 }
 
@@ -896,8 +977,8 @@ img { display: block; }
     position: absolute;
     inset: 0;
     background:
-        linear-gradient(90deg, rgba(11, 13, 20, 0.55) 0%, transparent 55%),
-        linear-gradient(180deg, rgba(11, 13, 20, 0.25) 0%, rgba(11, 13, 20, 0.92) 100%);
+        linear-gradient(90deg, rgba(var(--background-rgb), 0.55) 0%, transparent 55%),
+        linear-gradient(180deg, rgba(var(--background-rgb), 0.25) 0%, rgba(var(--background-rgb), 0.92) 100%);
     z-index: 1;
 }
 
@@ -1012,7 +1093,7 @@ img { display: block; }
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(140deg, rgba(139, 124, 248, 0.28), rgba(139, 124, 248, 0.08));
+    background: linear-gradient(140deg, rgba(var(--accent-rgb), 0.28), rgba(var(--accent-rgb), 0.08));
     border: 1px solid rgba(255, 255, 255, 0.06);
     color: var(--accent-strong);
     font-weight: 700;
@@ -1106,7 +1187,7 @@ img { display: block; }
     align-items: center;
     padding: 2px 8px;
     border-radius: 999px;
-    background: rgba(74, 222, 128, 0.14);
+    background: rgba(var(--seen-rgb), 0.14);
     color: var(--seen);
     font-size: 11.5px;
     font-weight: 600;
@@ -1118,22 +1199,22 @@ img { display: block; }
     left: 6px;
     bottom: 6px;
     z-index: 3;  /* over the poster image, like the rank */
-    background: rgba(11, 13, 20, 0.85);
-    border: 1px solid rgba(74, 222, 128, 0.45);
+    background: rgba(var(--background-rgb), 0.85);
+    border: 1px solid rgba(var(--seen-rgb), 0.45);
     backdrop-filter: blur(6px);
 }
 
 .ranked-sub .seen-tag { margin-left: 8px; }
 
 /* A movie only friends have seen: the same tag in yellow, naming the friend or counting them. */
-.seen-tag.friend-tag { background: rgba(245, 197, 24, 0.14); color: var(--gold); }
+.seen-tag.friend-tag { background: rgba(var(--friend-rgb), 0.14); color: var(--friend); }
 
-.poster .seen-tag.friend-tag { background: rgba(11, 13, 20, 0.85); border-color: rgba(245, 197, 24, 0.55); }
+.poster .seen-tag.friend-tag { background: rgba(var(--background-rgb), 0.85); border-color: rgba(var(--friend-rgb), 0.55); }
 
 /* A movie only members of the visitor's clubs have seen: the same tag in purple. */
-.seen-tag.club-tag { background: rgba(208, 140, 255, 0.14); color: var(--club); }
+.seen-tag.club-tag { background: rgba(var(--club-rgb), 0.14); color: var(--club); }
 
-.poster .seen-tag.club-tag { background: rgba(11, 13, 20, 0.85); border-color: rgba(208, 140, 255, 0.55); }
+.poster .seen-tag.club-tag { background: rgba(var(--background-rgb), 0.85); border-color: rgba(var(--club-rgb), 0.55); }
 
 .ranked-end { margin-left: auto; display: flex; align-items: center; gap: 14px; }
 
@@ -1161,7 +1242,7 @@ img { display: block; }
     left: 24px;
     right: 24px;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(139, 124, 248, 0.55), transparent);
+    background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb), 0.55), transparent);
 }
 
 .stat-card h2 { font-size: 17px; margin: 0 0 18px; }
@@ -1336,7 +1417,7 @@ img { display: block; }
 .trailer-playing .hero-content,
 .trailer-playing .movie-hero-content { opacity: 0; pointer-events: none; }
 
-.trailer-playing .backdrop-video { z-index: 3; top: 56px; opacity: 1; pointer-events: auto; }
+.trailer-playing .backdrop-video { z-index: 3; top: calc(var(--under-nav, 0px) + 56px); opacity: 1; pointer-events: auto; }
 
 .trailer-playing .backdrop-video iframe { width: 100%; height: 100%; transform: translate(-50%, -50%); filter: none; }
 
@@ -1349,7 +1430,7 @@ img { display: block; }
 
 .trailer-bar {
     position: absolute;
-    top: 0;
+    top: var(--under-nav, 0px);
     left: 0;
     right: 0;
     z-index: 4;
@@ -1408,9 +1489,9 @@ img { display: block; }
 .notice {
     margin-bottom: 18px;
     padding: 12px 16px;
-    border: 1px solid rgba(139, 124, 248, 0.45);
+    border: 1px solid rgba(var(--accent-rgb), 0.45);
     border-radius: var(--radius);
-    background: rgba(139, 124, 248, 0.10);
+    background: rgba(var(--accent-rgb), 0.10);
     font-size: 14px;
 }
 
@@ -1449,7 +1530,7 @@ img { display: block; }
 
 .drop-zone:hover, .drop-zone.dragging, .drop-zone:focus-within {
     border-color: var(--accent);
-    background: rgba(139, 124, 248, 0.08);
+    background: rgba(var(--accent-rgb), 0.08);
 }
 
 .drop-zone.importing { cursor: progress; opacity: 0.7; }
@@ -1461,12 +1542,12 @@ img { display: block; }
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background: linear-gradient(135deg, var(--accent-strong) 0%, #6b5ce8 100%);
-    color: #14101f;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--orange) 100%);
+    color: var(--on-accent);
     font-size: 26px;
     font-weight: 600;
     line-height: 1;
-    box-shadow: 0 6px 20px rgba(139, 124, 248, 0.35);
+    box-shadow: 0 6px 20px rgba(var(--accent-rgb), 0.35);
 }
 
 .drop-text { color: var(--text-muted); font-size: 14px; }
@@ -1503,7 +1584,9 @@ img { display: block; }
 .welcome {
     border-bottom: 1px solid var(--border);
     background:
-        radial-gradient(80% 140% at 0% 0%, rgba(139, 124, 248, 0.22) 0%, transparent 60%),
+        radial-gradient(80% 140% at 0% 0%, rgba(var(--accent-rgb), 0.24) 0%, transparent 60%),
+        radial-gradient(60% 120% at 100% 100%, rgba(var(--violet-rgb), 0.2) 0%, transparent 60%),
+        radial-gradient(40% 90% at 70% 0%, rgba(var(--green-rgb), 0.08) 0%, transparent 60%),
         var(--surface);
 }
 
@@ -1544,7 +1627,7 @@ img { display: block; }
     gap: 10px 14px;
     margin: 0 -8px 18px;
     padding: 10px 8px;
-    background: rgba(11, 13, 20, 0.9);
+    background: rgba(var(--background-rgb), 0.9);
     backdrop-filter: blur(12px);
 }
 
@@ -1644,7 +1727,7 @@ img { display: block; }
 
 .role-badge {
     padding: 2px 8px;
-    border: 1px solid rgba(139, 124, 248, 0.45);
+    border: 1px solid rgba(var(--accent-rgb), 0.45);
     border-radius: 999px;
     color: var(--accent-strong);
     font-size: 11.5px;
@@ -1653,7 +1736,7 @@ img { display: block; }
 
 .member-actions { display: flex; gap: 14px; }
 
-/* Becoming friends with a member: a small button, or where the two stand, in the friends' gold. */
+/* Becoming friends with a member: a small button, or where the two stand, in the friends' yellow. */
 .button-small { padding: 5px 13px; font-size: 13px; }
 
 .friend-action form { display: flex; align-items: center; gap: 10px; }
@@ -1667,9 +1750,9 @@ img { display: block; }
 
 .friend-badge {
     padding: 2px 9px;
-    border: 1px solid rgba(245, 197, 24, 0.45);
+    border: 1px solid rgba(var(--friend-rgb), 0.45);
     border-radius: 999px;
-    color: var(--gold);
+    color: var(--friend);
     font-size: 12px;
     font-weight: 600;
 }
@@ -1695,8 +1778,8 @@ img { display: block; }
     margin-left: 6px;
     padding: 1px 6px;
     border-radius: 999px;
-    background: var(--gold);
-    color: #14101f;
+    background: var(--friend);
+    color: var(--on-accent);
     font-size: 11px;
     font-weight: 700;
     line-height: 16px;
@@ -1755,7 +1838,7 @@ img { display: block; }
     width: 100%;
     min-height: 1px;
     border-radius: 4px 4px 0 0;
-    background: linear-gradient(180deg, var(--accent-strong), var(--accent));
+    background: linear-gradient(180deg, var(--orange), var(--accent));
     opacity: 0.85;
 }
 
@@ -1763,9 +1846,9 @@ img { display: block; }
     position: absolute;
     top: 0;
     bottom: 0;
-    background: rgba(139, 124, 248, 0.10);
-    border-left: 1px dashed rgba(139, 124, 248, 0.5);
-    border-right: 1px dashed rgba(139, 124, 248, 0.5);
+    background: rgba(var(--accent-rgb), 0.10);
+    border-left: 1px dashed rgba(var(--accent-rgb), 0.5);
+    border-right: 1px dashed rgba(var(--accent-rgb), 0.5);
 }
 
 .histogram-curve { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
@@ -1838,7 +1921,7 @@ img { display: block; }
     /* Phones: the seen page's actions in one row, the catch-up button by its short name. */
     .label-more { display: none; }
 
-    .container { padding: 0 16px; }
+    .container { --gutter: 16px; }
 
     .navbar-inner {
         flex-wrap: wrap;
@@ -1888,17 +1971,15 @@ img { display: block; }
     .hero::before, .movie-hero::before {
         bottom: auto;
         height: var(--band, 320px);
-        background: linear-gradient(180deg, rgba(11, 13, 20, 0.25) 0%, rgba(11, 13, 20, 0.15) 55%, var(--background) 100%);
+        background: linear-gradient(180deg, rgba(var(--background-rgb), 0.25) 0%, rgba(var(--background-rgb), 0.15) 55%, var(--background) 100%);
     }
     .backdrop-video iframe { filter: blur(4px) brightness(0.55) saturate(1.25); }
     .hero-backdrop.backdrop-image, .movie-backdrop.backdrop-image { filter: blur(4px) brightness(0.45) saturate(1.2); }
     /* On the trailer, the button is glass rather than a colour of its own, so the head stays quiet. */
     .trailer-overlay:not([hidden]) {
+        --from: 255, 255, 255;
+        --to: 190, 196, 210;
         display: inline-flex;
-        background: rgba(255, 255, 255, 0.12);
-        border-color: rgba(255, 255, 255, 0.28);
-        color: var(--text);
-        backdrop-filter: blur(6px);
     }
     .hero-body .trailer-button { display: none; }
 
@@ -1907,7 +1988,7 @@ img { display: block; }
     .trailer-playing .hero-content, .trailer-playing .movie-hero-content { opacity: 1; pointer-events: auto; }
     .trailer-playing .hero-head, .trailer-playing .hero-poster, .trailer-playing .movie-hero-poster { opacity: 0; pointer-events: none; }
     .trailer-playing .hero-body .trailer-button:not([hidden]) { display: inline-flex; }
-    .trailer-playing .backdrop-video { top: 0; }
+    .trailer-playing .backdrop-video { top: var(--under-nav, 0px); }
     .trailer-playing .trailer-bar { display: none; }
     .friend-action + .member-actions { flex-basis: 100%; justify-content: flex-end; padding-left: 0; border-left: 0; }
 
@@ -1938,4 +2019,133 @@ img { display: block; }
     .insights-ratings, .insights-side, .insights-genres { grid-column: auto; }
     .insights-side { flex-direction: column; }
     .highlight-grid { grid-auto-flow: column; grid-template-columns: none; overflow-x: auto; }
+}
+
+/* ── The spectrum ──────────────────────────────────────────────────── */
+
+/* The neon colors take turns, so the pages look sprayed rather than printed: each in its own
+   --tone, by the place of the section, the chip or the card. The tags and the stars keep their
+   own colors, which mean something. */
+:is(.section:nth-of-type(6n + 1), .genre-chip:nth-child(6n + 1), .stat-card:nth-child(6n + 1), .stat-chip:nth-child(6n + 1), .movie-card:nth-child(6n + 1)) { --tone: var(--accent-rgb); }
+:is(.section:nth-of-type(6n + 2), .genre-chip:nth-child(6n + 2), .stat-card:nth-child(6n + 2), .stat-chip:nth-child(6n + 2), .movie-card:nth-child(6n + 2)) { --tone: var(--green-rgb); }
+:is(.section:nth-of-type(6n + 3), .genre-chip:nth-child(6n + 3), .stat-card:nth-child(6n + 3), .stat-chip:nth-child(6n + 3), .movie-card:nth-child(6n + 3)) { --tone: var(--cyan-rgb); }
+:is(.section:nth-of-type(6n + 4), .genre-chip:nth-child(6n + 4), .stat-card:nth-child(6n + 4), .stat-chip:nth-child(6n + 4), .movie-card:nth-child(6n + 4)) { --tone: var(--orange-rgb); }
+:is(.section:nth-of-type(6n + 5), .genre-chip:nth-child(6n + 5), .stat-card:nth-child(6n + 5), .stat-chip:nth-child(6n + 5), .movie-card:nth-child(6n + 5)) { --tone: var(--violet-rgb); }
+:is(.section:nth-of-type(6n + 6), .genre-chip:nth-child(6n + 6), .stat-card:nth-child(6n + 6), .stat-chip:nth-child(6n + 6), .movie-card:nth-child(6n + 6)) { --tone: var(--yellow-rgb); }
+
+.section .section-title::before { background: linear-gradient(180deg, rgb(var(--tone, var(--accent-rgb))), var(--violet)); box-shadow: 0 0 10px rgba(var(--tone, var(--accent-rgb)), 0.7); }
+
+.genre-chip { border-color: rgba(var(--tone, var(--accent-rgb)), 0.35); }
+.genre-chip:hover, .genre-chip.active { border-color: rgb(var(--tone, var(--accent-rgb))); background: rgba(var(--tone, var(--accent-rgb)), 0.14); }
+
+.stat-card::before { height: 2px; background: linear-gradient(90deg, transparent, rgb(var(--tone, var(--accent-rgb))), transparent); }
+
+.stat-chip .value { color: rgb(var(--tone, var(--accent-rgb))); text-shadow: 0 0 14px rgba(var(--tone, var(--accent-rgb)), 0.45); }
+
+/* A bar runs from hot pink into orange. */
+.bar-fill { background: linear-gradient(90deg, var(--accent), var(--orange)); }
+
+.movie-card:hover .poster { box-shadow: 0 0 0 2px rgb(var(--tone, var(--accent-rgb))), 0 12px 30px rgba(var(--tone, var(--accent-rgb)), 0.3); }
+
+.nav-links a:hover { color: var(--green); }
+
+/* The page titles in a hot gradient, pink into orange, in the letters. */
+.page-title {
+    background: linear-gradient(90deg, var(--accent), var(--orange));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: none;
+}
+
+/* The trailer in neon green into cyan beside the pink buttons. */
+.list-buttons .trailer-button.button-primary { --from: var(--green-rgb); --to: var(--cyan-rgb); }
+
+/* The top three ranks each in a color of their own. */
+#top-movies-list .ranked-row:nth-child(1) .rank-number { color: var(--accent); }
+#top-movies-list .ranked-row:nth-child(2) .rank-number { color: var(--green); }
+#top-movies-list .ranked-row:nth-child(3) .rank-number { color: var(--cyan); }
+
+/* ── Glass ─────────────────────────────────────────────────────────── */
+
+/* Panels are frosted glass over the sprayed glows: they blur what is behind them, tinted from their
+   own tone into violet, with a light edge on top. The error notice keeps its red. */
+:is(.stat-card, .stat-chip, .empty-state, .notice:not(.notice-error), .import-panel, .share-menu, .search-suggestions) {
+    background:
+        linear-gradient(135deg, rgba(var(--tone, var(--accent-rgb)), 0.14), rgba(var(--violet-rgb), 0.05)),
+        rgba(22, 20, 29, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: var(--radius);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 18px 40px rgba(0, 0, 0, 0.35);
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    backdrop-filter: blur(22px) saturate(160%);
+}
+
+/* A fine grain over everything, as on a printed poster. */
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url%28%23n%29'/%3E%3C/svg%3E");
+    opacity: 0.05;
+    mix-blend-mode: overlay;
+}
+
+/* ── Poster glows ──────────────────────────────────────────────────── */
+
+/* Behind each poster, a blurred copy of it (--poster, set by the script once it loads) lights the
+   page in the poster's own colors, so every poster brings its own neon rather than fight the theme. */
+.movie-card, .hero-poster, .movie-hero-poster { position: relative; isolation: isolate; }
+
+.movie-card::before, .hero-poster::before, .movie-hero-poster::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    background: var(--poster) center / cover no-repeat;
+    border-radius: var(--radius);
+    filter: blur(26px) saturate(1.8);
+    opacity: 0;
+    transform: translateY(14px) scale(1.04);
+    transition: opacity 0.6s ease;
+    pointer-events: none;
+}
+
+.movie-card::before { top: 4%; left: 6%; width: 88%; aspect-ratio: 2 / 3; }
+
+.hero-poster::before, .movie-hero-poster::before { inset: 4% 6%; filter: blur(34px) saturate(1.7); }
+
+.poster-glow::before { opacity: 0.7; }
+
+.movie-card:hover::before { opacity: 0.95; }
+
+/* The poster's edge in glass: a fine light line, brighter along the top. */
+.poster::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    pointer-events: none;
+}
+
+/* Under the mouse (see setupPosterTilt): the poster tilts toward the cursor, a light follows the
+   cursor over it, and the glow behind moves the other way. Not on touch screens, nor for visitors
+   who ask for less motion. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    .poster-glow .poster {
+        transform: perspective(800px) rotateX(calc(var(--tilt-y, 0) * -7deg)) rotateY(calc(var(--tilt-x, 0) * 7deg));
+        transition: transform 0.3s ease-out, box-shadow 0.25s ease;
+    }
+
+    .poster-glow::before {
+        translate: calc(var(--tilt-x, 0) * -18px) calc(var(--tilt-y, 0) * -18px);
+        transition: translate 0.3s ease-out, opacity 0.6s ease;
+    }
+
+    .poster-glow .poster::after {
+        background: radial-gradient(circle at var(--shine-x, 50%) var(--shine-y, 0%), rgba(255, 255, 255, var(--shine, 0)), transparent 55%);
+        transition: background 0.2s ease;
+    }
 }

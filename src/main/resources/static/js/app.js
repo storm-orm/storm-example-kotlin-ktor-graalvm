@@ -18,9 +18,64 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSummaries();
     setupBackdrops();
     setupGalleries();
+    setupNavbarHeight();
     setupHeroBands();
     setupTrailers();
+    setupPosterGlows();
+    setupPosterTilt();
 });
+
+// Under the mouse a poster gives a little: it tilts toward the cursor, a light follows the cursor
+// over its surface, and its glow moves the other way, so the poster seems to lift off its light.
+// The pointer's place over the poster goes to the stylesheet as --tilt-x and --tilt-y, from -1 to 1.
+function setupPosterTilt() {
+    if (!matchMedia('(hover: hover) and (prefers-reduced-motion: no-preference)').matches) return;
+    let current = null;
+    const settle = frame => ['--tilt-x', '--tilt-y', '--shine-x', '--shine-y', '--shine'].forEach(name => frame.style.removeProperty(name));
+    document.addEventListener('pointermove', event => {
+        const frame = event.target.closest?.('.poster-glow');
+        if (current && current !== frame) settle(current);
+        current = frame;
+        if (!frame) return;
+        const rect = (frame.querySelector('.poster') ?? frame).getBoundingClientRect();
+        const x = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+        const y = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
+        frame.style.setProperty('--tilt-x', ((x - 0.5) * 2).toFixed(3));
+        frame.style.setProperty('--tilt-y', ((y - 0.5) * 2).toFixed(3));
+        frame.style.setProperty('--shine-x', `${(x * 100).toFixed(1)}%`);
+        frame.style.setProperty('--shine-y', `${(y * 100).toFixed(1)}%`);
+        frame.style.setProperty('--shine', '0.18');
+    }, { passive: true });
+    document.addEventListener('pointerleave', () => { if (current) settle(current); current = null; });
+}
+
+// The navbar's height, as --navbar-height, for the hero that reaches up under it: one row on a
+// desktop, two on a phone, and whatever the window makes of it in between.
+function setupNavbarHeight() {
+    const navbar = document.querySelector('.navbar');
+    if (!navbar) return;
+    const measure = () => document.documentElement.style.setProperty('--navbar-height', `${navbar.offsetHeight}px`);
+    new ResizeObserver(measure).observe(navbar);
+    measure();
+}
+
+/* ── Poster glows ─────────────────────────────────────────────────── */
+
+// A poster lights what is around it in its own colors: once it loads, its card (or the hero's poster
+// frame) takes the image as --poster, which the stylesheet blurs into a glow behind it. Posters load
+// lazily and the infinite scroll adds more, so one listener catches every load as it happens.
+function setupPosterGlows() {
+    const glow = image => {
+        const frame = image.closest('.movie-card, .hero-poster, .movie-hero-poster');
+        if (!frame || image.classList.contains('failed')) return;
+        frame.style.setProperty('--poster', `url("${image.currentSrc || image.src}")`);
+        frame.classList.add('poster-glow');
+    };
+    document.addEventListener('load', event => {
+        if (event.target instanceof HTMLImageElement && event.target.closest('.poster')) glow(event.target);
+    }, true);
+    document.querySelectorAll('.poster img').forEach(image => { if (image.complete && image.naturalWidth) glow(image); });
+}
 
 /* ── Trailers (from TMDB, played from YouTube without its cookies) ── */
 
@@ -954,9 +1009,9 @@ function tagSeenMovies() {
     document.querySelectorAll('a.movie-card, a.ranked-row').forEach(tagSeenMovie);
 }
 
-// Puts the tag on a card or row: green for a movie the visitor has seen, with
-// the day of a check-in; yellow for one friends have seen, naming the friend
-// or counting them; purple for one only club members have seen, likewise;
+// Puts the tag on a card or row: cyan for a movie the visitor has watched, with
+// the day of a check-in; yellow for one friends have watched, naming the friend
+// or counting them; pink for one only club members have watched, likewise;
 // none otherwise. The tag follows a mark or unmark.
 function tagSeenMovie(link) {
     const id = (link.getAttribute('href').match(/^\/movie\/(tt\d+)/) || [])[1];

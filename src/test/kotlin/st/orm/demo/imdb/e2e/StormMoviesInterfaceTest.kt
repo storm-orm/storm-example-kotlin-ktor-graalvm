@@ -726,7 +726,7 @@ class StormMoviesInterfaceTest {
             page.navigate("$baseUrl$path")
             // The stylesheet loaded: the dark theme background is applied.
             val background = page.evaluate("getComputedStyle(document.body).backgroundColor")
-            assertEquals("rgb(11, 13, 20)", background)
+            assertEquals("rgb(10, 9, 14)", background)
             // No horizontal overflow.
             val overflow = page.evaluate(
                 "document.documentElement.scrollWidth - document.documentElement.clientWidth"
