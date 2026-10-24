@@ -141,12 +141,16 @@ function setupTrailers() {
 
 // The platforms a movie streams on in the visitor's country, as their logos; the name is the
 // tooltip and what a screen reader says. Nowhere, or no country known, and the row stays hidden.
+// A movie page has two rows, after the tags on a desktop and on a phone; they share one request.
 function setupWatchProviders() {
+    const requests = new Map();
+    const platformsAt = endpoint => {
+        if (!requests.has(endpoint)) requests.set(endpoint, fetch(endpoint).then(response => response.ok ? response.json() : []));
+        return requests.get(endpoint);
+    };
     document.querySelectorAll('[data-watch-providers-endpoint]').forEach(async row => {
         try {
-            const response = await fetch(row.dataset.watchProvidersEndpoint);
-            if (!response.ok) return;
-            const platforms = await response.json();
+            const platforms = await platformsAt(row.dataset.watchProvidersEndpoint);
             platforms.filter(platform => platform.logoUrl).forEach(platform => {
                 const logo = document.createElement('img');
                 logo.className = 'watch-provider';

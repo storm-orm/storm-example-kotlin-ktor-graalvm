@@ -732,15 +732,15 @@ img { display: block; }
 
 .list-buttons .vote-button { padding: 7px 10px; font-size: 14px; }
 
-/* Where a movie plays: the platforms' logos in a row under the buttons, small and without text. */
-.watch-providers { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+/* Where a movie plays: the platforms' logos after the tags, as tall as a tag, without text. */
+.watch-providers { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-left: 6px; }
 
 .watch-providers[hidden] { display: none; }
 
 .watch-provider {
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 }
@@ -2018,6 +2018,8 @@ img { display: block; }
     .hero-head .movie-genres { display: none; }
     .hero-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 14px; }
     .hero-summary .genre-chip { padding: 3px 9px; font-size: 11px; }
+    .hero-summary .watch-providers { gap: 6px; margin-left: 2px; }
+    .hero-summary .watch-provider { width: 26px; height: 26px; border-radius: 7px; }
     .hero-body { grid-column: 1 / -1; grid-row: 2; margin-top: 28px; }
     .movie-hero { background: var(--background); }
     .hero-backdrop, .movie-backdrop, .backdrop-video { inset: 0 0 auto 0; height: var(--band, 320px); transform: none; }
@@ -2035,6 +2037,8 @@ img { display: block; }
         display: inline-flex;
     }
     .hero-body .trailer-button { display: none; }
+    /* The buttons wrap on a phone, so the thumbs follow the last of them rather than the far end. */
+    .list-buttons .vote-buttons { margin-left: 0; }
 
     /* The trailer forward on a phone: the band itself, sharp; the head on it gives way, the body below
        stays, and its Trailer button, reading Exit trailer, takes the place of the floating one. */

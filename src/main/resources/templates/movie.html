@@ -34,6 +34,9 @@
                 <div class="movie-genres">
                     <a class="genre-chip" th:each="genre : ${detail.genres}"
                        th:href="@{/browse/{name}(name=${genre.name})}" th:text="${genre.name}">Genre</a>
+                    <!-- Where it plays in the visitor's country, from TMDB: logos only, after the tags, shown once the page has found some. -->
+                    <span class="watch-providers" hidden th:if="${tmdb}"
+                          th:data-watch-providers-endpoint="|/api/watch-providers/${detail.movie.id}|"></span>
                 </div>
                 <!-- The trailer, from TMDB, on the backdrop: a phone's way in to it. -->
                 <button class="button button-small trailer-button trailer-overlay" hidden th:if="${tmdb}"
@@ -52,6 +55,8 @@
                     </th:block>
                     <a class="genre-chip" th:each="genre : ${detail.genres}"
                        th:href="@{/browse/{name}(name=${genre.name})}" th:text="${genre.name}">Genre</a>
+                    <span class="watch-providers" hidden th:if="${tmdb}"
+                          th:data-watch-providers-endpoint="|/api/watch-providers/${detail.movie.id}|"></span>
                 </div>
                 <p class="movie-extract" id="movie-description" hidden
                    th:data-summary-endpoint="|/api/summary/movie/${detail.movie.id}|"></p>
@@ -108,9 +113,6 @@
                         </div>
                     </div>
                 </div>
-                <!-- Where it plays in the visitor's country, from TMDB: logos only, shown once the page has found some. -->
-                <div class="watch-providers" hidden th:if="${tmdb}"
-                     th:data-watch-providers-endpoint="|/api/watch-providers/${detail.movie.id}|"></div>
             </div>
         </div>
     </div>
