@@ -2018,6 +2018,8 @@ img { display: block; }
     .hero-head .movie-genres { display: none; }
     .hero-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-bottom: 14px; }
     .hero-summary .genre-chip { padding: 3px 9px; font-size: 11px; }
+    /* No room for the vote count on a phone: the rating says enough. */
+    .hero-summary .votes { display: none; }
     .hero-summary .watch-providers { gap: 6px; margin-left: 2px; }
     .hero-summary .watch-provider { width: 26px; height: 26px; border-radius: 7px; }
     .hero-body { grid-column: 1 / -1; grid-row: 2; margin-top: 28px; }
