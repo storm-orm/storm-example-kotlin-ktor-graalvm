@@ -169,8 +169,6 @@ function setupWatchProviders() {
 
 // On a phone, the hero's head (poster, title, genres) lies on the backdrop, or the trailer behind it,
 // and its body (description, buttons) follows below: the backdrop band ends where the body begins.
-// The hero's height goes along (--hero-height), for the trailer that holds still at the top of the
-// screen while it plays, as large as the hero it left.
 function setupHeroBands() {
     document.querySelectorAll('.hero, .movie-hero').forEach(hero => {
         const body = hero.querySelector('.hero-body');
@@ -178,7 +176,6 @@ function setupHeroBands() {
         const measure = () => {
             const band = body.getBoundingClientRect().top - hero.getBoundingClientRect().top - 14;
             hero.style.setProperty('--band', `${Math.round(band)}px`);
-            hero.style.setProperty('--hero-height', `${hero.offsetHeight}px`);
         };
         new ResizeObserver(measure).observe(hero);
         measure();

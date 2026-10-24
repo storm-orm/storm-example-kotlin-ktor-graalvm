@@ -1469,9 +1469,7 @@ img { display: block; }
 }
 
 /* The trailer brought forward (Trailer, then Exit trailer), in the hero's own space: its content
-   and shading give way, and the player, sharp and as large as the hero (--hero-height, measured by
-   the script), takes clicks. It holds still at the top of the screen while the page scrolls under
-   it; behind the hero, blurred, it scrolls along. */
+   and shading give way, and the player, sharp and as large as the hero, takes clicks. */
 .hero::before, .movie-hero::before, .hero-content, .movie-hero-content { transition: opacity 0.4s ease; }
 
 .trailer-playing::before,
@@ -1479,8 +1477,6 @@ img { display: block; }
 .trailer-playing .movie-hero-content { opacity: 0; pointer-events: none; }
 
 .trailer-playing .backdrop-video { z-index: 3; opacity: 1; pointer-events: auto; }
-
-.trailer-playing:not(.trailer-fullscreen) .backdrop-video { position: fixed; inset: 0 0 auto 0; height: var(--hero-height, 100%); z-index: 40; background: #000; }
 
 .trailer-playing .backdrop-video iframe { width: 100%; height: 100%; transform: translate(-50%, -50%); filter: none; }
 
@@ -1491,15 +1487,14 @@ img { display: block; }
 
 :root:has(.trailer-fullscreen) { overflow: hidden; }
 
-/* Exit trailer floats over the trailer's corner, rising with the navbar from just under it, and
-   holds still with the trailer. */
+/* Exit trailer floats over the trailer's corner, rising with the navbar from just under it. */
 @keyframes trailer-exit-rise { from { transform: translateY(var(--under-nav, 0px)); } }
 
 .trailer-exit {
-    position: fixed;
+    position: absolute;
     top: 16px;
     right: 16px;
-    z-index: 41;
+    z-index: 4;
     animation: trailer-exit-rise 0.45s ease;
 }
 
@@ -2047,12 +2042,13 @@ img { display: block; }
     .list-buttons .vote-buttons { margin-left: 0; }
 
     /* The trailer forward on a phone: the band itself, sharp, with Exit trailer floating over its
-       corner; the head on it gives way, the body below stays. Playing, the band holds still at the top
-       of the screen, as on a desktop, at the band's height. */
+       corner; the head on it gives way, the body below stays. Playing, the band and its Exit trailer
+       hold still at the top of the screen while the page scrolls under them, in portrait; behind the
+       hero, blurred, the band scrolls along. */
     .trailer-playing .hero-content, .trailer-playing .movie-hero-content { opacity: 1; pointer-events: auto; }
     .trailer-playing .hero-head, .trailer-playing .hero-poster, .trailer-playing .movie-hero-poster { opacity: 0; pointer-events: none; }
-    .trailer-playing:not(.trailer-fullscreen) .backdrop-video { height: var(--band, 320px); }
-    .trailer-exit { top: 12px; right: 12px; }
+    .trailer-playing:not(.trailer-fullscreen) .backdrop-video { position: fixed; z-index: 40; background: #000; }
+    .trailer-exit { position: fixed; top: 12px; right: 12px; z-index: 41; }
     .friend-action + .member-actions { flex-basis: 100%; justify-content: flex-end; padding-left: 0; border-left: 0; }
 
     .hero-content, .movie-hero-content { padding: 28px 16px 32px; }
@@ -2172,7 +2168,7 @@ img { display: block; }
 .search-box .search-suggestions {
     background:
         linear-gradient(135deg, rgba(var(--accent-rgb), 0.1), rgba(var(--violet-rgb), 0.04)),
-        rgba(22, 20, 29, 0.85);
+        rgba(22, 20, 29, 0.92);
 }
 
 /* A fine grain over everything, as on a printed poster. */
