@@ -11,7 +11,6 @@ import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.PrincipalRepository
-import st.orm.demo.imdb.repository.RatingRepository
 import st.orm.demo.imdb.repository.WatchlistRepository
 import st.orm.demo.imdb.service.InsightsService
 import st.orm.repository.repository
@@ -25,7 +24,6 @@ class InsightsServiceTest {
     private fun service(orm: ORMTemplate) = InsightsService(
         orm.repository<MovieSeenRepository>(),
         orm.repository<WatchlistRepository>(),
-        orm.repository<RatingRepository>(),
         orm.repository<MovieGenreRepository>(),
         orm.repository<PrincipalRepository>()
     )

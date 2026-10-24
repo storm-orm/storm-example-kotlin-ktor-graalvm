@@ -1,6 +1,7 @@
 package st.orm.demo.imdb.repository
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 import st.orm.demo.imdb.insertUser
 import st.orm.demo.imdb.model.MovieSeen
@@ -29,11 +30,26 @@ class InsightQueriesTest {
     }
 
     @Test
-    fun `the seen movies per decade`(orm: ORMTemplate, capture: SqlCapture) {
+    fun `the seen dates stay on the seen list`(orm: ORMTemplate, capture: SqlCapture) {
         val user = seenFixture(orm)
-        val decades = capture.execute { orm.repository<MovieSeenRepository>().countPerDecade(user) }
-        capture.printStatements("countPerDecade")
-        assertEquals(listOf(DecadeMovieCount(1990, 2), DecadeMovieCount(2000, 1)), decades)
+        val dates = capture.execute { orm.repository<MovieSeenRepository>().findSeenDates(user) }
+        capture.printStatements("findSeenDates")
+        assertEquals(setOf("tt0133093", "tt0234215", "tt0111161"), dates.map { it.movie.id() }.toSet())
+        assertEquals(Instant.parse("2026-07-01T10:00:00Z"), dates.first().seenAt)
+        // The movie is its foreign key: no join to the movie table.
+        assertFalse(capture.statements().single().statement().contains("JOIN"))
+    }
+
+    @Test
+    fun `the seen movies come with their ratings in one query`(orm: ORMTemplate, capture: SqlCapture) {
+        val user = seenFixture(orm)
+        val rows = capture.execute { orm.repository<MovieSeenRepository>().findAllWithRatings(user) }
+        capture.printStatements("findAllWithRatings")
+        assertEquals(1, capture.count())
+        assertEquals(
+            mapOf("The Matrix" to 8.7, "The Matrix Reloaded" to 7.2, "The Shawshank Redemption" to 9.3),
+            rows.associate { it.seen.movie.primaryTitle to it.rating!!.averageRating.toDouble() }
+        )
     }
 
     @Test
@@ -46,14 +62,15 @@ class InsightQueriesTest {
     }
 
     @Test
-    fun `the people seen on at least two movies, per category`(orm: ORMTemplate, capture: SqlCapture) {
+    fun `the actors and directors seen on at least two movies, from one count`(orm: ORMTemplate, capture: SqlCapture) {
         val user = seenFixture(orm)
-        val principals = orm.repository<PrincipalRepository>()
-        val actors = capture.execute { principals.countSeenPeople(user, ACTING_CATEGORIES, minimumMovies = 2, limit = 10) }
-        capture.printStatements("countSeenPeople")
+        val favourites = capture.execute { orm.repository<PrincipalRepository>().findSeenFavourites(user, minimumMovies = 2, limit = 10) }
+        capture.printStatements("findSeenFavourites")
+        // One count over both categories, then the people who made either list.
+        assertEquals(2, capture.count())
         // Tim Robbins and Morgan Freeman are on one of the visitor's movies only; Al Pacino on another visitor's.
-        assertEquals(setOf("Keanu Reeves" to 2L, "Laurence Fishburne" to 2L), actors.map { it.person.primaryName to it.movieCount }.toSet())
-        val directors = principals.countSeenPeople(user, listOf(DIRECTOR), minimumMovies = 2, limit = 10)
-        assertEquals(listOf("Lana Wachowski" to 2L), directors.map { it.person.primaryName to it.movieCount })
+        assertEquals(setOf("Keanu Reeves" to 2L, "Laurence Fishburne" to 2L), favourites.actors.map { it.person.primaryName to it.movieCount }.toSet())
+        assertEquals(listOf("Lana Wachowski" to 2L), favourites.directors.map { it.person.primaryName to it.movieCount })
     }
+
 }

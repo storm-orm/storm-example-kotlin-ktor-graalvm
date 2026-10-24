@@ -9,6 +9,7 @@ import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.UserRepository
 import st.orm.demo.imdb.repository.WatchlistRepository
+import st.orm.template.entityId
 import st.orm.template.transaction
 import java.time.Instant
 import java.time.ZoneOffset
@@ -45,12 +46,13 @@ class MovieSeenService(
         val stored = userRepository.touch(user, now)
         val state = if (movieSeenRepository.contains(stored, movie)) {
             movieSeenRepository.removeById(MovieSeenPk(userId = stored.id, movieId = movie.id))
-            MovieListState(onWatchlist = watchlistRepository.contains(stored, movie), seen = false)
+            MovieListState.of(onWatchlist = watchlistRepository.contains(stored, movie), seen = null)
         } else {
-            movieSeenRepository.insert(MovieSeen(user = stored, movie = movie, seenAt = now))
+            val seen = MovieSeen(user = stored, movie = movie, seenAt = now)
+            movieSeenRepository.insert(seen)
             watchlistRepository.remove(stored, movie)
             recommendationService.record(stored, movie, RecommendationEventKind.SEEN)
-            MovieListState(onWatchlist = false, seen = true)
+            MovieListState.of(onWatchlist = false, seen = seen)
         }
         recommendationService.refreshLater(stored)
         return state
@@ -66,22 +68,25 @@ class MovieSeenService(
         val movie = movieRepository.getById(movieId)
         val now = Instant.now()
         val stored = userRepository.touch(user, now)
-        val seen = movieSeenRepository.findById(MovieSeenPk(userId = stored.id, movieId = movie.id))
-        if (seen != null) {
-            movieSeenRepository.update(seen.copy(liked = liked))
+        val before = movieSeenRepository.findById(MovieSeenPk(userId = stored.id, movieId = movie.id))
+        val seen = if (before != null) {
+            before.copy(liked = liked).also { movieSeenRepository.update(it) }
         } else {
-            movieSeenRepository.insert(MovieSeen(user = stored, movie = movie, seenAt = now, liked = liked))
-            watchlistRepository.remove(stored, movie)
-            recommendationService.record(stored, movie, RecommendationEventKind.SEEN)
+            MovieSeen(user = stored, movie = movie, seenAt = now, liked = liked).also {
+                movieSeenRepository.insert(it)
+                watchlistRepository.remove(stored, movie)
+                recommendationService.record(stored, movie, RecommendationEventKind.SEEN)
+            }
         }
         recommendationService.refreshLater(stored)
-        return MovieListState(onWatchlist = false, seen = true, liked = liked)
+        return MovieListState.of(onWatchlist = false, seen = seen)
     }
 
     /**
      * Marks the titles of an IMDb export as seen ([ImdbExport]), on the day
-     * IMDb has for each: the day it was rated, or else added to the list. A
-     * movie already seen takes that day too, since IMDb is where the user
+     * IMDb has for each: the day it was rated, or else added to the list; a
+     * title listed more than once counts its latest day ([latestPerTitle]).
+     * A movie already seen takes that day too, since IMDb is where the user
      * kept the history. The rating becomes a thumb, 8 and up for a thumbs
      * up and 5 and down for a thumbs down, unless the user gave one here.
      * As with marking one movie, the movies come off the watchlist.
@@ -93,7 +98,7 @@ class MovieSeenService(
      */
     suspend fun importFromImdb(user: User, rows: List<ImdbExportRow>, now: Instant = Instant.now()): ImdbImport = transaction {
         val stored = userRepository.touch(user, now)
-        val rowsById = rows.associateBy { it.movieId }
+        val rowsById = latestPerTitle(rows)
         val movies = movieRepository.findAllById(rowsById.keys)
         val before = movieSeenRepository.findAll(stored).associateBy { it.movie.id }
         movieSeenRepository.upsert(movies.map { movie ->
@@ -114,6 +119,24 @@ class MovieSeenService(
             skipped = rowsById.size - movies.size
         )
     }
+
+    /**
+     * When the user marked each movie seen, by movie id, for the seen tag
+     * that every list of movies puts on the ones the visitor has seen.
+     */
+    fun seenDates(user: User): Map<String, Instant> =
+        movieSeenRepository.findSeenDates(user).associate { it.movie.entityId() to it.seenAt }
+
+    /**
+     * One row per title, the one with the latest day, for an export that
+     * records a title more than once. Its rating is the latest one given,
+     * should that row have none.
+     */
+    private fun latestPerTitle(rows: List<ImdbExportRow>): Map<String, ImdbExportRow> =
+        rows.groupBy { it.movieId }.mapValues { (_, checkIns) ->
+            val byDay = checkIns.sortedWith(compareBy(nullsFirst()) { it.date })
+            byDay.last().copy(rating = byDay.last().rating ?: byDay.lastOrNull { it.rating != null }?.rating)
+        }
 
     /** One page of the movies the user has seen, for the seen page (0-based). */
     fun findPage(user: User, pageNumber: Int): Page<MovieSeen> =

@@ -103,13 +103,10 @@ class MovieService(
             genres = movieGenreRepository.findGenres(movie),
             cast = cast,
             relatedMovies = relatedMovies,
-            lists = movieSeenRepository.findById(MovieSeenPk(userId = user.id, movieId = movie.id)).let { seen ->
-                MovieListState(
-                    onWatchlist = watchlistRepository.contains(user, movie),
-                    seen = seen != null,
-                    liked = seen?.liked
-                )
-            }
+            lists = MovieListState.of(
+                onWatchlist = watchlistRepository.contains(user, movie),
+                seen = movieSeenRepository.findById(MovieSeenPk(userId = user.id, movieId = movie.id))
+            )
         )
     }
 

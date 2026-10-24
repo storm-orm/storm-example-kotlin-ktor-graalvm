@@ -90,6 +90,25 @@ class ImdbImportTest {
     }
 
     @Test
+    fun `a title listed more than once takes its latest day, and the latest rating given`(orm: ORMTemplate) {
+        val user = orm.insertUser("visitor-check-ins")
+        val rows = listOf(
+            ImdbExportRow("tt0133093", LocalDate.of(2019, 5, 1), 9),
+            ImdbExportRow("tt0133093", LocalDate.of(2023, 8, 12), null),
+            ImdbExportRow("tt0133093", null, 4),
+            ImdbExportRow("tt0133093", LocalDate.of(2021, 1, 3), 6)
+        )
+
+        val result = runBlocking { service(orm).importFromImdb(user, rows) }
+
+        assertEquals(ImdbImport(added = 1, updated = 0, skipped = 0), result)
+        val matrix = orm.repository<MovieSeenRepository>().getById(MovieSeenPk(user.id, "tt0133093"))
+        assertEquals(Instant.parse("2023-08-12T00:00:00Z"), matrix.seenAt)
+        // The latest day has no rating; the latest rating among the dated ones, a 6, gives no thumb.
+        assertNull(matrix.liked)
+    }
+
+    @Test
     fun `the IMDb rating maps to a thumb at the ends of the scale only`() {
         assertEquals(listOf(false, false, null, null, true, true), listOf(1, 5, 6, 7, 8, 10).map { MovieSeenService.thumbFor(it) })
         assertNull(MovieSeenService.thumbFor(null))

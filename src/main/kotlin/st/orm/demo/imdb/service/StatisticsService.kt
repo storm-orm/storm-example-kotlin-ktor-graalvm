@@ -1,7 +1,10 @@
 package st.orm.demo.imdb.service
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
 import st.orm.demo.imdb.repository.DecadeMovieCount
+import st.orm.demo.imdb.repository.GenreMovieCount
+import st.orm.demo.imdb.repository.GenreRepository
 import st.orm.demo.imdb.repository.GenreRatingStatistics
 import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieRepository
@@ -38,6 +41,7 @@ data class StatisticsView(
 
 class StatisticsService(
     private val movieRepository: MovieRepository,
+    private val genreRepository: GenreRepository,
     private val movieGenreRepository: MovieGenreRepository,
     private val personRepository: PersonRepository,
     private val principalRepository: PrincipalRepository,
@@ -68,9 +72,27 @@ class StatisticsService(
     suspend fun buildStatisticsView(): StatisticsView =
         cache.get(STATISTICS_CACHE) { computeStatisticsView() }
 
-    /** Recomputes the view and replaces the cached one, once the data behind it has changed. */
-    suspend fun refreshStatisticsView() {
+    /**
+     * The genres with their movie counts, for the genre navigation on the
+     * home page. A count over every movie's genres takes a few hundred
+     * milliseconds on the hosted database, and only the daily sync changes
+     * it, so it is a catalogue statistic like the ones above: cached the same
+     * way, under a key of its own so the home page never waits for the whole
+     * view, and refreshed with it ([refreshCatalogueStatistics]).
+     */
+    suspend fun genreCounts(): List<GenreMovieCount> =
+        genreCountsCache.get(GENRE_COUNTS_CACHE) { computeGenreCounts() }
+
+    private val genreCountsCache = KotlinxSerializedCache(GENRE_COUNTS_CACHE, ListSerializer(GenreMovieCount.serializer()))
+
+    private suspend fun computeGenreCounts(): List<GenreMovieCount> = transaction(readOnly = true) {
+        genreRepository.findGenresWithMovieCounts()
+    }
+
+    /** Recomputes the cached catalogue statistics and replaces them, once the data behind them has changed. */
+    suspend fun refreshCatalogueStatistics() {
         cache.put(STATISTICS_CACHE, computeStatisticsView())
+        genreCountsCache.put(GENRE_COUNTS_CACHE, computeGenreCounts())
     }
 
     private suspend fun computeStatisticsView(): StatisticsView = transaction(readOnly = true) {
@@ -92,6 +114,7 @@ class StatisticsService(
 
     companion object {
         const val STATISTICS_CACHE = "statistics"
+        const val GENRE_COUNTS_CACHE = "genre-counts"
         private const val GENRE_MINIMUM_MOVIE_COUNT = 50
         private const val GENRE_LIMIT = 10
         private const val ACTOR_LIMIT = 10

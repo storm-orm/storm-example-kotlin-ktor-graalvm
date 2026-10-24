@@ -7,7 +7,6 @@ import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.model.Watchlist
 import st.orm.demo.imdb.repository.GenreMovieCount
-import st.orm.demo.imdb.repository.GenreRepository
 import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
@@ -40,7 +39,7 @@ class HomeService(
     private val movieRepository: MovieRepository,
     private val movieViewRepository: MovieViewRepository,
     private val ratingRepository: RatingRepository,
-    private val genreRepository: GenreRepository,
+    private val statisticsService: StatisticsService,
     private val movieGenreRepository: MovieGenreRepository,
     private val watchlistRepository: WatchlistRepository,
     private val movieSeenRepository: MovieSeenRepository,
@@ -49,32 +48,31 @@ class HomeService(
 
     /** All home page sections for the visitor, read in one read-only transaction. */
     suspend fun buildHomeView(user: User): HomeView = transaction(readOnly = true) {
-        // The featured movie is the site's latest view; the recently viewed are the visitor's own.
-        // Views hold movie refs; dedupe the refs and fetch the movies once.
-        val latestView = movieViewRepository.findRecentViews(1).firstOrNull()?.movie
-        val recentMovieRefs = movieViewRepository.findRecentViews(user, RECENT_VIEW_SAMPLE_SIZE)
-            .map { it.movie }
-            .distinct()
-            .take(RECENTLY_VIEWED_LIMIT)
-        val moviesByRef = movieRepository.findAllByRef(listOfNotNull(latestView) + recentMovieRefs).associateBy { it.ref() }
-        val recentMovies = recentMovieRefs.mapNotNull { moviesByRef[it] }
-
-        val featured = latestView?.let { moviesByRef[it] }?.let { movie ->
-            FeaturedMovie(
-                movie = movie,
-                rating = ratingRepository.findById(movie),
-                genres = movieGenreRepository.findGenres(movie)
-            )
-        }
         HomeView(
-            featured = featured,
-            recentlyViewed = recentMovies,
+            featured = featured(),
+            recentlyViewed = recentlyViewed(user),
             topRated = ratingRepository.findTopRated(TOP_RATED_MINIMUM_VOTES, TOP_RATED_LIMIT),
-            genreCounts = genreRepository.findGenresWithMovieCounts(),
+            genreCounts = statisticsService.genreCounts(),
             watchlistEntries = watchlistRepository.findMostRecent(user, LIST_PREVIEW_LIMIT),
             seenEntries = movieSeenRepository.findMostRecent(user, LIST_PREVIEW_LIMIT),
             recommendations = recommendationService.forHome(user)
         )
+    }
+
+    /** The site's latest view, with its rating and genres: the hero at the top of the page. */
+    private fun featured(): FeaturedMovie? {
+        val movie = movieViewRepository.findRecentViews(1).firstOrNull()?.movie?.let { movieRepository.findByRef(it) } ?: return null
+        return FeaturedMovie(movie = movie, rating = ratingRepository.findById(movie), genres = movieGenreRepository.findGenres(movie))
+    }
+
+    /** The movies the visitor viewed last, each once. Views hold movie refs; the movies are fetched in one query. */
+    private fun recentlyViewed(user: User): List<Movie> {
+        val refs = movieViewRepository.findRecentViews(user, RECENT_VIEW_SAMPLE_SIZE)
+            .map { it.movie }
+            .distinct()
+            .take(RECENTLY_VIEWED_LIMIT)
+        val moviesByRef = movieRepository.findAllByRef(refs).associateBy { it.ref() }
+        return refs.mapNotNull { moviesByRef[it] }
     }
 
     companion object {

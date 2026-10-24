@@ -4,17 +4,13 @@ import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieSeen
 import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.model.User
-import st.orm.demo.imdb.repository.ACTING_CATEGORIES
-import st.orm.demo.imdb.repository.DIRECTOR
 import st.orm.demo.imdb.repository.DecadeMovieCount
 import st.orm.demo.imdb.repository.GenreSeenCount
 import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.PersonSeenCount
 import st.orm.demo.imdb.repository.PrincipalRepository
-import st.orm.demo.imdb.repository.RatingRepository
 import st.orm.demo.imdb.repository.WatchlistRepository
-import st.orm.template.ref
 import st.orm.template.transaction
 import java.text.NumberFormat
 import java.util.Locale
@@ -131,16 +127,24 @@ data class InsightsView(
 class InsightsService(
     private val movieSeenRepository: MovieSeenRepository,
     private val watchlistRepository: WatchlistRepository,
-    private val ratingRepository: RatingRepository,
     private val movieGenreRepository: MovieGenreRepository,
     private val principalRepository: PrincipalRepository
 ) {
 
+    /**
+     * The visitor's insights, read in one read-only transaction: the seen
+     * movies with their ratings in one query, the genres, the favourite
+     * people in one count, and the watchlist size. The totals, the decades,
+     * the rating spread and the standouts are worked out from the seen
+     * movies already read.
+     */
     suspend fun insightsFor(user: User): InsightsView = transaction(readOnly = true) {
-        val seen = movieSeenRepository.findAll(user)
-        if (seen.isEmpty()) return@transaction InsightsView.nothingSeen(watchlistRepository.countFor(user))
-        val ratings = ratingRepository.findByMovies(seen.map { it.movie.ref() })
+        val rows = movieSeenRepository.findAllWithRatings(user)
+        if (rows.isEmpty()) return@transaction InsightsView.nothingSeen(watchlistRepository.countFor(user))
+        val seen = rows.map { it.seen }
+        val ratings = rows.mapNotNull { it.rating }
         val ratingsByMovie = ratings.associateBy { it.movie.id }
+        val favourites = principalRepository.findSeenFavourites(user, MINIMUM_MOVIES, FAVOURITES_LIMIT)
         fun averageOf(movies: List<Movie>) = movies.mapNotNull { ratingsByMovie[it.id]?.averageRating?.toDouble() }.takeIf { it.isNotEmpty() }?.average()
         val liked = seen.filter { it.liked == true }.map { it.movie }
         val disliked = seen.filter { it.liked == false }.map { it.movie }
@@ -153,14 +157,21 @@ class InsightsService(
             averageRating = averageOf(seen.map { it.movie }),
             ratings = RatingDistribution.of(ratings),
             genres = bars(movieGenreRepository.countSeenPerGenre(user, GENRE_LIMIT)) { it.movieCount },
-            decades = bars(movieSeenRepository.countPerDecade(user)) { it.movieCount },
-            actors = principalRepository.countSeenPeople(user, ACTING_CATEGORIES, MINIMUM_MOVIES, ACTOR_LIMIT),
-            directors = principalRepository.countSeenPeople(user, listOf(DIRECTOR), MINIMUM_MOVIES, DIRECTOR_LIMIT),
+            decades = bars(decadesOf(seen)) { it.movieCount },
+            actors = favourites.actors,
+            directors = favourites.directors,
             highlights = highlights(seen, ratings),
             likedAverage = averageOf(liked).takeIf { disliked.isNotEmpty() },
             dislikedAverage = averageOf(disliked).takeIf { liked.isNotEmpty() }
         )
     }
+
+    /** How many of the seen movies came out in each decade, the earliest first. */
+    private fun decadesOf(seen: List<MovieSeen>): List<DecadeMovieCount> =
+        seen.mapNotNull { it.movie.startYear?.let(::decadeOf) }
+            .groupingBy { it }.eachCount()
+            .toSortedMap()
+            .map { (decade, count) -> DecadeMovieCount(decade, count.toLong()) }
 
     private fun <T> bars(items: List<T>, count: (T) -> Long): List<Bar<T>> {
         val longest = items.maxOfOrNull(count)?.takeIf { it > 0 } ?: 1L
@@ -196,8 +207,7 @@ class InsightsService(
         /** A favourite is on at least this many of the visitor's movies. */
         private const val MINIMUM_MOVIES = 2
         /** The favourites and the genres stand side by side on the page: the same length keeps them level. */
-        private const val ACTOR_LIMIT = 8
-        private const val DIRECTOR_LIMIT = 8
+        private const val FAVOURITES_LIMIT = 8
         private const val GENRE_LIMIT = 8
 
         /** The standouts fill one row of the page. */

@@ -42,6 +42,7 @@
                 </button>
                 <button class="button list-button seen-button" data-list-toggle="seen"
                         th:data-movie-id="${detail.movie.id}"
+                        th:data-seen-at="${detail.lists.seenAt}"
                         th:classappend="${detail.lists.seen} ? 'active'">
                     <span data-seen-label
                           th:text="${detail.lists.seen} ? 'Seen' : 'Mark as seen'">Mark as seen</span>

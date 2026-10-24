@@ -223,6 +223,12 @@ platform wherever auth is on; until it does, `freepod var set FREEPOD_AUTH=true`
 account page links another: a login that is new is added to the account, and
 one that leads to an account of its own joins the two, lists and logins.
 
+Every list of movies tags the ones the visitor has seen, with the day they
+marked it: one query reads the seen list as movie ids and days
+(`MovieSeenRepository.findSeenDates`, the movie selected as its foreign key,
+so no movie is loaded), the page fetches it once, and a small script tags the
+cards and rows, including those the infinite scroll adds.
+
 Recently viewed on the home page is the visitor's own too, while the
 featured movie above it is the site's latest view. A view records the
 account (`movie_view.user_id`, V9) when the browser came back with its

@@ -127,7 +127,7 @@ private fun Application.configureImdbSync() {
     suspend fun syncInBackground() {
         try {
             imdbDataSync.sync()
-            statisticsService.refreshStatisticsView()
+            statisticsService.refreshCatalogueStatistics()
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -156,15 +156,18 @@ private fun timeUntil(time: LocalTime): Duration {
 
 /**
  * The statistics page aggregates every movie, rating and credit, which takes a
- * moment, and its cache lives in memory, so it starts empty after each restart.
- * Filling it in the background as soon as the data is in place spares the first
- * visitor that wait. A failure is logged, and the page computes the view itself.
+ * moment, and the home page counts the movies per genre; the cache holding both
+ * lives in memory, so it starts empty after each restart. Filling it in the
+ * background as soon as the data is in place spares the first visitor that
+ * wait. A failure is logged, and the page computes what it needs itself.
  */
 private fun Application.configureStatisticsWarmUp() {
     val statisticsService: StatisticsService by dependencies
     launch {
-        runCatching { statisticsService.buildStatisticsView() }
-            .onFailure { environment.log.warn("Could not prepare the statistics in advance.", it) }
+        runCatching {
+            statisticsService.genreCounts()
+            statisticsService.buildStatisticsView()
+        }.onFailure { environment.log.warn("Could not prepare the statistics in advance.", it) }
     }
 }
 

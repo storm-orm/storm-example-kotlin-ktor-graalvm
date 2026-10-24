@@ -11,6 +11,7 @@ import st.orm.demo.imdb.service.StatisticsView
 import st.orm.repository.repository
 import st.orm.serialization.StormSerializers
 import st.orm.template.ORMTemplate
+import st.orm.test.SqlCapture
 import st.orm.test.StormTest
 
 /**
@@ -48,8 +49,22 @@ class StatisticsCachingTest {
         assertEquals(view, cache.get("statistics"))
     }
 
+    @Test
+    fun `the genre counts are counted once, then served from the cache`(orm: ORMTemplate, capture: SqlCapture) {
+        val statisticsService = statisticsService(orm)
+        val counted = runBlocking { statisticsService.genreCounts() }
+
+        val cached = capture.execute { runBlocking { statisticsService.genreCounts() } }
+
+        // The home page asks on every visit; only the first visit after a start, or a sync, counts.
+        assertEquals(counted, cached)
+        assertEquals(0, capture.count())
+        assertEquals(listOf("Action", "Drama", "Sci-Fi"), cached.map { it.genre.name })
+    }
+
     private fun statisticsService(orm: ORMTemplate) = StatisticsService(
         movieRepository = orm.repository(),
+        genreRepository = orm.repository(),
         movieGenreRepository = orm.repository(),
         personRepository = orm.repository(),
         principalRepository = orm.repository(),

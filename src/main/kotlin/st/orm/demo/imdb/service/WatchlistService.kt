@@ -46,7 +46,7 @@ class WatchlistService(
         }
         recommendationService.refreshLater(stored)
         val seen = movieSeenRepository.findById(MovieSeenPk(userId = stored.id, movieId = movie.id))
-        return MovieListState(onWatchlist = onWatchlist, seen = seen != null, liked = seen?.liked)
+        return MovieListState.of(onWatchlist = onWatchlist, seen = seen)
     }
 
     /** One page of the user's watchlist for the watchlist page (0-based). */

@@ -1,16 +1,45 @@
 package st.orm.demo.imdb.repository
 
 import st.orm.Page
+import st.orm.Ref
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieSeen
 import st.orm.demo.imdb.model.MovieSeenPk
 import st.orm.demo.imdb.model.MovieSeen_
+import st.orm.demo.imdb.model.Rating
+import st.orm.demo.imdb.model.Rating_
 import st.orm.demo.imdb.model.User
 import st.orm.repository.EntityRepository
 import st.orm.repository.select
-import st.orm.template.and
 import st.orm.template.eq
-import st.orm.template.isNotNull
+import java.math.BigDecimal
+import java.time.Instant
+
+/**
+ * Query result shape: a movie the user has seen, with its IMDb rating's
+ * columns, which a movie the sync has not rated yet lacks. Not backed by a
+ * database table or view, so it is a plain data class — deliberately not a
+ * Data type.
+ */
+data class SeenWithRating(
+    val seen: MovieSeen,
+    val averageRating: BigDecimal?,
+    val voteCount: Int?
+) {
+    /** The rating as the entity, for what reads ratings; null for a movie without one. */
+    val rating: Rating?
+        get() = if (averageRating != null && voteCount != null) Rating(seen.movie, averageRating, voteCount) else null
+}
+
+/**
+ * Query result shape: a movie the user has seen, as its id, and when they
+ * marked it. Not backed by a database table or view, so it is a plain data
+ * class — deliberately not a Data type.
+ */
+data class SeenDate(
+    val movie: Ref<Movie>,
+    val seenAt: Instant
+)
 
 interface MovieSeenRepository : EntityRepository<MovieSeen, MovieSeenPk> {
 
@@ -18,20 +47,30 @@ interface MovieSeenRepository : EntityRepository<MovieSeen, MovieSeenPk> {
     fun contains(user: User, movie: Movie): Boolean =
         existsById(MovieSeenPk(userId = user.id, movieId = movie.id))
 
+    /**
+     * When the user marked each movie seen, for the seen tag on every list
+     * of movies. The movie is selected as its foreign key, a Ref, so the
+     * query stays on the seen list and loads no movie.
+     */
+    fun findSeenDates(user: User): List<SeenDate> =
+        select<SeenDate, _, _> { "${MovieSeen_.movie.id}, ${MovieSeen_.seenAt}" }
+            .where(MovieSeen_.user eq user)
+            .resultList
+
     /** Everything the user has seen, in no particular order: the seeds of the recommendations. */
     fun findAll(user: User): List<MovieSeen> =
         findAll(MovieSeen_.user eq user)
 
     /**
-     * The movies the user has seen per decade, for the insights page: the
-     * same template as the catalogue's decades on the statistics page
-     * (MovieRepository.countMoviesPerDecade), through the seen list.
+     * Everything the user has seen, each with its IMDb rating, for the
+     * insights page: the rating's columns are selected beside the seen row,
+     * from a left join, so one query brings both, and a movie without a
+     * rating still counts as seen.
      */
-    fun countPerDecade(user: User): List<DecadeMovieCount> =
-        select<DecadeMovieCount, _, _> { "(${MovieSeen_.movie.startYear} / 10) * 10, COUNT(*)" }
-            .where((MovieSeen_.user eq user) and MovieSeen_.movie.startYear.isNotNull())
-            .groupBy { "(${MovieSeen_.movie.startYear} / 10) * 10" }
-            .orderBy { "(${MovieSeen_.movie.startYear} / 10) * 10" }
+    fun findAllWithRatings(user: User): List<SeenWithRating> =
+        select<SeenWithRating, _, _> { "${MovieSeen::class}, ${Rating_.averageRating}, ${Rating_.voteCount}" }
+            .leftJoin<Rating>().on<Movie>()
+            .where(MovieSeen_.user eq user)
             .resultList
 
     /**

@@ -3,6 +3,7 @@ package st.orm.demo.imdb.web
 import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
 import io.ktor.server.request.receiveMultipart
+import io.ktor.server.response.respond
 import io.ktor.server.response.respondRedirect
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
@@ -38,6 +39,11 @@ fun Route.movieSeenRoutes(movieSeenService: MovieSeenService) {
                 )
             )
         )
+    }
+
+    // The seen dates, by movie id, for the seen tags the page puts on its lists of movies.
+    get("/api/seen") {
+        call.respond(movieSeenService.seenDates(call.currentUser()).mapValues { it.value.toString() })
     }
 
     // The IMDb export arrives as a file upload. The file is read before the

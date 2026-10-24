@@ -22,6 +22,7 @@ import st.orm.template.inRefs
 import st.orm.template.lessEq
 import st.orm.template.neq
 import st.orm.template.or
+import st.orm.template.ref
 import java.math.BigDecimal
 
 /** The credit categories that count as acting. */
@@ -76,10 +77,10 @@ data class ProlificActor(
 )
 
 /**
- * Query result shape: the number of acting credits per person, keyed by the
+ * Query result shape: the number of credits per person, keyed by the
  * credit's foreign key, so the count needs no join to the person table.
  */
-data class ActingCreditCount(
+data class PersonCreditCount(
     val person: Ref<Person>,
     val creditCount: Long
 )
@@ -92,6 +93,23 @@ data class ActingCreditCount(
 data class PersonSeenCount(
     val person: Person,
     val movieCount: Long
+)
+
+/**
+ * Query result shape: the number of credits per person and category, keyed
+ * by the credit's foreign key. Not backed by a database table or view, so
+ * it is a plain data class — deliberately not a Data type.
+ */
+data class CategoryCreditCount(
+    val person: Ref<Person>,
+    val category: String,
+    val creditCount: Long
+)
+
+/** The favourite actors and directors of a user, for the insights page. */
+data class SeenFavourites(
+    val actors: List<PersonSeenCount>,
+    val directors: List<PersonSeenCount>
 )
 
 /**
@@ -190,7 +208,7 @@ interface PrincipalRepository : EntityRepository<Principal, PrincipalPk> {
      * one query; joining every person before counting took four times as long.
      */
     fun findMostProlificActors(limit: Int): List<ProlificActor> {
-        val counts = select<ActingCreditCount, _, _> { "${Principal_.person}, COUNT(*)" }
+        val counts = select<PersonCreditCount, _, _> { "${Principal_.person}, COUNT(*)" }
             .where(Principal_.category inList ACTING_CATEGORIES)
             .groupBy(Principal_.person)
             .orderByDescending { "COUNT(*)" }
@@ -201,20 +219,28 @@ interface PrincipalRepository : EntityRepository<Principal, PrincipalPk> {
     }
 
     /**
-     * The people the user has seen most often in the given categories, the
-     * actors or the directors, for the insights page: the credits join the
-     * seen list on the movie, and only a person on at least [minimumMovies]
-     * of the user's movies qualifies (HAVING), so a single credit says
-     * nothing about a favourite.
+     * The actors and the directors the user has seen most often, for the
+     * insights page, from one count: the credits join the seen list on the
+     * movie and are counted per person and category, by the person's foreign
+     * key, so the person table is not joined for each of the thousands of
+     * credits of a long seen list. Only a person on at least [minimumMovies]
+     * of the user's movies qualifies (HAVING), since a single credit says
+     * nothing about a favourite. The people who made either list are then
+     * loaded in one query, as for the most prolific actors.
      */
-    fun countSeenPeople(user: User, categories: List<String>, minimumMovies: Int, limit: Int): List<PersonSeenCount> =
-        select<PersonSeenCount, _, _> { "${Person::class}, COUNT(*)" }
+    fun findSeenFavourites(user: User, minimumMovies: Int, limit: Int): SeenFavourites {
+        val counts = select<CategoryCreditCount, _, _> { "${Principal_.person}, ${Principal_.category}, COUNT(*)" }
             .innerJoin<MovieSeen>().on<Movie>()
-            .where((MovieSeen_.user eq user) and (Principal_.category inList categories))
-            .groupBy(Principal_.person)
+            .where((MovieSeen_.user eq user) and (Principal_.category inList ACTING_CATEGORIES + DIRECTOR))
+            .groupBy(Principal_.person, Principal_.category)
             .having { "COUNT(*) >= $minimumMovies" }
             .orderByDescending { "COUNT(*)" }
-            .limit(limit)
             .resultList
+        val actors = counts.filter { it.category in ACTING_CATEGORIES }.take(limit)
+        val directors = counts.filter { it.category == DIRECTOR }.take(limit)
+        val people = orm.entity(Person::class).findAllByRef((actors + directors).map { it.person }.distinct()).associateBy { it.ref() }
+        fun named(counts: List<CategoryCreditCount>) = counts.map { PersonSeenCount(people.getValue(it.person), it.creditCount) }
+        return SeenFavourites(actors = named(actors), directors = named(directors))
+    }
 
 }

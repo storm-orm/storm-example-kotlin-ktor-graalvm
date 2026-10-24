@@ -6,6 +6,7 @@ import com.microsoft.playwright.Locator
 import com.microsoft.playwright.Page
 import com.microsoft.playwright.Playwright
 import com.microsoft.playwright.options.FilePayload
+import com.microsoft.playwright.options.FormData
 import com.microsoft.playwright.assertions.LocatorAssertions
 import com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat
 import com.microsoft.playwright.options.RequestOptions
@@ -217,6 +218,43 @@ class StormMoviesInterfaceTest {
         assertThat(page.locator("#seen-results .movie-card-title")).containsText(arrayOf("The Matrix", "The Shawshank Redemption"))
         // Reloading the result does not upload the file again: the import answered with a redirect.
         assertTrue(page.url().contains("/seen?added=2"))
+    }
+
+    /* ── Seen tags ────────────────────────────────────────────────── */
+
+    @Test
+    fun `lists of movies tag the ones seen, recent ones with the checkmark alone`() {
+        page.onConsoleMessage { println("console: " + it.text()) }
+        page.onPageError { println("page error: $it") }
+        page.navigate("$baseUrl/")
+        page.request().post("$baseUrl/api/seen/tt0111161")
+
+        // A ranked row: the tag sits beside the year; seen this month, it is the checkmark alone, the day in its title.
+        page.navigate("$baseUrl/top")
+        val row = page.locator("a.ranked-row[href='/movie/tt0111161']")
+        assertThat(row.locator(".seen-tag")).hasText("✓")
+        assertThat(row.locator(".seen-tag")).hasAttribute("title", Pattern.compile("Seen \\d{1,2} \\w{3} \\d{4}"))
+        // A movie not seen has none.
+        assertThat(page.locator("a.ranked-row[href='/movie/tt0068646'] .seen-tag")).hasCount(0)
+
+        // Seen longer ago, here by an IMDb import, the tag and the movie page's button carry the day.
+        page.request().post("$baseUrl/seen/import", RequestOptions.create().setMultipart(FormData.create()
+            .set("export", FilePayload("ratings.csv", "text/csv", "Const,Your Rating,Date Rated\ntt0068646,9,2020-01-02\n".toByteArray()))))
+        page.navigate("$baseUrl/top")
+        assertThat(page.locator("a.ranked-row[href='/movie/tt0068646'] .seen-tag")).hasText("✓ 2 Jan 2020")
+        page.navigate("$baseUrl/movie/tt0068646")
+        assertThat(page.locator("[data-seen-label]")).hasText("Seen 2 Jan 2020")
+        page.navigate("$baseUrl/movie/tt0111161")
+        assertThat(page.locator("[data-seen-label]")).hasText("Seen")
+
+        // A poster card: the tag sits in the poster's corner, on the seen page as well.
+        page.navigate("$baseUrl/seen")
+        val posterTag = page.locator("#seen-results a.movie-card .poster .seen-tag").first()
+        assertThat(posterTag).isVisible()
+        // Shown, not merely present: the tag is what lies on top at its own centre, not the poster image.
+        val box = posterTag.boundingBox()
+        val onTop = page.evaluate("([x, y]) => !!document.elementFromPoint(x, y).closest('.seen-tag')", listOf(box.x + box.width / 2, box.y + box.height / 2))
+        assertEquals(true, onTop)
     }
 
     /* ── Insights ─────────────────────────────────────────────────── */

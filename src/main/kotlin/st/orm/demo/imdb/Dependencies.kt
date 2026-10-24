@@ -78,8 +78,8 @@ fun Application.configureDependencies() {
         provide { TopMoviesService(resolve(), resolve()) }
         provide { WatchlistService(resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { MovieSeenService(resolve(), resolve(), resolve(), resolve(), resolve()) }
-        provide { StatisticsService(resolve(), resolve(), resolve(), resolve(), resolve()) }
-        provide { InsightsService(resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { StatisticsService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { InsightsService(resolve(), resolve(), resolve(), resolve()) }
         provide { SearchService(resolve(), resolve()) }
         provide { BrowseService(resolve(), resolve(), resolve()) }
         provide { RecentlyAddedService(resolve()) }

@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupInfiniteScroll();
     setupListToggles();
     setupShare();
+    setupSeenTags();
     setupImportDrop();
     setupDismissals();
     setupSummaries();
@@ -514,11 +515,15 @@ function setupListToggles() {
             const label = button.querySelector('span');
             label.textContent = button.dataset.listToggle === 'watchlist'
                 ? (onList ? 'On watchlist' : 'Add to watchlist')
-                : (onList ? 'Seen' : 'Mark as seen');
+                : (onList ? seenLabel('Seen', state.seenAt) : 'Mark as seen');
         });
         if (voteGroup) voteGroup.hidden = !state.seen;
         voteButtons.forEach(button => button.classList.toggle('active', String(state.liked) === button.dataset.vote));
     };
+    // The page renders the seen button's plain label; the day it was marked joins it here, as on the tags.
+    buttons.forEach(button => {
+        if (button.dataset.seenAt) button.querySelector('span').textContent = seenLabel('Seen', button.dataset.seenAt);
+    });
     const all = [...buttons, ...voteButtons];
     const submit = async (url, body) => {
         all.forEach(button => button.disabled = true);
@@ -632,4 +637,44 @@ function fitPlaceholders() {
     fit();
     window.addEventListener('resize', fit);
     if (document.fonts) document.fonts.ready.then(fit);
+}
+
+// The day a movie was marked seen, as the tags and the movie page show it.
+const SEEN_DAY = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+
+// A seen label with its day, "✓ 14 Mar 2021", or the label alone when the movie
+// was marked within the last month: a recent one needs no date.
+function seenLabel(label, seenAt) {
+    if (!seenAt) return label;
+    const date = new Date(seenAt);
+    const monthAgo = new Date();
+    monthAgo.setMonth(monthAgo.getMonth() - 1);
+    return date > monthAgo ? label : label + ' ' + SEEN_DAY.format(date);
+}
+
+// Every list of movies tags the ones the visitor has seen, with the day they
+// marked it, or the checkmark alone when that was within the last month: the
+// seen dates come in one request, by movie id, and the tags go on the cards
+// and rows on the page, and on those the scroll adds later.
+async function setupSeenTags() {
+    let dates;
+    try {
+        const response = await fetch('/api/seen');
+        if (!response.ok) return;
+        dates = await response.json();
+    } catch (e) {
+        return;
+    }
+    if (!Object.keys(dates).length) return;
+    const tagAll = () => document.querySelectorAll('a.movie-card, a.ranked-row').forEach(link => {
+        const id = (link.getAttribute('href').match(/^\/movie\/(tt\d+)/) || [])[1];
+        if (!id || !dates[id] || link.querySelector('.seen-tag')) return;
+        const tag = document.createElement('span');
+        tag.className = 'seen-tag';
+        tag.textContent = seenLabel('✓', dates[id]);
+        tag.title = 'Seen ' + SEEN_DAY.format(new Date(dates[id]));
+        (link.querySelector('.ranked-sub') || link.querySelector('.poster')).appendChild(tag);
+    });
+    tagAll();
+    new MutationObserver(tagAll).observe(document.body, { childList: true, subtree: true });
 }
