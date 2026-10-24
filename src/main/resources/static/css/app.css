@@ -1469,8 +1469,9 @@ img { display: block; }
 }
 
 /* The trailer brought forward (Trailer, then Exit trailer), in the hero's own space: its content
-   and shading give way, and the player, sharp and as large as the hero, takes clicks. It keeps the
-   space it had behind, under the navbar and the trailer bar too, so the movie does not change size. */
+   and shading give way, and the player, sharp and as large as the hero (--hero-height, measured by
+   the script), takes clicks. It holds still at the top of the screen while the page scrolls under
+   it; behind the hero, blurred, it scrolls along. */
 .hero::before, .movie-hero::before, .hero-content, .movie-hero-content { transition: opacity 0.4s ease; }
 
 .trailer-playing::before,
@@ -1478,6 +1479,8 @@ img { display: block; }
 .trailer-playing .movie-hero-content { opacity: 0; pointer-events: none; }
 
 .trailer-playing .backdrop-video { z-index: 3; opacity: 1; pointer-events: auto; }
+
+.trailer-playing:not(.trailer-fullscreen) .backdrop-video { position: fixed; inset: 0 0 auto 0; height: var(--hero-height, 100%); z-index: 40; background: #000; }
 
 .trailer-playing .backdrop-video iframe { width: 100%; height: 100%; transform: translate(-50%, -50%); filter: none; }
 
@@ -1488,14 +1491,15 @@ img { display: block; }
 
 :root:has(.trailer-fullscreen) { overflow: hidden; }
 
-/* Exit trailer floats over the trailer's corner, rising with the navbar from just under it. */
+/* Exit trailer floats over the trailer's corner, rising with the navbar from just under it, and
+   holds still with the trailer. */
 @keyframes trailer-exit-rise { from { transform: translateY(var(--under-nav, 0px)); } }
 
 .trailer-exit {
-    position: absolute;
+    position: fixed;
     top: 16px;
     right: 16px;
-    z-index: 4;
+    z-index: 41;
     animation: trailer-exit-rise 0.45s ease;
 }
 
@@ -2042,12 +2046,13 @@ img { display: block; }
     /* The buttons wrap on a phone, so the thumbs follow the last of them rather than the far end. */
     .list-buttons .vote-buttons { margin-left: 0; }
 
-    /* The trailer forward on a phone: the band itself, sharp; the head on it gives way, the body below
-       stays, and its Trailer button, reading Exit trailer, takes the place of the floating one. */
+    /* The trailer forward on a phone: the band itself, sharp, with Exit trailer floating over its
+       corner; the head on it gives way, the body below stays. Playing, the band holds still at the top
+       of the screen, as on a desktop, at the band's height. */
     .trailer-playing .hero-content, .trailer-playing .movie-hero-content { opacity: 1; pointer-events: auto; }
     .trailer-playing .hero-head, .trailer-playing .hero-poster, .trailer-playing .movie-hero-poster { opacity: 0; pointer-events: none; }
-    .trailer-playing .hero-body .trailer-button:not([hidden]) { display: inline-flex; }
-    .trailer-playing .trailer-exit { display: none; }
+    .trailer-playing:not(.trailer-fullscreen) .backdrop-video { height: var(--band, 320px); }
+    .trailer-exit { top: 12px; right: 12px; }
     .friend-action + .member-actions { flex-basis: 100%; justify-content: flex-end; padding-left: 0; border-left: 0; }
 
     .hero-content, .movie-hero-content { padding: 28px 16px 32px; }
