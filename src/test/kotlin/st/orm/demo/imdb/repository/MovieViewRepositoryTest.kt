@@ -6,9 +6,11 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieView
+import st.orm.demo.imdb.insertUser
 import st.orm.demo.imdb.printStatements
 import st.orm.repository.repository
 import st.orm.template.ORMTemplate
+import st.orm.template.ref
 import st.orm.template.refById
 import st.orm.test.CapturedSql.Operation
 import st.orm.test.SqlCapture
@@ -30,6 +32,23 @@ class MovieViewRepositoryTest {
         assertFalse(capture.statements().single().statement().lowercase().contains("join"))
         assertTrue(recentViews.size >= 3)
         assertEquals("tt0133093", recentViews.first().movie.id())
+    }
+
+    @Test
+    fun `a visitor's recent views are their own, the site's include everyone's`(orm: ORMTemplate, capture: SqlCapture) {
+        val movieViewRepository = orm.repository<MovieViewRepository>()
+        val visitor = orm.insertUser("visitor-views")
+        val at = Instant.parse("2026-07-02T10:00:00Z")
+        movieViewRepository.insert(MovieView(movie = refById<Movie>("tt0068646"), viewedAt = at, user = visitor.ref()))
+        movieViewRepository.insert(MovieView(movie = refById<Movie>("tt0110912"), viewedAt = at.plusSeconds(60)))
+
+        val own = capture.execute { movieViewRepository.findRecentViews(visitor, 10) }
+        capture.printStatements("findRecentViews(user)")
+        // The visitor's view only, by the account column, still without a join.
+        assertEquals(listOf("tt0068646"), own.map { it.movie.id() })
+        assertFalse(capture.statements().single().statement().lowercase().contains("join"))
+        // The site's latest is the anonymous view that came after it.
+        assertEquals("tt0110912", movieViewRepository.findRecentViews(1).single().movie.id())
     }
 
     @Test

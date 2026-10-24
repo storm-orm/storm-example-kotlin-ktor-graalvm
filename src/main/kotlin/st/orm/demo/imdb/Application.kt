@@ -259,7 +259,8 @@ private fun Application.configureStorm() {
                     "db/migration/V5__recommendations.sql",
                     "db/migration/V6__recommendation_fatigue.sql",
                     "db/migration/V7__fold_old_views.sql",
-                    "db/migration/V8__movie_view_day_natural_key.sql"
+                    "db/migration/V8__movie_view_day_natural_key.sql",
+                    "db/migration/V9__personal_recently_viewed.sql"
                 )))
                 .load()
                 .migrate()

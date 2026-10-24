@@ -3,6 +3,7 @@ package st.orm.demo.imdb.service
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.model.UserLogin
 import st.orm.demo.imdb.repository.MovieSeenRepository
+import st.orm.demo.imdb.repository.MovieViewRepository
 import st.orm.demo.imdb.repository.RecommendationDismissalRepository
 import st.orm.demo.imdb.repository.UserLoginRepository
 import st.orm.demo.imdb.repository.UserRepository
@@ -25,6 +26,7 @@ class AccountService(
     private val watchlistRepository: WatchlistRepository,
     private val movieSeenRepository: MovieSeenRepository,
     private val dismissalRepository: RecommendationDismissalRepository,
+    private val movieViewRepository: MovieViewRepository,
     private val recommendationService: RecommendationService
 ) {
     private val random = SecureRandom()
@@ -49,8 +51,9 @@ class AccountService(
      * puts in the cookie. Two cases, one transaction:
      *
      * - The provider account is linked to a user already: that user is the
-     *   one, with the profile refreshed. Whatever the visitor saved under the
-     *   cookie account meanwhile moves to it, and the cookie account goes.
+     *   one, with the profile refreshed. Whatever the visitor saved and
+     *   viewed under the cookie account meanwhile moves to it, and the
+     *   cookie account goes.
      * - It is not linked yet: it is linked to the cookie account, which gets
      *   the profile's name and avatar. The lists stay where they are.
      *
@@ -69,6 +72,7 @@ class AccountService(
                         watchlistRepository.moveTo(anonymous, user)
                         movieSeenRepository.moveTo(anonymous, user)
                         dismissalRepository.moveTo(anonymous, user)
+                        movieViewRepository.moveTo(anonymous, user)
                         userRepository.remove(anonymous)
                     }
                 }

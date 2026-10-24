@@ -9,7 +9,16 @@ import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.UserRepository
 import st.orm.demo.imdb.repository.WatchlistRepository
+import st.orm.template.transaction
 import java.time.Instant
+import java.time.ZoneOffset
+
+/**
+ * What an IMDb import did: the movies it marked as seen, the ones already
+ * seen that took the date from IMDb, and the titles the catalogue does not
+ * hold (series, episodes, and movies with too few votes).
+ */
+data class ImdbImport(val added: Int, val updated: Int, val skipped: Int)
 
 class MovieSeenService(
     private val movieRepository: MovieRepository,
@@ -69,11 +78,56 @@ class MovieSeenService(
         return MovieListState(onWatchlist = false, seen = true, liked = liked)
     }
 
+    /**
+     * Marks the titles of an IMDb export as seen ([ImdbExport]), on the day
+     * IMDb has for each: the day it was rated, or else added to the list. A
+     * movie already seen takes that day too, since IMDb is where the user
+     * kept the history. The rating becomes a thumb, 8 and up for a thumbs
+     * up and 5 and down for a thumbs down, unless the user gave one here.
+     * As with marking one movie, the movies come off the watchlist.
+     *
+     * The movies are read by id in one query, the seen rows written in one
+     * batched upsert, keyed by the pair of user and movie, and the
+     * watchlist cleared in one delete, in one transaction; then the
+     * recommendations are recomputed in the background.
+     */
+    suspend fun importFromImdb(user: User, rows: List<ImdbExportRow>, now: Instant = Instant.now()): ImdbImport = transaction {
+        val stored = userRepository.touch(user, now)
+        val rowsById = rows.associateBy { it.movieId }
+        val movies = movieRepository.findAllById(rowsById.keys)
+        val before = movieSeenRepository.findAll(stored).associateBy { it.movie.id }
+        movieSeenRepository.upsert(movies.map { movie ->
+            val row = rowsById.getValue(movie.id)
+            val seen = before[movie.id]
+            MovieSeen(
+                user = stored,
+                movie = movie,
+                seenAt = row.date?.atStartOfDay(ZoneOffset.UTC)?.toInstant() ?: seen?.seenAt ?: now,
+                liked = seen?.liked ?: thumbFor(row.rating)
+            )
+        })
+        watchlistRepository.removeAll(stored, movies)
+        recommendationService.refreshLater(stored)
+        ImdbImport(
+            added = movies.count { it.id !in before },
+            updated = movies.count { it.id in before },
+            skipped = rowsById.size - movies.size
+        )
+    }
+
     /** One page of the movies the user has seen, for the seen page (0-based). */
     fun findPage(user: User, pageNumber: Int): Page<MovieSeen> =
         movieSeenRepository.findPage(user, pageNumber, SEEN_PAGE_SIZE)
 
     companion object {
         private const val SEEN_PAGE_SIZE = 12
+
+        /** An IMDb rating as a thumb: up from 8, down to 5, none in between, where a movie was fine. */
+        fun thumbFor(rating: Int?): Boolean? = when {
+            rating == null -> null
+            rating >= 8 -> true
+            rating <= 5 -> false
+            else -> null
+        }
     }
 }

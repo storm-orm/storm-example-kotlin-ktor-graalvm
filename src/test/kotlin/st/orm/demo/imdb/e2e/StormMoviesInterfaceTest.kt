@@ -5,6 +5,7 @@ import com.microsoft.playwright.BrowserContext
 import com.microsoft.playwright.Locator
 import com.microsoft.playwright.Page
 import com.microsoft.playwright.Playwright
+import com.microsoft.playwright.options.FilePayload
 import com.microsoft.playwright.assertions.LocatorAssertions
 import com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat
 import com.microsoft.playwright.options.RequestOptions
@@ -185,6 +186,70 @@ class StormMoviesInterfaceTest {
         assertTrue(page.locator("#browse-results .movie-card").count() > initialCount)
     }
 
+    /* ── IMDb import ──────────────────────────────────────────────── */
+
+    @Test
+    fun `an IMDb export dropped on the seen page, or chosen with its plus, marks its movies as seen`() {
+        page.navigate("$baseUrl/seen")
+        // A browser without a seen list finds the import open, as a drop zone with its plus.
+        assertThat(page.locator("[data-drop-zone]")).isVisible()
+        assertThat(page.locator("[data-drop-zone] .drop-plus")).isVisible()
+        assertThat(page.locator("[data-import-submit]")).isHidden()
+
+        // Chosen in the file dialog, a file that is not an export: the page says so and imports nothing.
+        page.locator("[data-import-file]").setInputFiles(FilePayload("contacts.csv", "text/csv", "name,email\nAlice,alice@example.com\n".toByteArray()))
+        assertThat(page.locator("#import-failed")).isVisible()
+
+        // Dropped on the zone, a ratings export: two movies, and a series the catalogue does not hold.
+        val export = "Const,Your Rating,Date Rated,Title,Title Type\\n" +
+            "tt0133093,9,2021-03-14,The Matrix,Movie\\n" +
+            "tt0111161,10,2020-01-02,The Shawshank Redemption,Movie\\n" +
+            "tt0903747,10,2019-05-01,Breaking Bad,TV Series\\n"
+        page.evaluate("""
+            const file = new File(["$export"], "ratings.csv", { type: "text/csv" });
+            const transfer = new DataTransfer();
+            transfer.items.add(file);
+            document.querySelector("[data-drop-zone]").dispatchEvent(new DragEvent("drop", { dataTransfer: transfer, bubbles: true, cancelable: true }));
+        """)
+
+        assertThat(page.locator("#import-result")).containsText("2 movies marked as seen")
+        assertThat(page.locator("#import-result")).containsText("1 titles skipped")
+        assertThat(page.locator("#seen-results .movie-card-title")).containsText(arrayOf("The Matrix", "The Shawshank Redemption"))
+        // Reloading the result does not upload the file again: the import answered with a redirect.
+        assertTrue(page.url().contains("/seen?added=2"))
+    }
+
+    /* ── Insights ─────────────────────────────────────────────────── */
+
+    @Test
+    fun `the insights page fills in from the seen list`() {
+        page.navigate("$baseUrl/insights")
+        assertThat(page.locator("#insights-empty")).isVisible()
+
+        // Five seen movies make the usual range known; the browser's account marks them.
+        for (movieId in listOf("tt0133093", "tt0234215", "tt0111161", "tt0110912", "tt0068646")) {
+            page.request().post("$baseUrl/api/seen/$movieId")
+        }
+        page.navigate("$baseUrl/insights")
+
+        assertThat(page.locator("#insight-totals .stat-chip").first()).containsText("5")
+        assertThat(page.locator("#ratings-card .histogram-bar")).not().hasCount(0)
+        assertThat(page.locator("#ratings-card .histogram-curve polyline")).hasCount(1)
+        assertThat(page.locator("#ratings-card .stat-note")).containsText("You usually watch movies rated")
+        assertThat(page.locator("#seen-decades-card .bar-row")).not().hasCount(0)
+        assertThat(page.locator("#seen-genres-card .bar-row")).not().hasCount(0)
+        assertThat(page.locator("#highlights-section .highlight-card")).not().hasCount(0)
+        page.screenshot(Page.ScreenshotOptions().setPath(Paths.get("build/e2e-screenshots/insights-filled.png")).setFullPage(true).setAnimations(ScreenshotAnimations.DISABLED))
+
+        // Filled in, the page still fits a tablet and a phone: the navbar, the histogram and the bars shrink with the screen.
+        for (width in listOf(820, 390)) {
+            page.setViewportSize(width, 900)
+            val overflow = page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth") as Number
+            assertTrue(overflow.toInt() <= 1) { "The insights page overflows a screen ${width}px wide" }
+        }
+        page.screenshot(Page.ScreenshotOptions().setPath(Paths.get("build/e2e-screenshots/mobile-insights-filled.png")).setFullPage(true).setAnimations(ScreenshotAnimations.DISABLED))
+    }
+
     /* ── Movie detail ─────────────────────────────────────────────── */
 
     @Test
@@ -193,7 +258,7 @@ class StormMoviesInterfaceTest {
 
         // The card a chat or a timeline shows for the link: title, line, poster, the page's own URL.
         assertEquals("The Matrix (1999)", page.locator("meta[property='og:title']").getAttribute("content"))
-        assertThat(page.locator("meta[property='og:description']")).hasAttribute("content", Pattern.compile("1999 · 136 min · .*★ \\d\\.\\d from [\\d,]+ votes"))
+        assertThat(page.locator("meta[property='og:description']")).hasAttribute("content", Pattern.compile("^136 min · .*★ \\d\\.\\d from [\\d,]+ votes"))
         assertThat(page.locator("meta[property='og:image']")).hasAttribute("content", Pattern.compile("/api/poster/tt0133093$"))
         assertThat(page.locator("meta[property='og:url']")).hasAttribute("content", Pattern.compile("/movie/tt0133093$"))
 
@@ -202,7 +267,7 @@ class StormMoviesInterfaceTest {
         assertThat(menu).isHidden()
         page.locator("[data-share]").click()
         assertThat(menu).isVisible()
-        assertThat(menu.locator("[data-share-x]")).hasAttribute("href", Pattern.compile("^https://x\\.com/intent/post\\?text=The%20Matrix%20\\(1999\\)%20%C2%B7%201999.*&url=.*%2Fmovie%2Ftt0133093$"))
+        assertThat(menu.locator("[data-share-x]")).hasAttribute("href", Pattern.compile("^https://x\\.com/intent/post\\?text=The%20Matrix%20\\(1999\\)%20%C2%B7%20136%20min.*&url=.*%2Fmovie%2Ftt0133093$"))
         assertThat(menu.locator("[data-share-mail]")).hasAttribute("href", Pattern.compile("^mailto:\\?subject=The%20Matrix%20\\(1999\\)&body="))
     }
 
@@ -407,17 +472,28 @@ class StormMoviesInterfaceTest {
     /* ── Recently viewed ──────────────────────────────────────────── */
 
     @Test
-    fun `a visited movie appears in the recently viewed section`() {
-        // The most recent view becomes the featured hero, so visit two:
-        // Shawshank first, then The Godfather — Shawshank lands in the row.
+    fun `the featured movie is the site's latest view, recently viewed the browser's own`() {
+        // The browser gets its account on the first page; the views after it are its own.
+        page.navigate("$baseUrl/")
         page.navigate("$baseUrl/movie/tt0111161")
         page.navigate("$baseUrl/movie/tt0068646")
 
         page.navigate("$baseUrl/")
         assertThat(page.locator(".hero-title")).hasText("The Godfather")
-        assertThat(page.locator("#recently-viewed-section")).isVisible()
+        assertThat(page.locator("#recently-viewed-section .movie-card-title").first()).hasText("The Godfather")
         assertThat(page.locator("#recently-viewed-section .movie-card-title", Page.LocatorOptions())
             .filter(Locator.FilterOptions().setHasText("The Shawshank Redemption")).first()).isVisible()
+
+        // Another browser sees the same featured movie, but none of these views as its own.
+        val other = browser.newContext()
+        try {
+            val otherPage = other.newPage()
+            otherPage.navigate("$baseUrl/")
+            assertThat(otherPage.locator(".hero-title")).hasText("The Godfather")
+            assertThat(otherPage.locator("#recently-viewed-section")).hasCount(0)
+        } finally {
+            other.close()
+        }
     }
 
     /* ── Person detail ────────────────────────────────────────────── */
@@ -500,7 +576,8 @@ class StormMoviesInterfaceTest {
             "/" to "home",
             "/movie/tt0133093" to "movie",
             "/person/nm0000206" to "person",
-            "/statistics" to "statistics"
+            "/statistics" to "statistics",
+            "/insights" to "insights"
         )) {
             page.navigate("$baseUrl$path")
             // The stylesheet loaded: the dark theme background is applied.
@@ -533,7 +610,7 @@ class StormMoviesInterfaceTest {
             val screenshots = Paths.get("build/e2e-screenshots")
             for ((path, name) in listOf(
                 "/" to "home", "/top" to "top", "/watchlist" to "watchlist", "/seen" to "seen",
-                "/signin" to "signin", "/statistics" to "statistics",
+                "/signin" to "signin", "/statistics" to "statistics", "/insights" to "insights",
                 "/search?query=matrix" to "search", "/movie/tt0133093" to "movie",
                 "/person/nm0000206" to "person", "/browse/Drama" to "browse"
             )) {

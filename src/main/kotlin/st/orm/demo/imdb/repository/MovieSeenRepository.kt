@@ -7,7 +7,10 @@ import st.orm.demo.imdb.model.MovieSeenPk
 import st.orm.demo.imdb.model.MovieSeen_
 import st.orm.demo.imdb.model.User
 import st.orm.repository.EntityRepository
+import st.orm.repository.select
+import st.orm.template.and
 import st.orm.template.eq
+import st.orm.template.isNotNull
 
 interface MovieSeenRepository : EntityRepository<MovieSeen, MovieSeenPk> {
 
@@ -18,6 +21,18 @@ interface MovieSeenRepository : EntityRepository<MovieSeen, MovieSeenPk> {
     /** Everything the user has seen, in no particular order: the seeds of the recommendations. */
     fun findAll(user: User): List<MovieSeen> =
         findAll(MovieSeen_.user eq user)
+
+    /**
+     * The movies the user has seen per decade, for the insights page: the
+     * same template as the catalogue's decades on the statistics page
+     * (MovieRepository.countMoviesPerDecade), through the seen list.
+     */
+    fun countPerDecade(user: User): List<DecadeMovieCount> =
+        select<DecadeMovieCount, _, _> { "(${MovieSeen_.movie.startYear} / 10) * 10, COUNT(*)" }
+            .where((MovieSeen_.user eq user) and MovieSeen_.movie.startYear.isNotNull())
+            .groupBy { "(${MovieSeen_.movie.startYear} / 10) * 10" }
+            .orderBy { "(${MovieSeen_.movie.startYear} / 10) * 10" }
+            .resultList
 
     /**
      * One page of the movies the user has seen, the most recently marked

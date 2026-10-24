@@ -11,10 +11,12 @@ import st.orm.template.ref
 import java.time.Instant
 
 /**
- * Tracks each visit to a movie detail page, backing the recently-viewed
- * section on the home page. The movie is a Ref: recording a view needs only
- * the movie's id, so a high-volume append-only insert never joins the full
- * movie graph.
+ * Tracks each visit to a movie detail page: the featured movie on the home
+ * page is the site's latest view, and the recently-viewed section the
+ * visitor's own, read by [user], the account of a browser that came back
+ * with its cookie (null for a first page and for crawlers). The movie and
+ * the user are Refs: recording a view needs only their ids, so a
+ * high-volume append-only insert never joins either.
  *
  * Serializable to demonstrate Ref serialization: the Ref field is marked
  * Contextual so StormSerializers handles it — an unloaded ref serializes
@@ -25,7 +27,8 @@ import java.time.Instant
 data class MovieView(
     @PK val id: Long = 0,
     @FK @Contextual val movie: Ref<Movie>,
-    @Serializable(with = InstantAsStringSerializer::class) val viewedAt: Instant
+    @Serializable(with = InstantAsStringSerializer::class) val viewedAt: Instant,
+    @FK @Contextual val user: Ref<User>? = null
 ) : Entity<Long> {
-    constructor(movie: Movie, viewedAt: Instant) : this(movie = movie.ref(), viewedAt = viewedAt)
+    constructor(movie: Movie, viewedAt: Instant, user: User? = null) : this(movie = movie.ref(), viewedAt = viewedAt, user = user?.ref())
 }

@@ -210,8 +210,8 @@ class RecommendationRankerTest {
     fun `the rating range is the mean and spread of the seen ratings, once five are seen`() {
         assertNull(RatingRange.of(listOf(8.7, 9.3, 8.9, 9.2).map { rating(matrix, it, 2_000_000) }))
         val range = RatingRange.of(listOf(7.0, 7.5, 8.0, 8.5, 9.0).map { rating(matrix, it, 2_000_000) })!!
-        assertEquals(8.0, range.mean, 0.02)
-        assertEquals(0.70, range.spread, 0.02)
+        assertEquals(8.0, range.mean, 1e-9)
+        assertEquals(0.707, range.spread, 0.001)
         // Five movies rated alike: the spread stays at its minimum, not a point.
         assertEquals(RatingRange.MIN_SPREAD, RatingRange.of(List(5) { rating(matrix, 8.0, 2_000_000) })!!.spread)
         // A movie at the mean keeps its whole score, two spreads out about a third, far out the floor.
@@ -237,7 +237,7 @@ class RecommendationRankerTest {
         assertEquals(whenNoRange[0].score, whenRange[0].score, 0.01)
         val reloadedBefore = whenNoRange.first { it.movie == reloaded }.score
         val reloadedAfter = whenRange.first { it.movie == reloaded }.score
-        assertEquals(usuallyHigh.ratingRange!!.fit(RecommendationRanker.weightedRating(candidates[1].rating)), reloadedAfter / reloadedBefore, 1e-9)
+        assertEquals(usuallyHigh.ratingRange!!.fit(6.1), reloadedAfter / reloadedBefore, 1e-9)
         assertTrue(reloadedAfter / reloadedBefore < 0.35)
     }
 

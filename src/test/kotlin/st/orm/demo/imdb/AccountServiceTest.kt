@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import st.orm.demo.imdb.model.MovieSeen
+import st.orm.demo.imdb.model.MovieView
 import st.orm.demo.imdb.model.Watchlist
 import st.orm.demo.imdb.repository.MovieAdditionRepository
 import st.orm.demo.imdb.repository.MovieGenreRepository
@@ -105,10 +106,12 @@ class AccountServiceTest {
         runBlocking { accountService.signIn(original.id, GitProvider.GITHUB, alice) }
         watchlistRepository.insert(Watchlist(original, matrix, Instant.now()))
 
-        // A second browser saved The Godfather and marked Pulp Fiction seen before signing in.
+        // A second browser saved The Godfather, marked Pulp Fiction seen and viewed The Matrix before signing in.
         val phone = orm.insertUser("visitor-phone")
         watchlistRepository.insert(Watchlist(phone, godfather, Instant.now()))
         movieSeenRepository.insert(MovieSeen(phone, pulpFiction, Instant.now()))
+        val movieViewRepository = orm.repository<MovieViewRepository>()
+        movieViewRepository.insert(MovieView(matrix, Instant.now(), phone))
 
         val user = runBlocking { accountService.signIn(phone.id, GitProvider.GITHUB, alice.copy(name = "Alice E.")) }
 
@@ -117,6 +120,8 @@ class AccountServiceTest {
         assertTrue(watchlistRepository.contains(user, matrix))
         assertTrue(watchlistRepository.contains(user, godfather))
         assertTrue(movieSeenRepository.contains(user, pulpFiction))
+        // The phone's views are the account's recently viewed now.
+        assertEquals(listOf("tt0133093"), movieViewRepository.findRecentViews(user, 10).map { it.movie.id() })
         // The phone's anonymous account is gone, lists included.
         assertNull(userRepository.findById(phone.id))
         assertEquals(0, watchlistRepository.findPage(phone, 0, 10).totalCount())
@@ -158,6 +163,7 @@ class AccountServiceTest {
         orm.repository<WatchlistRepository>(),
         orm.repository<MovieSeenRepository>(),
         orm.repository<RecommendationDismissalRepository>(),
+        orm.repository<MovieViewRepository>(),
         RecommendationService(
             orm.repository<UserRepository>(),
             orm.repository<MovieRepository>(),

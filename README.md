@@ -176,6 +176,32 @@ page opens with the visitor's picks among what joined since their previous
 visit, never less than a week back and never more than a quarter, and
 leaves that strip out when nothing new fits.
 
+## Importing from IMDb
+
+IMDb has no API and no sign-in for other sites, but it exports a user's
+ratings and lists as CSV. The Seen page takes that file: every movie in it is
+marked as seen on the day IMDb has for it, the day rated or else added to the
+list, which also replaces the day of a movie already marked; a rating of 8 or
+more becomes a thumbs up and 5 or less a thumbs down, unless the visitor gave
+one here. The columns are found by name
+([`ImdbExport`](src/main/kotlin/st/orm/demo/imdb/service/ImdbExport.kt)), the
+movies read by id in one query, the seen rows written in one batched upsert
+keyed by the pair of user and movie, and the watchlist cleared in one delete
+(`MovieSeenService.importFromImdb`).
+
+## Insights
+
+The Insights page (`/insights`) tells visitors what their seen list says
+about them: their favourite actors and directors, their genres and decades,
+the movies that stand out, and the IMDB ratings they watch as a histogram
+with the bell curve the recommendations use laid over it. The counts are
+aggregate queries joined through the seen list on the movie, with `GROUP BY`
+on an entity and `HAVING` for the favourites, so a person on one of the
+visitor's movies is no favourite yet
+([`PrincipalRepository.countSeenPeople`](src/main/kotlin/st/orm/demo/imdb/repository/PrincipalRepository.kt)).
+The rest is read from the seen movies and their ratings in
+[`InsightsService`](src/main/kotlin/st/orm/demo/imdb/service/InsightsService.kt).
+
 ## Personal lists without a sign-up
 
 The watchlist and the seen list belong to the visitor. Every visitor has an
@@ -186,9 +212,15 @@ the pair of user and movie (`Watchlist`, `MovieSeen`), so a toggle is a
 lookup of the pair key, and marking a movie seen takes it off the watchlist
 in the same route transaction.
 
+Recently viewed on the home page is the visitor's own too, while the
+featured movie above it is the site's latest view. A view records the
+account (`movie_view.user_id`, V9) when the browser came back with its
+cookie: a first page and a crawler, which keeps no cookies, record none, so
+they write no account rows. A partial index holds just the views with an
+account, and a sign-in that merges a browser's account moves its views along.
+
 A movie page has a share button: the device's share sheet where there is
-one, with the poster attached so the message is visual, else a menu that
-copies the link, posts on X or emails it. The page carries Open Graph tags
+one, else a menu that copies the link, posts on X or emails it. The page carries Open Graph tags
 (`ShareCard` in
 [`web/MovieController.kt`](src/main/kotlin/st/orm/demo/imdb/web/MovieController.kt)),
 so a shared link unfurls into a card with the poster and the movie's line

@@ -74,10 +74,13 @@ data class RatingRange(val mean: Double, val spread: Double) {
         const val MIN_SPREAD = 0.5
         const val FLOOR = 0.3
 
-        /** The range of the seen ratings, as the ranker reads a rating ([RecommendationRanker.weightedRating]); null while fewer than [MIN_SEEN]. */
+        /**
+         * The range of the IMDB averages of the seen movies, the ratings the
+         * user sees on every card; null while fewer than [MIN_SEEN] are seen.
+         */
         fun of(seen: Collection<Rating>): RatingRange? {
             if (seen.size < MIN_SEEN) return null
-            val ratings = seen.map { RecommendationRanker.weightedRating(it) }
+            val ratings = seen.map { it.averageRating.toDouble() }
             val mean = ratings.average()
             val spread = sqrt(ratings.sumOf { (it - mean) * (it - mean) } / ratings.size)
             return RatingRange(mean, max(spread, MIN_SPREAD))
@@ -193,7 +196,7 @@ object RecommendationRanker {
                 NEWNESS_WEIGHT * newness
             // Rated outside the user's usual range, a share of the score is kept; shown and passed over,
             // each impression takes a share off, so other picks get their turn.
-            val ratingFit = profile.ratingRange?.fit(weightedRating(candidate.rating)) ?: 1.0
+            val ratingFit = profile.ratingRange?.fit(candidate.rating.averageRating.toDouble()) ?: 1.0
             val score = if (fit > 0) fit * ratingFit * IMPRESSION_DECAY.pow(candidate.shownCount) else fit
 
             val bestPerson = people.filter { it.second > 0 }.maxByOrNull { it.second }?.first

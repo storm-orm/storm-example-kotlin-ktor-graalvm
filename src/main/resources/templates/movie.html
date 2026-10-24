@@ -55,13 +55,12 @@
                             th:data-movie-id="${detail.movie.id}"
                             th:classappend="${detail.lists.liked == false} ? 'active'">👎</button>
                 </div>
-                <!-- Share: the device's share sheet where there is one, with the poster attached; elsewhere a menu. -->
+                <!-- Share: the device's share sheet where there is one, else a menu; the link unfurls into a card with the poster. -->
                 <div class="share">
                     <button class="button share-button" data-share
                             th:data-share-title="${share.title}"
                             th:data-share-text="${share.description}"
-                            th:data-share-url="${share.url}"
-                            th:data-share-image="|/api/poster/${detail.movie.id}|">Share</button>
+                            th:data-share-url="${share.url}">Share</button>
                     <div class="share-menu" data-share-menu hidden>
                         <button class="share-option" data-share-copy>Copy link</button>
                         <a class="share-option" data-share-x target="_blank" rel="noopener">Post on X</a>

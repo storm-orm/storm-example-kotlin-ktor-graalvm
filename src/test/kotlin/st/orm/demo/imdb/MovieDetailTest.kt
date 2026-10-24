@@ -23,9 +23,9 @@ class MovieDetailTest {
             relatedMovies = emptyList(),
             lists = MovieListState(onWatchlist = false, seen = false)
         )
-        assertEquals("1999 · 136 min · Action, Sci-Fi · ★ 8.7 from 2,000,000 votes", detail.caption)
+        assertEquals("136 min · Action, Sci-Fi · ★ 8.7 from 2,000,000 votes", detail.caption)
 
-        val bare = detail.copy(movie = matrix.copy(startYear = null, runtimeMinutes = null), rating = null, genres = emptyList())
+        val bare = detail.copy(movie = matrix.copy(runtimeMinutes = null), rating = null, genres = emptyList())
         assertEquals("", bare.caption)
     }
 }

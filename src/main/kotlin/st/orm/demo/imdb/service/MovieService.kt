@@ -16,6 +16,7 @@ import st.orm.demo.imdb.repository.MovieViewRepository
 import st.orm.demo.imdb.repository.PrincipalRepository
 import st.orm.demo.imdb.repository.RatingRepository
 import st.orm.demo.imdb.repository.RelatedMovie
+import st.orm.demo.imdb.repository.UserRepository
 import st.orm.demo.imdb.repository.WatchlistRepository
 import st.orm.template.transaction
 import java.text.NumberFormat
@@ -47,12 +48,12 @@ data class MovieDetail(
 ) {
     /**
      * The movie in a line, for where only a line fits: the share message,
-     * and the card a shared link unfurls into. "1999 · 136 min · Action,
-     * Sci-Fi · ★ 8.7 from 2,000,000 votes", with what the movie has.
+     * and the card a shared link unfurls into. "136 min · Action, Sci-Fi ·
+     * ★ 8.7 from 2,000,000 votes", with what the movie has; the year is in
+     * the title the line goes with.
      */
     val caption: String
         get() = listOfNotNull(
-            movie.startYear?.toString(),
             movie.runtimeMinutes?.let { "$it min" },
             genres.takeIf { it.isNotEmpty() }?.joinToString(", ") { it.name },
             rating?.let { "★ ${it.averageRating} from ${VOTES.format(it.voteCount)} votes" }
@@ -69,20 +70,25 @@ class MovieService(
     private val movieViewRepository: MovieViewRepository,
     private val watchlistRepository: WatchlistRepository,
     private val movieSeenRepository: MovieSeenRepository,
+    private val userRepository: UserRepository,
     private val recommendationService: RecommendationService
 ) {
 
     /**
-     * Loads the movie detail page for the visitor and records the visit, so
-     * the movie shows up in the recently-viewed section on the home page.
-     * The view is the site's, not the visitor's: that section is global. A
-     * visit that came from a recommendation surface is recorded as such,
-     * if the movie is one of the visitor's recommendations. The inserts and
-     * the page reads share one explicit Storm transaction.
+     * Loads the movie detail page for the visitor and records the visit:
+     * the site's latest view is the featured movie on the home page, and a
+     * [returning] visitor's views, a browser that came back with its account
+     * cookie, are their recently viewed. Only those record the account, and
+     * write its row: a first page and a crawler, which keeps no cookies, do
+     * not. A visit that came from a recommendation surface is recorded as
+     * such, if the movie is one of the visitor's recommendations. The
+     * inserts and the page reads share one explicit Storm transaction.
      */
-    suspend fun viewMovie(movieId: String, user: User, fromRecommendation: Boolean): MovieDetail? = transaction {
+    suspend fun viewMovie(movieId: String, user: User, returning: Boolean, fromRecommendation: Boolean): MovieDetail? = transaction {
         val movie = movieRepository.findById(movieId) ?: return@transaction null
-        movieViewRepository.insert(MovieView(movie = movie, viewedAt = Instant.now()))
+        val now = Instant.now()
+        val viewer = if (returning) userRepository.touch(user, now) else null
+        movieViewRepository.insert(MovieView(movie = movie, viewedAt = now, user = viewer))
         if (fromRecommendation) recommendationService.record(user, movie, RecommendationEventKind.OPENED)
 
         val credits = principalRepository.findCast(movie)

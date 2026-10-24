@@ -9,6 +9,7 @@ import st.orm.demo.imdb.model.Watchlist_
 import st.orm.repository.EntityRepository
 import st.orm.template.and
 import st.orm.template.eq
+import st.orm.template.inList
 
 interface WatchlistRepository : EntityRepository<Watchlist, WatchlistPk> {
 
@@ -16,13 +17,22 @@ interface WatchlistRepository : EntityRepository<Watchlist, WatchlistPk> {
     fun contains(user: User, movie: Movie): Boolean =
         existsById(WatchlistPk(userId = user.id, movieId = movie.id))
 
-    /** The whole watchlist of the user, in no particular order: seeds of the recommendations. */
+    /** How many movies are on the user's watchlist, for the insights page. */
+    fun countFor(user: User): Long =
+        count(Watchlist_.user eq user)
+
+    /** Everything on the user's watchlist, in no particular order: the seeds of the recommendations. */
     fun findAll(user: User): List<Watchlist> =
         findAll(Watchlist_.user eq user)
 
     /** Takes the movie off the user's watchlist, if it is on it. */
     fun remove(user: User, movie: Movie) {
         removeAll((Watchlist_.user eq user) and (Watchlist_.movie eq movie))
+    }
+
+    /** Takes several movies off the user's watchlist at once: the ones an import marked as seen. */
+    fun removeAll(user: User, movies: List<Movie>) {
+        if (movies.isNotEmpty()) removeAll((Watchlist_.user eq user) and (Watchlist_.movie inList movies))
     }
 
     /**

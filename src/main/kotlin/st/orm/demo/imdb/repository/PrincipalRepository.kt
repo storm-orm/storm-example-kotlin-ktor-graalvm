@@ -2,12 +2,15 @@ package st.orm.demo.imdb.repository
 
 import kotlinx.serialization.Serializable
 import st.orm.demo.imdb.model.Movie
+import st.orm.demo.imdb.model.MovieSeen
+import st.orm.demo.imdb.model.MovieSeen_
 import st.orm.demo.imdb.model.Person
 import st.orm.demo.imdb.model.Principal
 import st.orm.demo.imdb.model.PrincipalPk
 import st.orm.demo.imdb.model.Principal_
 import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.model.Rating_
+import st.orm.demo.imdb.model.User
 import st.orm.Ref
 import st.orm.repository.EntityRepository
 import st.orm.repository.entity
@@ -22,7 +25,7 @@ import st.orm.template.or
 import java.math.BigDecimal
 
 /** The credit categories that count as acting. */
-private val ACTING_CATEGORIES = listOf("actor", "actress")
+val ACTING_CATEGORIES = listOf("actor", "actress")
 
 /** The credit category of a director, as the IMDB dataset names it. */
 const val DIRECTOR = "director"
@@ -79,6 +82,16 @@ data class ProlificActor(
 data class ActingCreditCount(
     val person: Ref<Person>,
     val creditCount: Long
+)
+
+/**
+ * Query result shape: how many of the movies a user has seen a person is
+ * credited on, in the categories asked for. Not backed by a database table
+ * or view, so it is a plain data class — deliberately not a Data type.
+ */
+data class PersonSeenCount(
+    val person: Person,
+    val movieCount: Long
 )
 
 /**
@@ -186,4 +199,22 @@ interface PrincipalRepository : EntityRepository<Principal, PrincipalPk> {
         val people = orm.entity(Person::class).findAllByRef(counts.map { it.person }).associateBy<Person, Any> { it.id }
         return counts.map { ProlificActor(people.getValue(it.person.id()), it.creditCount) }
     }
+
+    /**
+     * The people the user has seen most often in the given categories, the
+     * actors or the directors, for the insights page: the credits join the
+     * seen list on the movie, and only a person on at least [minimumMovies]
+     * of the user's movies qualifies (HAVING), so a single credit says
+     * nothing about a favourite.
+     */
+    fun countSeenPeople(user: User, categories: List<String>, minimumMovies: Int, limit: Int): List<PersonSeenCount> =
+        select<PersonSeenCount, _, _> { "${Person::class}, COUNT(*)" }
+            .innerJoin<MovieSeen>().on<Movie>()
+            .where((MovieSeen_.user eq user) and (Principal_.category inList categories))
+            .groupBy(Principal_.person)
+            .having { "COUNT(*) >= $minimumMovies" }
+            .orderByDescending { "COUNT(*)" }
+            .limit(limit)
+            .resultList
+
 }

@@ -54,6 +54,13 @@ fun ApplicationCall.accountId(): String {
     return id
 }
 
+/**
+ * Whether the browser came back with its account cookie: a returning
+ * visitor, unlike a first page or a crawler, which keeps no cookies.
+ */
+fun ApplicationCall.isReturningVisitor(): Boolean =
+    request.cookies[ACCOUNT_COOKIE]?.let { application.attributes[AccountServiceKey].isAccountId(it) } == true
+
 /** The visitor's account as a user, looked up once per request. */
 fun ApplicationCall.currentUser(): User {
     attributes.getOrNull(CurrentUserKey)?.let { return it }

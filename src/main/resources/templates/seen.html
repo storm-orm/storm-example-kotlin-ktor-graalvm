@@ -14,8 +14,43 @@
 
 <section class="section">
     <div class="container">
+        <div class="notice" id="import-result" th:if="${imported != null}">
+            Imported from IMDb:
+            <strong th:text="${imported.added}">120</strong> movies marked as seen,
+            <strong th:text="${imported.updated}">8</strong> already seen took IMDb's date<th:block th:if="${imported.skipped > 0}">,
+            and <strong th:text="${imported.skipped}">14</strong> titles skipped: series, episodes and movies with fewer votes than the catalogue keeps</th:block>.
+        </div>
+        <div class="notice notice-error" id="import-failed" th:if="${importFailed}">
+            That file is not an IMDb export. Export your ratings or a list on IMDb and upload the CSV file it gives you.
+        </div>
+
+        <!-- IMDb has no sign-in for other sites, but it exports a user's ratings and lists as CSV. -->
+        <details class="import-panel" th:open="${seenPage.content().isEmpty()}">
+            <summary>Import from IMDb</summary>
+            <p>
+                Bring your history from IMDb. On IMDb, open <em>Your ratings</em> or one of your lists, choose
+                <em>Export</em>, and download the CSV file from <em>Your account › Exports</em>. Upload it here:
+                every movie in it is marked as seen on the day you rated it, or added it to the list, and that day
+                replaces the one here for movies you already marked. A rating of 8 or more becomes a thumbs up,
+                5 or less a thumbs down, unless you gave one here.
+            </p>
+            <!-- Drop the file on the zone, or press + for the file dialog; either imports at once. -->
+            <form class="import-form" method="post" enctype="multipart/form-data" th:action="@{/seen/import}" data-import-form>
+                <label class="drop-zone" data-drop-zone>
+                    <input class="visually-hidden" type="file" name="export" accept=".csv,text/csv" required data-import-file>
+                    <span class="drop-plus" aria-hidden="true">+</span>
+                    <span class="drop-text" data-drop-text>
+                        <span class="drop-hint-pointer"><strong>Drop your IMDb export here</strong>, or press + to choose the file</span>
+                        <span class="drop-hint-touch"><strong>Press + to choose your IMDb export</strong></span>
+                    </span>
+                </label>
+                <!-- Without JavaScript the file is chosen, then sent with this button. -->
+                <button type="submit" class="button button-primary" data-import-submit>Import</button>
+            </form>
+        </details>
+
         <div class="empty-state" th:if="${seenPage.content().isEmpty()}">
-            No movies marked as seen yet. Open a movie and press “Mark as seen”.
+            No movies marked as seen yet. Open a movie and press “Mark as seen”, or import your history from IMDb.
         </div>
         <p class="account-hint" th:if="${account.name == null}">
             Your lists live in this browser. <a th:href="@{/signin(rd='/seen')}">Sign in</a> with a git account to keep them on every device.

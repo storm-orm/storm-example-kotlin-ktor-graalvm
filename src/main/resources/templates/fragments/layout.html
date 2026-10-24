@@ -41,10 +41,12 @@
             <a th:href="@{/recent}" th:classappend="${active == 'recent'} ? 'active'">Recently Added</a>
             <a th:href="@{/watchlist}" th:classappend="${active == 'watchlist'} ? 'active'">Watchlist</a>
             <a th:href="@{/seen}" th:classappend="${active == 'seen'} ? 'active'">Seen</a>
+            <a th:href="@{/insights}" th:classappend="${active == 'insights'} ? 'active'">Insights</a>
             <a th:href="@{/statistics}" th:classappend="${active == 'statistics'} ? 'active'">Statistics</a>
         </div>
         <div class="search-box" data-search-box>
-            <input type="search" placeholder="Search movies and people…" autocomplete="off" data-search-input>
+            <!-- The full placeholder where the box fits it, else the short one (fitPlaceholders in app.js). -->
+            <input type="search" placeholder="Search" data-placeholder-full="Search movies and people…" autocomplete="off" data-search-input>
             <div class="search-suggestions" data-search-suggestions hidden></div>
         </div>
         <!-- The account: a name once signed in with a git provider, else the way to. -->

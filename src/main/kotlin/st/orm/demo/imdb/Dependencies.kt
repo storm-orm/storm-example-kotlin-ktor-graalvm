@@ -21,6 +21,7 @@ import st.orm.demo.imdb.service.MovieService
 import st.orm.demo.imdb.service.PersonGalleryService
 import st.orm.demo.imdb.service.PersonService
 import st.orm.demo.imdb.service.SearchService
+import st.orm.demo.imdb.service.InsightsService
 import st.orm.demo.imdb.service.StatisticsService
 import st.orm.demo.imdb.service.TopMoviesService
 import st.orm.demo.imdb.service.ViewLogProperties
@@ -69,16 +70,17 @@ fun Application.configureDependencies() {
                 resolve(), resolve(), resolve(), resolve(), resolve(), resolve(),
             )
         }
-        provide { AccountService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { AccountService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { HomeService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { TopMoviesService(resolve(), resolve()) }
         provide { WatchlistService(resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { MovieSeenService(resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { StatisticsService(resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { InsightsService(resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { SearchService(resolve(), resolve()) }
         provide { BrowseService(resolve(), resolve(), resolve()) }
         provide { RecentlyAddedService(resolve()) }
-        provide { MovieService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { MovieService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PersonService(resolve(), resolve()) }
         provide { WikipediaSummaryService(resolve(), resolve(), resolve()) }
         provide { PersonGalleryService(resolve(), resolve(), resolve(), resolve(), resolve<GalleryRefreshProperties>().maxAge) }

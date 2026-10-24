@@ -17,7 +17,7 @@ import st.orm.demo.imdb.repository.WatchlistRepository
 import st.orm.template.ref
 import st.orm.template.transaction
 
-/** The featured hero section: the most recently viewed movie with context. */
+/** The featured hero section: the site's most recently viewed movie with context. */
 data class FeaturedMovie(
     val movie: Movie,
     val rating: Rating?,
@@ -30,7 +30,7 @@ data class HomeView(
     val recentlyViewed: List<Movie>,
     val topRated: List<Rating>,
     val genreCounts: List<GenreMovieCount>,
-    /** The visitor's watchlist, seen list and recommendations; the other sections are the site's. */
+    /** The visitor's recently viewed (above), watchlist, seen list and recommendations; the other sections are the site's. */
     val watchlistEntries: List<Watchlist>,
     val seenEntries: List<MovieSeen>,
     val recommendations: HomeRecommendations
@@ -49,15 +49,17 @@ class HomeService(
 
     /** All home page sections for the visitor, read in one read-only transaction. */
     suspend fun buildHomeView(user: User): HomeView = transaction(readOnly = true) {
+        // The featured movie is the site's latest view; the recently viewed are the visitor's own.
         // Views hold movie refs; dedupe the refs and fetch the movies once.
-        val recentMovieRefs = movieViewRepository.findRecentViews(RECENT_VIEW_SAMPLE_SIZE)
+        val latestView = movieViewRepository.findRecentViews(1).firstOrNull()?.movie
+        val recentMovieRefs = movieViewRepository.findRecentViews(user, RECENT_VIEW_SAMPLE_SIZE)
             .map { it.movie }
             .distinct()
-            .take(RECENTLY_VIEWED_LIMIT + 1)
-        val moviesByRef = movieRepository.findAllByRef(recentMovieRefs).associateBy { it.ref() }
+            .take(RECENTLY_VIEWED_LIMIT)
+        val moviesByRef = movieRepository.findAllByRef(listOfNotNull(latestView) + recentMovieRefs).associateBy { it.ref() }
         val recentMovies = recentMovieRefs.mapNotNull { moviesByRef[it] }
 
-        val featured = recentMovies.firstOrNull()?.let { movie ->
+        val featured = latestView?.let { moviesByRef[it] }?.let { movie ->
             FeaturedMovie(
                 movie = movie,
                 rating = ratingRepository.findById(movie),
@@ -66,7 +68,7 @@ class HomeService(
         }
         HomeView(
             featured = featured,
-            recentlyViewed = recentMovies.drop(1).take(RECENTLY_VIEWED_LIMIT),
+            recentlyViewed = recentMovies,
             topRated = ratingRepository.findTopRated(TOP_RATED_MINIMUM_VOTES, TOP_RATED_LIMIT),
             genreCounts = genreRepository.findGenresWithMovieCounts(),
             watchlistEntries = watchlistRepository.findMostRecent(user, LIST_PREVIEW_LIMIT),

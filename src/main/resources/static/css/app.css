@@ -1156,6 +1156,172 @@ img { display: block; }
 
 .footer a { color: var(--accent-strong); }
 
+/* ── IMDb import ───────────────────────────────────────────────────── */
+
+.notice {
+    margin-bottom: 18px;
+    padding: 12px 16px;
+    border: 1px solid rgba(139, 124, 248, 0.45);
+    border-radius: var(--radius);
+    background: rgba(139, 124, 248, 0.10);
+    font-size: 14px;
+}
+
+.notice-error { border-color: rgba(240, 98, 98, 0.5); background: rgba(240, 98, 98, 0.10); }
+
+.import-panel {
+    margin-bottom: 22px;
+    padding: 14px 18px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+
+.import-panel summary { cursor: pointer; font-weight: 600; }
+
+.import-panel p { color: var(--text-muted); font-size: 14px; line-height: 1.55; max-width: 760px; }
+
+.import-form { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+
+.import-form [data-import-submit][hidden] { display: none; }
+
+/* The drop zone: a dashed field that lights up while a file is dragged over it. */
+.drop-zone {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    padding: 22px 24px;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.drop-zone:hover, .drop-zone.dragging, .drop-zone:focus-within {
+    border-color: var(--accent);
+    background: rgba(139, 124, 248, 0.08);
+}
+
+.drop-zone.importing { cursor: progress; opacity: 0.7; }
+
+.drop-plus {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-strong) 0%, #6b5ce8 100%);
+    color: #14101f;
+    font-size: 26px;
+    font-weight: 600;
+    line-height: 1;
+    box-shadow: 0 6px 20px rgba(139, 124, 248, 0.35);
+}
+
+.drop-text { color: var(--text-muted); font-size: 14px; }
+
+.drop-text strong { color: var(--text); font-weight: 600; }
+
+/* A touch screen drags no files: it only offers the plus. */
+.drop-hint-touch { display: none; }
+
+@media (hover: none) {
+    .drop-hint-pointer { display: none; }
+    .drop-hint-touch { display: inline; }
+}
+
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+/* ── Insights ──────────────────────────────────────────────────────── */
+
+/* The totals span the width in equal parts. */
+#insight-totals .stat-chips { display: grid; grid-template-columns: repeat(6, 1fr); }
+
+#insight-totals .stat-chip { text-align: center; }
+
+/* Three columns: the histogram across two with the decades and the thumbs beside it, then the
+   favourites and the genres abreast, each row's cards as tall as its tallest. */
+.insights-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 22px;
+}
+
+.insights-ratings { grid-column: span 2; display: flex; flex-direction: column; }
+
+.insights-ratings .histogram { flex: 1; min-height: 180px; }
+
+.insights-side { display: flex; flex-direction: column; gap: 22px; }
+
+.insights-side .stat-card { flex: 1; }
+
+/* The standouts fill the width, six abreast, rather than scroll. */
+.highlight-grid { grid-auto-flow: row; grid-template-columns: repeat(6, minmax(0, 1fr)); overflow: visible; }
+
+/* The ratings histogram: half-point bars, the usual range as a band behind them, the bell curve over them. */
+.histogram { position: relative; height: 180px; margin-top: 8px; }
+
+.histogram-bars { position: absolute; inset: 0; display: flex; align-items: flex-end; }
+
+.histogram-bin { flex: 1; height: 100%; display: flex; align-items: flex-end; padding: 0 2px; }
+
+.histogram-bar {
+    width: 100%;
+    min-height: 1px;
+    border-radius: 4px 4px 0 0;
+    background: linear-gradient(180deg, var(--accent-strong), var(--accent));
+    opacity: 0.85;
+}
+
+.histogram-range {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    background: rgba(139, 124, 248, 0.10);
+    border-left: 1px dashed rgba(139, 124, 248, 0.5);
+    border-right: 1px dashed rgba(139, 124, 248, 0.5);
+}
+
+.histogram-curve { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+
+.histogram-curve polyline { fill: none; stroke: var(--gold); stroke-width: 2.5; }
+
+.histogram-ticks { position: relative; height: 22px; margin-top: 6px; border-top: 1px solid var(--border); }
+
+.histogram-ticks span {
+    position: absolute;
+    top: 4px;
+    transform: translateX(-50%);
+    color: var(--text-muted);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+
+.highlight-label {
+    color: var(--gold);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.thumbs-verdict { margin: 14px 0 0; }
+
+/* A genre's name is longer than a decade's. */
+.genre-bar-row { grid-template-columns: 104px 1fr 40px; }
+
+.genre-bar-row a { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* ── Responsive ────────────────────────────────────────────────────── */
 
 /* Narrow desktops: the page links tighten and the name gives way, so the navbar stays one row. */
@@ -1163,6 +1329,22 @@ img { display: block; }
     .navbar-inner { gap: 16px; }
     .nav-links a { padding: 7px 9px; font-size: 14px; }
     .nav-user-name { max-width: 90px; }
+}
+
+/* Tablets: the page links scroll in their own strip rather than widen the page. The totals go in
+   three, the histogram across the width, the cards in pairs, and the genres across the width. */
+@media (max-width: 1024px) {
+    .nav-links { flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+    .nav-links::-webkit-scrollbar { display: none; }
+    .nav-links a { white-space: nowrap; }
+}
+
+@media (max-width: 960px) {
+    #insight-totals .stat-chips { grid-template-columns: repeat(3, 1fr); }
+    .insights-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .insights-side { grid-column: span 2; flex-direction: row; }
+    .insights-genres { grid-column: span 2; }
+    .highlight-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (max-width: 860px) {
@@ -1214,5 +1396,10 @@ img { display: block; }
     .ranked-title { font-size: 14.5px; }
     .ranked-end .votes { display: none; }
 
-    #catalogue-totals .stat-chips { display: grid; grid-template-columns: 1fr 1fr; }
+    #catalogue-totals .stat-chips, #insight-totals .stat-chips { display: grid; grid-template-columns: 1fr 1fr; }
+    /* Phones: one column, and the standouts scroll sideways again. */
+    .insights-grid { grid-template-columns: minmax(0, 1fr); }
+    .insights-ratings, .insights-side, .insights-genres { grid-column: auto; }
+    .insights-side { flex-direction: column; }
+    .highlight-grid { grid-auto-flow: column; grid-template-columns: none; overflow-x: auto; }
 }

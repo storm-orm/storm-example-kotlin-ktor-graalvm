@@ -46,7 +46,7 @@ fun Route.movieRoutes(movieService: MovieService, watchlistService: WatchlistSer
     get("/movie/{movieId}") {
         val movieId = call.parameters.getOrFail("movieId")
         val fromRecommendation = call.request.queryParameters["via"] == VIA_FOR_YOU
-        val detail = movieService.viewMovie(movieId, call.currentUser(), fromRecommendation)
+        val detail = movieService.viewMovie(movieId, call.currentUser(), call.isReturningVisitor(), fromRecommendation)
             ?: return@get call.respond(HttpStatusCode.NotFound, "Unknown movie: $movieId")
         call.respondPage(ThymeleafContent("movie", mapOf("detail" to detail, "share" to call.shareCard(detail))))
     }

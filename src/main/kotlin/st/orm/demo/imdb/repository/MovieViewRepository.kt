@@ -4,10 +4,13 @@ import st.orm.Ref
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieView
 import st.orm.demo.imdb.model.MovieView_
+import st.orm.demo.imdb.model.User
 import st.orm.repository.EntityRepository
 import st.orm.repository.select
+import st.orm.template.eq
 import st.orm.template.greaterEq
 import st.orm.template.less
+import st.orm.template.ref
 import java.time.Instant
 import java.time.LocalDate
 
@@ -36,15 +39,36 @@ data class MovieViewDayCount(
 interface MovieViewRepository : EntityRepository<MovieView, Long> {
 
     /**
-     * The most recent movie views, newest first. Views hold a Ref to their
-     * movie, so this query stays on the view table alone — callers dedupe
-     * the refs and fetch the movies they actually need.
+     * The site's most recent movie views, newest first: the featured movie
+     * on the home page. Views hold a Ref to their movie, so this query stays
+     * on the view table alone — callers fetch the movies they need.
      */
     fun findRecentViews(limit: Int) =
         select()
             .orderByDescending(MovieView_.viewedAt, MovieView_.id)
             .limit(limit)
             .resultList
+
+    /**
+     * The user's most recent movie views, newest first: the recently-viewed
+     * section on the home page, read by the partial index on the account
+     * and the moment (V9). Callers dedupe the refs, as a movie viewed twice
+     * is listed once.
+     */
+    fun findRecentViews(user: User, limit: Int) =
+        select(MovieView_.user eq user)
+            .orderByDescending(MovieView_.viewedAt, MovieView_.id)
+            .limit(limit)
+            .resultList
+
+    /**
+     * Moves one user's views to another, for the sign-in that merges the
+     * browser's anonymous account into the signed-in one: the views of the
+     * last month at most, since older ones are folded, so one batch.
+     */
+    fun moveTo(from: User, into: User) {
+        update(findAll(MovieView_.user eq from).map { it.copy(user = into.ref()) })
+    }
 
     /**
      * The most viewed movies since a moment: what the site's visitors are

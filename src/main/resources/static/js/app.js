@@ -4,10 +4,12 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     setupSearchBoxes();
+    fitPlaceholders();
     setupSearchShortcut();
     setupInfiniteScroll();
     setupListToggles();
     setupShare();
+    setupImportDrop();
     setupDismissals();
     setupSummaries();
     setupBackdrops();
@@ -546,16 +548,15 @@ function setupListToggles() {
 }
 
 // The share button on a movie page. Where the device has a share sheet (phones:
-// messages, WhatsApp, X, ...) it opens that, with the poster attached when the
-// sheet takes files, so the message is visual; the poster is fetched ahead,
-// because the sheet opens only from the click itself. Elsewhere a small menu
-// copies the link, posts on X or emails it. A shared link unfurls into a card
-// either way: the Open Graph tags in the head.
+// messages, WhatsApp, X, ...) it opens that; elsewhere a small menu copies the
+// link, posts on X or emails it. The message is visual either way: the link
+// unfurls into a card with the poster, from the Open Graph tags in the head,
+// so the poster is not attached as well, which would show it twice.
 function setupShare() {
     const button = document.querySelector('[data-share]');
     if (!button) return;
     const menu = document.querySelector('[data-share-menu]');
-    const { shareTitle: title, shareText: text, shareUrl: url, shareImage: image } = button.dataset;
+    const { shareTitle: title, shareText: text, shareUrl: url } = button.dataset;
     const message = title + ' · ' + text;
     menu.querySelector('[data-share-x]').href =
         'https://x.com/intent/post?text=' + encodeURIComponent(message) + '&url=' + encodeURIComponent(url);
@@ -567,17 +568,13 @@ function setupShare() {
         copy.textContent = 'Link copied';
         setTimeout(() => { copy.textContent = 'Copy link'; menu.hidden = true; }, 1200);
     });
-    let poster = null;
-    if (navigator.canShare) posterFile(image, title).then(files => poster = files);
     button.addEventListener('click', async () => {
         if (!navigator.share) {
             menu.hidden = !menu.hidden;
             return;
         }
-        const data = { title, text: message, url };
-        if (poster && navigator.canShare({ files: poster })) data.files = poster;
         try {
-            await navigator.share(data);
+            await navigator.share({ title, text: message, url });
         } catch (e) {
             // The sheet was dismissed.
         }
@@ -587,15 +584,52 @@ function setupShare() {
     });
 }
 
-// The poster as a file to attach to a share, or null when there is none. The
-// poster endpoint redirects to IMDB's CDN, which allows the read.
-async function posterFile(path, title) {
-    try {
-        const response = await fetch(path);
-        if (!response.ok) return null;
-        const blob = await response.blob();
-        return [new File([blob], title + '.jpg', { type: blob.type })];
-    } catch (e) {
-        return null;
-    }
+// The IMDb import on the seen page: a file dropped on the zone, or chosen with
+// its +, is sent at once. The form stays an ordinary upload, so the page works
+// without this script, with its Import button.
+function setupImportDrop() {
+    const form = document.querySelector('[data-import-form]');
+    if (!form) return;
+    const zone = form.querySelector('[data-drop-zone]');
+    const input = form.querySelector('[data-import-file]');
+    const text = form.querySelector('[data-drop-text]');
+    form.querySelector('[data-import-submit]').hidden = true;
+    const send = () => {
+        if (!input.files.length) return;
+        zone.classList.add('importing');
+        text.textContent = 'Importing ' + input.files[0].name + '…';
+        form.submit();
+    };
+    input.addEventListener('change', send);
+    ['dragenter', 'dragover'].forEach(type => zone.addEventListener(type, event => {
+        event.preventDefault();
+        zone.classList.add('dragging');
+    }));
+    ['dragleave', 'drop'].forEach(type => zone.addEventListener(type, () => zone.classList.remove('dragging')));
+    zone.addEventListener('drop', event => {
+        event.preventDefault();
+        if (!event.dataTransfer.files.length) return;
+        input.files = event.dataTransfer.files;
+        send();
+    });
+}
+
+// A search box says what it searches where that fits, and just "Search" where
+// it does not: the full placeholder is measured in the box's own font against
+// the room inside it, again when the window resizes and once the web font is in.
+function fitPlaceholders() {
+    const inputs = [...document.querySelectorAll('[data-placeholder-full]')];
+    if (!inputs.length) return;
+    const canvas = document.createElement('canvas').getContext('2d');
+    inputs.forEach(input => input.dataset.placeholderShort = input.placeholder);
+    const fit = () => inputs.forEach(input => {
+        const style = getComputedStyle(input);
+        canvas.font = style.font;
+        const room = input.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+        const full = input.dataset.placeholderFull;
+        input.placeholder = canvas.measureText(full).width <= room ? full : input.dataset.placeholderShort;
+    });
+    fit();
+    window.addEventListener('resize', fit);
+    if (document.fonts) document.fonts.ready.then(fit);
 }

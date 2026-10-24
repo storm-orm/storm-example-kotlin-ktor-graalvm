@@ -65,7 +65,8 @@ CREATE TABLE movie_addition (
 CREATE TABLE movie_view (
     id        BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     movie_id  VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
-    viewed_at TIMESTAMP NOT NULL
+    viewed_at TIMESTAMP NOT NULL,
+    user_id   VARCHAR
 );
 
 -- Views older than a month, folded into one row per movie and day (V7).
@@ -162,3 +163,7 @@ CREATE INDEX idx_watchlist_user_id_added_at ON watchlist (user_id, added_at DESC
 CREATE INDEX idx_movie_seen_user_id_seen_at ON movie_seen (user_id, seen_at DESC);
 CREATE INDEX idx_recommendation_user_id_score ON recommendation (user_id, score DESC, movie_id);
 CREATE INDEX idx_recommendation_event_kind ON recommendation_event (kind);
+
+-- V9: the account of a returning visitor's view (H2 has no partial indexes).
+ALTER TABLE movie_view ADD CONSTRAINT fk_movie_view_user FOREIGN KEY (user_id) REFERENCES app_user (id) ON DELETE SET NULL;
+CREATE INDEX idx_movie_view_user_viewed_at ON movie_view (user_id, viewed_at DESC);
