@@ -84,7 +84,10 @@ CREATE TABLE app_user (
     name         VARCHAR,
     avatar_url   VARCHAR,
     created_at   TIMESTAMP NOT NULL,
-    last_seen_at TIMESTAMP NOT NULL
+    last_seen_at TIMESTAMP NOT NULL,
+    share_seen   BOOLEAN NOT NULL DEFAULT TRUE,
+    share_name   BOOLEAN NOT NULL DEFAULT TRUE,
+    share_dates  BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 CREATE TABLE user_login (
@@ -167,3 +170,33 @@ CREATE INDEX idx_recommendation_event_kind ON recommendation_event (kind);
 -- V9: the account of a returning visitor's view (H2 has no partial indexes).
 ALTER TABLE movie_view ADD CONSTRAINT fk_movie_view_user FOREIGN KEY (user_id) REFERENCES app_user (id) ON DELETE SET NULL;
 CREATE INDEX idx_movie_view_user_viewed_at ON movie_view (user_id, viewed_at DESC);
+
+-- V10: friends.
+CREATE TABLE friendship (
+    user_id   VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    friend_id VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    since     TIMESTAMP NOT NULL,
+    PRIMARY KEY (user_id, friend_id),
+    CHECK (user_id <> friend_id)
+);
+CREATE INDEX idx_friendship_friend_id ON friendship (friend_id);
+CREATE TABLE friend_invite (
+    token      VARCHAR NOT NULL PRIMARY KEY,
+    inviter_id VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    created_at TIMESTAMP NOT NULL,
+    reusable   BOOLEAN NOT NULL DEFAULT FALSE
+);
+CREATE INDEX idx_friend_invite_inviter_id ON friend_invite (inviter_id);
+
+-- V12: the catch-up page reads the most voted movies first.
+CREATE INDEX idx_rating_vote_count ON rating (vote_count DESC, movie_id);
+
+-- V13: check-ins, one row per watch.
+CREATE TABLE check_in (
+    id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id    VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    movie_id   VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
+    watched_at TIMESTAMP NOT NULL
+);
+CREATE INDEX idx_check_in_user_id_watched_at ON check_in (user_id, watched_at DESC, id DESC);
+CREATE INDEX idx_check_in_user_id_movie_id ON check_in (user_id, movie_id);

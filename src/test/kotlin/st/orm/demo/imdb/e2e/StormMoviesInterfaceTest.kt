@@ -223,17 +223,37 @@ class StormMoviesInterfaceTest {
     /* ── Seen tags ────────────────────────────────────────────────── */
 
     @Test
-    fun `lists of movies tag the ones seen, recent ones with the checkmark alone`() {
+    fun `the seen page lists everything, or the check-ins alone under their month`() {
+        page.navigate("$baseUrl/")
+        page.request().post("$baseUrl/api/seen/tt0111161")
+        page.request().post("$baseUrl/api/seen/tt0068646?when=earlier")
+
+        page.navigate("$baseUrl/seen")
+        assertThat(page.locator("#seen-results .movie-card")).hasCount(2)
+
+        page.locator("#checkins-tab").click()
+        page.waitForURL(Pattern.compile(".*/seen\\?checkins.*"))
+        // Today's check-in under this month; the history stays out.
+        assertThat(page.locator("#seen-results .day-group .section-title").first()).hasText(Pattern.compile("^[A-Z][a-z]+ \\d{4}$"))
+        assertThat(page.locator("#seen-results .day-group a.movie-card[href='/movie/tt0111161']")).hasCount(1)
+        assertThat(page.locator("#seen-results a.movie-card[href='/movie/tt0068646']")).hasCount(0)
+    }
+
+    @Test
+    fun `lists of movies tag the ones seen, a check-in with its day, history with the checkmark alone`() {
         page.onConsoleMessage { println("console: " + it.text()) }
         page.onPageError { println("page error: $it") }
         page.navigate("$baseUrl/")
         page.request().post("$baseUrl/api/seen/tt0111161")
 
-        // A ranked row: the tag sits beside the year; seen this month, it is the checkmark alone, the day in its title.
+        // A ranked row: the tag sits beside the year; a check-in carries its day.
         page.navigate("$baseUrl/top")
         val row = page.locator("a.ranked-row[href='/movie/tt0111161']")
-        assertThat(row.locator(".seen-tag")).hasText("✓")
-        assertThat(row.locator(".seen-tag")).hasAttribute("title", Pattern.compile("Seen \\d{1,2} \\w{3} \\d{4}"))
+        assertThat(row.locator(".seen-tag")).hasText(Pattern.compile("✓ \\d{1,2} \\w{3} \\d{4}"))
+        // History, marked as seen earlier, is the checkmark alone.
+        page.request().post("$baseUrl/api/seen/tt0110912?when=earlier")
+        page.reload()
+        assertThat(page.locator("a.ranked-row[href='/movie/tt0110912'] .seen-tag")).hasText("✓")
         // A movie not seen has none.
         assertThat(page.locator("a.ranked-row[href='/movie/tt0068646'] .seen-tag")).hasCount(0)
 
@@ -244,7 +264,7 @@ class StormMoviesInterfaceTest {
         assertThat(page.locator("a.ranked-row[href='/movie/tt0068646'] .seen-tag")).hasText("✓ 2 Jan 2020")
         page.navigate("$baseUrl/movie/tt0068646")
         assertThat(page.locator("[data-seen-label]")).hasText("Seen 2 Jan 2020")
-        page.navigate("$baseUrl/movie/tt0111161")
+        page.navigate("$baseUrl/movie/tt0110912")
         assertThat(page.locator("[data-seen-label]")).hasText("Seen")
 
         // A poster card: the tag sits in the poster's corner, on the seen page as well.
@@ -255,6 +275,64 @@ class StormMoviesInterfaceTest {
         val box = posterTag.boundingBox()
         val onTop = page.evaluate("([x, y]) => !!document.elementFromPoint(x, y).closest('.seen-tag')", listOf(box.x + box.width / 2, box.y + box.height / 2))
         assertEquals(true, onTop)
+    }
+
+    @Test
+    fun `a new visitor is welcomed toward the catch-up page, and told to sign in to keep the marks`() {
+        page.navigate("$baseUrl/")
+        assertThat(page.locator("#welcome")).isVisible()
+        page.locator("#welcome a.welcome-button").click()
+        page.waitForURL(Pattern.compile(".*/seen/catch-up"))
+        val nudge = page.locator("[data-signin-nudge]")
+        assertThat(nudge).isVisible()
+        assertThat(nudge.locator("a")).hasAttribute("href", Pattern.compile("/signin\\?rd=.*catch-up"))
+
+        // After five marks the note stands out.
+        val cards = page.locator("#catch-up-results a.movie-card")
+        for (i in 0 until 5) {
+            cards.nth(i).click()
+            assertThat(cards.nth(i).locator(".seen-tag")).isVisible()
+        }
+        assertThat(nudge).hasClass(Pattern.compile("urgent"))
+
+        // Once something is marked, the welcome is gone.
+        page.navigate("$baseUrl/")
+        assertThat(page.locator("#welcome")).hasCount(0)
+    }
+
+    @Test
+    fun `the catch-up page marks a movie seen before with a tap, and unmarks it`() {
+        page.navigate("$baseUrl/seen/catch-up")
+        val card = page.locator("#catch-up-results a.movie-card").first()
+        val id = card.getAttribute("href").substringAfterLast('/')
+        assertThat(card.locator(".seen-tag")).hasCount(0)
+
+        // A tap marks it, as history: the checkmark alone, and the page stays.
+        card.click()
+        assertThat(card.locator(".seen-tag")).hasText("✓")
+        assertTrue(page.url().endsWith("/seen/catch-up"))
+        page.navigate("$baseUrl/movie/$id")
+        assertThat(page.locator("[data-seen-label]")).hasText("Seen")
+
+        // Another tap unmarks it.
+        page.navigate("$baseUrl/seen/catch-up")
+        page.locator("#catch-up-results a.movie-card[href='/movie/$id']").click()
+        assertThat(page.locator("#catch-up-results a.movie-card[href='/movie/$id'] .seen-tag")).hasCount(0)
+        assertThat(page.locator("[data-seen-count]")).hasText("0")
+
+        // A search finds one movie to mark the same way, and the count follows.
+        page.locator("[data-catch-up-search]").fill("matrix")
+        val found = page.locator("#catch-up-search-results a.movie-card[href='/movie/tt0133093']")
+        found.click()
+        assertThat(found.locator(".seen-tag")).hasText("✓")
+        assertThat(page.locator("[data-seen-count]")).hasText("1")
+
+        // "Hide marked" lists only the movies still to go, filtered by the server.
+        page.locator("[data-hide-marked]").check()
+        page.waitForURL(Pattern.compile(".*/seen/catch-up\\?unmarked"))
+        assertThat(page.locator("#catch-up-results a.movie-card").first()).isVisible()
+        assertThat(page.locator("#catch-up-results a.movie-card[href='/movie/tt0133093']")).hasCount(0)
+        assertThat(page.locator("[data-hide-marked]")).isChecked()
     }
 
     /* ── Insights ─────────────────────────────────────────────────── */
@@ -401,8 +479,12 @@ class StormMoviesInterfaceTest {
 
         watchlistButton.click()
         assertThat(watchlistLabel).hasText("On watchlist")
-        seenButton.click()
-        assertThat(seenLabel).hasText("Seen")
+        // Check in opens the days of the past week; today it is, which the seen button shows with its day.
+        page.locator("[data-check-in]").click()
+        assertThat(page.locator("[data-check-in-day]")).hasCount(7)
+        page.locator("[data-check-in-day]").first().click()
+        assertThat(page.locator("[data-check-in-label]")).hasText("Checked in today")
+        assertThat(seenLabel).hasText(Pattern.compile("Seen \\d{1,2} \\w{3} \\d{4}"))
         assertThat(watchlistLabel).hasText("Add to watchlist")
 
         page.navigate("$baseUrl/seen")
@@ -419,7 +501,7 @@ class StormMoviesInterfaceTest {
         val votes = page.locator("[data-vote-buttons]")
         assertThat(votes).isHidden()
 
-        page.locator("[data-list-toggle='seen']").click()
+        page.markSeenEarlier()
         assertThat(page.locator("[data-seen-label]")).hasText("Seen")
         assertThat(votes).isVisible()
 
@@ -442,7 +524,7 @@ class StormMoviesInterfaceTest {
 
         // Seeing The Matrix makes the picks personal, computed in the background.
         page.navigate("$baseUrl/movie/tt0133093")
-        page.locator("[data-list-toggle='seen']").click()
+        page.markSeenEarlier()
         assertThat(page.locator("[data-seen-label]")).hasText("Seen")
         page.waitForCondition({
             page.navigate("$baseUrl/for-you")
@@ -459,7 +541,7 @@ class StormMoviesInterfaceTest {
     @Test
     fun `not interested removes a pick and keeps it out`() {
         page.navigate("$baseUrl/movie/tt0133093")
-        page.locator("[data-list-toggle='seen']").click()
+        page.markSeenEarlier()
         assertThat(page.locator("[data-seen-label]")).hasText("Seen")
         page.waitForCondition({
             page.navigate("$baseUrl/for-you")
@@ -651,6 +733,7 @@ class StormMoviesInterfaceTest {
             for ((path, name) in listOf(
                 "/" to "home", "/top" to "top", "/watchlist" to "watchlist", "/seen" to "seen",
                 "/signin" to "signin", "/statistics" to "statistics", "/insights" to "insights",
+                "/seen/catch-up" to "catch-up", "/friends" to "friends",
                 "/search?query=matrix" to "search", "/movie/tt0133093" to "movie",
                 "/person/nm0000206" to "person", "/browse/Drama" to "browse"
             )) {
@@ -677,6 +760,11 @@ class StormMoviesInterfaceTest {
     }
 
     /* ── Helpers ──────────────────────────────────────────────────── */
+
+    /** Marks the movie on the page as seen, without a day: the Mark as seen button. */
+    private fun Page.markSeenEarlier() {
+        locator("[data-list-toggle='seen']").click()
+    }
 
     private fun fetchSomeMovieIds(count: Int): List<String> {
         val response = page.context().request().get("$baseUrl/api/search/movies?query=the")

@@ -2,6 +2,8 @@ package st.orm.demo.imdb.service
 
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.model.UserLogin
+import st.orm.demo.imdb.repository.CheckInRepository
+import st.orm.demo.imdb.repository.FriendshipRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.MovieViewRepository
 import st.orm.demo.imdb.repository.RecommendationDismissalRepository
@@ -27,6 +29,8 @@ class AccountService(
     private val movieSeenRepository: MovieSeenRepository,
     private val dismissalRepository: RecommendationDismissalRepository,
     private val movieViewRepository: MovieViewRepository,
+    private val friendshipRepository: FriendshipRepository,
+    private val checkInRepository: CheckInRepository,
     private val recommendationService: RecommendationService
 ) {
     private val random = SecureRandom()
@@ -55,7 +59,7 @@ class AccountService(
      * - The provider account is linked to a user already: that user is the
      *   one, with the profile refreshed. Whatever the visitor saved and
      *   viewed under the cookie account moves to it, and so do the cookie
-     *   account's logins, if the visitor was signed in; then the cookie
+     *   account's logins and friends, if the visitor was signed in; then the cookie
      *   account goes, and every login leads to the one account.
      * - It is not linked yet: it is linked to the cookie account, which gets
      *   the profile's name, and its avatar if it has one. The lists stay
@@ -75,9 +79,11 @@ class AccountService(
                 previous?.let {
                     watchlistRepository.moveTo(it, user)
                     movieSeenRepository.moveTo(it, user)
+                    checkInRepository.moveTo(it, user)
                     dismissalRepository.moveTo(it, user)
                     movieViewRepository.moveTo(it, user)
                     userLoginRepository.moveTo(it, user)
+                    friendshipRepository.moveTo(it, user)
                     userRepository.remove(it)
                 }
                 user

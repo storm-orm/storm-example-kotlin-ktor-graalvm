@@ -7,6 +7,7 @@ import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.model.Watchlist
 import st.orm.demo.imdb.model.WatchlistPk
 import st.orm.demo.imdb.repository.MovieRepository
+import st.orm.demo.imdb.repository.CheckInRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.UserRepository
 import st.orm.demo.imdb.repository.WatchlistRepository
@@ -17,6 +18,7 @@ class WatchlistService(
     private val userRepository: UserRepository,
     private val watchlistRepository: WatchlistRepository,
     private val movieSeenRepository: MovieSeenRepository,
+    private val checkInRepository: CheckInRepository,
     private val recommendationService: RecommendationService
 ) {
 
@@ -46,7 +48,7 @@ class WatchlistService(
         }
         recommendationService.refreshLater(stored)
         val seen = movieSeenRepository.findById(MovieSeenPk(userId = stored.id, movieId = movie.id))
-        return MovieListState.of(onWatchlist = onWatchlist, seen = seen)
+        return MovieListState.of(onWatchlist = onWatchlist, seen = seen, checkedInAt = checkInRepository.findAll(stored, movie).maxOfOrNull { it.watchedAt })
     }
 
     /** One page of the user's watchlist for the watchlist page (0-based). */

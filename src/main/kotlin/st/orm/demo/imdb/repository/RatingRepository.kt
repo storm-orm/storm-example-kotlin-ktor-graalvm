@@ -4,10 +4,15 @@ import st.orm.demo.imdb.model.Genre
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieGenre
 import st.orm.demo.imdb.model.MovieGenre_
+import st.orm.demo.imdb.model.MovieSeen
+import st.orm.demo.imdb.model.MovieSeen_
 import st.orm.demo.imdb.model.Movie_
 import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.model.Rating_
+import st.orm.demo.imdb.model.User
 import st.orm.Ref
+import st.orm.Scrollable
+import st.orm.Window
 import st.orm.repository.EntityRepository
 import st.orm.template.and
 import st.orm.template.eq
@@ -74,4 +79,28 @@ interface RatingRepository : EntityRepository<Rating, Movie> {
             }
             limit(limit)
         }.resultList
+
+    /**
+     * The ratings with keyset scrolling, the most voted first, optionally of
+     * one genre, and optionally only the movies a user has not marked seen:
+     * the catch-up page, where the movies most people saw come first
+     * ([mostVotedFirst]). As on the top movies page, the genre join is there
+     * only when a genre is asked for; the user's seen list is an anti-join,
+     * a NOT EXISTS with the user on the join, so the movies they marked never
+     * reach the page. Each rating carries its movie.
+     */
+    fun scrollMostVoted(genre: Genre?, unseenBy: User?, scrollable: Scrollable<Rating>): Window<Rating> {
+        val ratings = select()
+        val inGenre = if (genre == null) ratings else ratings.innerJoin<MovieGenre>().on<Movie>().where(MovieGenre_.genre eq genre).narrow<Rating>()
+        val unseen = if (unseenBy == null) inGenre else inGenre.antiJoin<MovieSeen>().on<Movie> { MovieSeen_.user eq unseenBy }.narrow<Rating>()
+        return unseen.scroll(scrollable)
+    }
+
+    companion object {
+        /** The most voted first, then the movie's id, which addresses a row (the index of V12). */
+        fun mostVotedFirst(size: Int): Scrollable<Rating> =
+            Scrollable.of(Rating_.movie.id, size)
+                .sortByDescending(Rating_.voteCount)
+    }
+
 }

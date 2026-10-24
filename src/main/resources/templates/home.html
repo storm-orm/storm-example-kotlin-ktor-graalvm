@@ -5,6 +5,20 @@
 <nav th:replace="~{fragments/layout :: navbar('home')}"></nav>
 
 <!-- Featured: the most recently viewed movie. -->
+<!-- New here: nothing marked or saved yet. The catch-up page is the quickest way to what the site does. -->
+<section class="welcome" id="welcome" th:if="${view.seenEntries.isEmpty() and view.watchlistEntries.isEmpty()}">
+    <div class="container welcome-inner">
+        <div>
+            <h2 class="welcome-title">Start with what you have already seen</h2>
+            <p>
+                Tap through the most watched movies and mark the ones you know. A minute is enough: For You turns
+                it into picks of your own, and Insights shows your favourite actors, directors and genres.
+            </p>
+        </div>
+        <a class="button button-primary welcome-button" th:href="@{/seen/catch-up}">Mark the movies you've seen</a>
+    </div>
+</section>
+
 <section class="hero" th:if="${view.featured != null}" th:with="featured=${view.featured}">
     <div class="hero-backdrop"
          th:style="|background-image: url('/api/poster/${featured.movie.id}')|"
@@ -109,6 +123,21 @@
         <div class="movie-row">
             <th:block th:each="entry : ${view.watchlistEntries}">
                 <a th:replace="~{fragments/cards :: movie(${entry.movie.id}, ${entry.movie.primaryTitle}, ${entry.movie.startYear})}"></a>
+            </th:block>
+        </div>
+    </div>
+</section>
+
+<!-- What friends saw lately, as far as they share it -->
+<section class="section" th:if="${!view.friendsSeen.isEmpty()}" id="friends-seen-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Friends Recently Saw</h2>
+            <a class="section-link" th:href="@{/friends}">View all →</a>
+        </div>
+        <div class="movie-row">
+            <th:block th:each="item : ${view.friendsSeen}">
+                <a th:replace="~{fragments/cards :: friendSeen(${item})}"></a>
             </th:block>
         </div>
     </div>

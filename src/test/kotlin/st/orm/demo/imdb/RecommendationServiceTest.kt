@@ -1,5 +1,6 @@
 package st.orm.demo.imdb
 
+import st.orm.demo.imdb.repository.CheckInRepository
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -197,7 +198,8 @@ class RecommendationServiceTest {
         orm.repository<RatingRepository>(),
         orm.repository<MovieViewRepository>(),
         orm.repository<RecommendationRepository>(),
-        orm.repository<RecommendationEventRepository>()
+        orm.repository<RecommendationEventRepository>(),
+            orm.repository<CheckInRepository>()
     )
 
     @Test

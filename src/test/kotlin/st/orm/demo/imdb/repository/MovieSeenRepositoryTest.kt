@@ -17,7 +17,7 @@ import java.time.Instant
 class MovieSeenRepositoryTest {
 
     @Test
-    fun `a seen list belongs to its user and pages the most recently marked first`(orm: ORMTemplate, capture: SqlCapture) {
+    fun `a seen list belongs to its user and scrolls the most recently marked first`(orm: ORMTemplate, capture: SqlCapture) {
         val movieRepository = orm.repository<MovieRepository>()
         val movieSeenRepository = orm.repository<MovieSeenRepository>()
         val alice = orm.insertUser("visitor-alice")
@@ -33,11 +33,11 @@ class MovieSeenRepositoryTest {
         assertFalse(movieSeenRepository.contains(bob, movieRepository.getById("tt0133093")))
 
         capture.clear()
-        val page = capture.execute { movieSeenRepository.findPage(alice, pageNumber = 0, pageSize = 2) }
-        capture.printStatements("findPage")
-        assertEquals(3, page.totalCount())
-        assertEquals(listOf("The Godfather", "The Shawshank Redemption"), page.content().map { it.movie.primaryTitle })
-        assertEquals(0, movieSeenRepository.findPage(bob, pageNumber = 0, pageSize = 2).totalCount())
+        val window = capture.execute { movieSeenRepository.scroll(alice, MovieSeenRepository.newestFirst(2)) }
+        capture.printStatements("scroll")
+        assertEquals(3, movieSeenRepository.countFor(alice))
+        assertEquals(listOf("The Godfather", "The Shawshank Redemption"), window.content().map { it.movie.primaryTitle })
+        assertEquals(0, movieSeenRepository.countFor(bob))
     }
 
     @Test
@@ -55,8 +55,8 @@ class MovieSeenRepositoryTest {
 
         movieSeenRepository.moveTo(anonymous, signedIn)
 
-        val moved = movieSeenRepository.findPage(signedIn, pageNumber = 0, pageSize = 10).content()
+        val moved = movieSeenRepository.scroll(signedIn, MovieSeenRepository.newestFirst(10)).content()
         assertEquals(listOf("The Matrix", "The Godfather"), moved.map { it.movie.primaryTitle })
-        assertEquals(0, movieSeenRepository.findPage(anonymous, pageNumber = 0, pageSize = 10).totalCount())
+        assertEquals(0, movieSeenRepository.countFor(anonymous))
     }
 }

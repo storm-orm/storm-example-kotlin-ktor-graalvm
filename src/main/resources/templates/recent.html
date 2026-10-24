@@ -15,7 +15,7 @@
     <div class="container">
         <div class="empty-state" th:if="${days.isEmpty()}">No releases of this year have joined the catalogue yet.</div>
         <div id="recent-results">
-            <section class="day-group" th:each="day : ${days}" th:data-day="${day.label}">
+            <section class="day-group" th:each="day : ${days}" th:data-group="${day.label}">
                 <div class="section-header">
                     <h2 class="section-title" th:text="${day.label}">23 October 2026</h2>
                 </div>
@@ -28,7 +28,7 @@
         </div>
         <div class="scroll-sentinel" th:if="${nextCursor != null}"
              data-infinite-scroll
-             data-kind="addition"
+             data-kind="grouped"
              data-target="recent-results"
              data-endpoint="/api/recent"
              th:data-cursor="${nextCursor}">

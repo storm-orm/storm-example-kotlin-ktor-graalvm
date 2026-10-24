@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Catch up')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('seen')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <h1 class="page-title">Catch up</h1>
+        <p class="page-subtitle">
+            Tap the movies you have seen, the most watched first; tap again to undo. They count as seen before,
+            without a date: a check-in is for a movie you watch today, from its own page.
+        </p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container">
+        <p class="account-hint"><a th:href="@{/seen}">← Back to your seen movies</a></p>
+
+        <!-- Not signed in, the marks live in this browser alone: say so, and offer the way to keep them. -->
+        <div class="notice signin-nudge" th:if="${account.name == null}" data-signin-nudge>
+            <span>Your marks are kept in this browser only, and a cleared browser loses them.
+                Sign in, with GitHub or Freepod, to keep them on every device.</span>
+            <a class="button" th:href="@{/signin(rd='/seen/catch-up')}">Sign in</a>
+        </div>
+
+        <!-- Find one movie, narrow to a genre, leave out what is marked already; the count follows every tap.
+             The genre and "Hide marked" filter on the server, so the list holds only what they let through. -->
+        <div class="catch-up-toolbar">
+            <input type="search" class="catch-up-search" placeholder="Find a movie you saw" autocomplete="off" data-catch-up-search>
+            <select class="catch-up-genre" data-catch-up-genre aria-label="Genre">
+                <option value="">All genres</option>
+                <option th:each="option : ${genres}" th:value="${option.name}" th:text="${option.name}"
+                        th:selected="${genre != null and genre.id == option.id}">Drama</option>
+            </select>
+            <label class="hide-marked"><input type="checkbox" data-hide-marked th:checked="${unmarkedOnly}"> Hide marked</label>
+            <span class="catch-up-count"><strong data-seen-count>0</strong> seen</span>
+        </div>
+
+        <!-- In these grids a tap marks or unmarks the movie instead of opening it (setupCatchUp in app.js). -->
+        <div class="movie-grid catch-up" id="catch-up-search-results" data-catch-up data-catch-up-found hidden></div>
+        <div class="movie-grid catch-up" id="catch-up-results" data-catch-up data-catch-up-list>
+            <th:block th:each="movie : ${movies}">
+                <a th:replace="~{fragments/cards :: movie(${movie.id}, ${movie.primaryTitle}, ${movie.startYear})}"></a>
+            </th:block>
+        </div>
+        <div class="scroll-sentinel" th:if="${nextCursor != null}"
+             data-infinite-scroll
+             data-kind="movie"
+             data-target="catch-up-results"
+             th:data-endpoint="${scrollEndpoint}"
+             th:data-cursor="${nextCursor}">
+            <div class="spinner" hidden></div>
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

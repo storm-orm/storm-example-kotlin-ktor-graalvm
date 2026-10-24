@@ -1,5 +1,6 @@
 package st.orm.demo.imdb
 
+import st.orm.demo.imdb.repository.CheckInRepository
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -10,6 +11,7 @@ import org.junit.jupiter.api.Test
 import st.orm.demo.imdb.model.MovieSeen
 import st.orm.demo.imdb.model.MovieView
 import st.orm.demo.imdb.model.Watchlist
+import st.orm.demo.imdb.repository.FriendshipRepository
 import st.orm.demo.imdb.repository.MovieAdditionRepository
 import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieRepository
@@ -176,6 +178,9 @@ class AccountServiceTest {
         val laptop = orm.insertUser("visitor-laptop")
         val githubAccount = runBlocking { accountService.signIn(laptop.id, GitProvider.GITHUB, alice) }
         movieSeenRepository.insert(MovieSeen(githubAccount, matrix, Instant.now()))
+        // The GitHub account has a friend.
+        val dave = orm.insertUser("visitor-dave", name = "Dave")
+        orm.repository<FriendshipRepository>().befriend(githubAccount, dave, Instant.now())
 
         // Signed in with GitHub, the visitor links Freepod.
         val user = runBlocking { accountService.signIn(githubAccount.id, freepod, freepod.profile("fp-42", "Alice%20F.")!!) }
@@ -189,6 +194,10 @@ class AccountServiceTest {
         assertEquals(listOf("freepod", "github"), accountService.loginsOf(user).map { it.id.provider }.sorted())
         assertEquals(user.id, logins.findLogin("github", "1001")?.user?.id)
         assertNull(orm.repository<UserRepository>().findById(githubAccount.id))
+        // The friend came along, both ways.
+        val friendships = orm.repository<FriendshipRepository>()
+        assertEquals(listOf("Dave"), friendships.findFriends(user).map { it.friend.name })
+        assertEquals(listOf(user.id), friendships.findFriends(dave).map { it.friend.id })
     }
 
     private fun accountService(orm: ORMTemplate) = AccountService(
@@ -198,6 +207,8 @@ class AccountServiceTest {
         orm.repository<MovieSeenRepository>(),
         orm.repository<RecommendationDismissalRepository>(),
         orm.repository<MovieViewRepository>(),
+        orm.repository<FriendshipRepository>(),
+        orm.repository<CheckInRepository>(),
         RecommendationService(
             orm.repository<UserRepository>(),
             orm.repository<MovieRepository>(),
@@ -210,7 +221,8 @@ class AccountServiceTest {
             orm.repository<RatingRepository>(),
             orm.repository<MovieViewRepository>(),
             orm.repository<RecommendationRepository>(),
-            orm.repository<RecommendationEventRepository>()
+            orm.repository<RecommendationEventRepository>(),
+            orm.repository<CheckInRepository>()
         )
     )
 }

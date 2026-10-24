@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Friend invite')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('friends')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <h1 class="page-title">Friend invite</h1>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container invite-page">
+        <th:block th:if="${inviter != null}">
+            <div class="invite-from">
+                <span class="nav-account-icon invite-avatar">
+                    <img th:if="${inviter.avatarUrl != null}" th:src="${inviter.avatarUrl}" alt="">
+                    <span th:unless="${inviter.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(inviter.name, 0, 1))}">A</span>
+                </span>
+                <p><strong th:text="${inviter.name}">Alice</strong> invites you to be friends on Storm Movies.</p>
+            </div>
+            <p class="account-hint">
+                Friends see what each other watched lately, as far as each shares it: you choose on the Friends page
+                whether they see your movies, your name with them, and the days.
+            </p>
+            <form th:if="${account.name != null}" th:action="@{/friends/invite/{token}(token=${token})}" method="post">
+                <button type="submit" class="button button-primary" id="accept-invite">Accept</button>
+            </form>
+            <p th:if="${account.name == null}">
+                <a class="button button-primary" th:href="@{/signin(rd=|/friends/invite/${token}|)}">Sign in to accept</a>
+                <span class="account-hint">with GitHub, or with Freepod if you have no GitHub account.</span>
+            </p>
+        </th:block>
+        <div class="empty-state" th:if="${own}">
+            This is your own invite link. Share it with a friend: they accept it once, within two weeks.
+        </div>
+        <div class="empty-state" th:if="${gone}" id="invite-gone">
+            This invite was used already, expired, or never existed. Ask your friend for a new one.
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

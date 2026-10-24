@@ -189,6 +189,30 @@ movies read by id in one query, the seen rows written in one batched upsert
 keyed by the pair of user and movie, and the watchlist cleared in one delete
 (`MovieSeenService.importFromImdb`).
 
+## Check-ins and history
+
+A seen movie is a check-in or history (`movie_seen.historic`, V12). Marking a
+movie seen on its page asks when: today is a check-in, which shows its day on
+the tags and to friends; earlier is history, which never shows a day. The
+catch-up page (`/seen/catch-up`) is for history alone: the most voted movies
+first, of every genre or one (`RatingRepository.scrollMostVoted`, the genre
+join composed in only when a genre is chosen), each marked or unmarked with a
+tap, a search to find one, and a switch to hide the ones marked. An IMDb
+import makes check-ins of the titles it has days for. The recommendations
+weigh history as old taste, and the friends feed shows check-ins only.
+
+## Friends
+
+A signed-in visitor invites another with a link, a personal one accepted once
+within two weeks, or a public one to post anywhere, accepted by anyone until
+replaced (`friend_invite`, V10 and V11); accepting needs signing in too. A
+friendship is two rows, one each way (`friendship`), so a visitor's friends are
+a lookup of their own rows. Friends see each other's latest check-ins, on the
+Friends page and the home page, as far as each shares them: three switches on
+the account (`share_seen`, `share_name`, `share_dates`), all on by default,
+decide whether friends see the movies at all, the name with them (else "a
+friend"), and the days. There is no user directory: a link is the only way in.
+
 ## Insights
 
 The Insights page (`/insights`) tells visitors what their seen list says

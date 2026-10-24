@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setupListToggles();
     setupShare();
     setupSeenTags();
+    setupCatchUp();
+    setupInvite();
     setupImportDrop();
     setupDismissals();
     setupSummaries();
@@ -354,34 +356,35 @@ function renderCard(kind, item) {
 }
 
 /**
- * Appends an item of a window to the target. A movie of the recently added
- * page goes under the day it joined the catalogue: the last day on the page
- * when it is that day, a new day otherwise, so a day that continues in the
- * next window continues on the page. Anything else is a card in a grid.
+ * Appends an item of a window to the target. A movie listed in groups, under
+ * the day it joined the catalogue or the month it was checked in, goes under
+ * its group: the last group on the page when it is that one, a new group
+ * otherwise, so a group that continues in the next window continues on the
+ * page. Anything else is a card in a grid.
  */
 function appendItem(kind, target, item) {
-    if (kind !== 'addition') {
+    if (kind !== 'grouped') {
         target.appendChild(renderCard(kind, item));
         return;
     }
-    let day = target.lastElementChild;
-    if (!day || day.dataset.day !== item.day) {
-        day = document.createElement('section');
-        day.className = 'day-group';
-        day.dataset.day = item.day;
+    let group = target.lastElementChild;
+    if (!group || group.dataset.group !== item.group) {
+        group = document.createElement('section');
+        group.className = 'day-group';
+        group.dataset.group = item.group;
         const header = document.createElement('div');
         header.className = 'section-header';
         const title = document.createElement('h2');
         title.className = 'section-title';
-        title.textContent = item.day;
+        title.textContent = item.group;
         header.appendChild(title);
-        day.appendChild(header);
+        group.appendChild(header);
         const grid = document.createElement('div');
         grid.className = 'movie-grid';
-        day.appendChild(grid);
-        target.appendChild(day);
+        group.appendChild(grid);
+        target.appendChild(group);
     }
-    day.querySelector('.movie-grid').appendChild(movieCard(item));
+    group.querySelector('.movie-grid').appendChild(movieCard(item));
 }
 
 // A recommended movie: the movie card, linked as coming from a recommendation,
@@ -503,11 +506,22 @@ function personCard(person) {
 
 // Every toggle answers with the state of both lists and the vote: marking a
 // movie seen takes it off the watchlist, so the other button follows, and
-// the thumbs appear once the movie is seen.
+// the thumbs appear once the movie is seen. Mark as seen records having seen
+// it, as history, and unmarks it again; Check in records watching it today.
 function setupListToggles() {
     const buttons = document.querySelectorAll('[data-list-toggle]');
+    const checkIn = document.querySelector('[data-check-in]');
     const voteButtons = document.querySelectorAll('[data-vote]');
     const voteGroup = document.querySelector('[data-vote-buttons]');
+    // The button says when the last check-in was, while it is within the past week.
+    const showCheckIn = watchedAt => {
+        if (!checkIn) return;
+        const ago = watchedAt ? daysAgo(new Date(watchedAt)) : null;
+        const recent = ago !== null && ago < 7;
+        checkIn.classList.toggle('active', recent);
+        checkIn.querySelector('span').textContent = !recent ? 'Check in'
+            : 'Checked in ' + (ago === 0 ? 'today' : ago === 1 ? 'yesterday' : SHORT_DAY.format(new Date(watchedAt)));
+    };
     const render = state => {
         buttons.forEach(button => {
             const onList = button.dataset.listToggle === 'watchlist' ? state.onWatchlist : state.seen;
@@ -517,14 +531,16 @@ function setupListToggles() {
                 ? (onList ? 'On watchlist' : 'Add to watchlist')
                 : (onList ? seenLabel('Seen', state.seenAt) : 'Mark as seen');
         });
+        showCheckIn(state.seenAt);
         if (voteGroup) voteGroup.hidden = !state.seen;
         voteButtons.forEach(button => button.classList.toggle('active', String(state.liked) === button.dataset.vote));
     };
-    // The page renders the seen button's plain label; the day it was marked joins it here, as on the tags.
+    // The page renders the plain labels; the day of a check-in joins them here, as on the tags.
     buttons.forEach(button => {
         if (button.dataset.seenAt) button.querySelector('span').textContent = seenLabel('Seen', button.dataset.seenAt);
     });
-    const all = [...buttons, ...voteButtons];
+    showCheckIn(checkIn?.dataset.seenAt);
+    const all = [...buttons, ...voteButtons, ...(checkIn ? [checkIn] : [])];
     const submit = async (url, body) => {
         all.forEach(button => button.disabled = true);
         try {
@@ -540,9 +556,33 @@ function setupListToggles() {
         }
     };
     buttons.forEach(button => {
-        button.addEventListener('click', () =>
-            submit('/api/' + button.dataset.listToggle + '/' + button.dataset.movieId));
+        button.addEventListener('click', () => submit('/api/' + button.dataset.listToggle + '/' + button.dataset.movieId
+            + (button.dataset.listToggle === 'seen' ? '?when=earlier' : '')));
     });
+    // Check in opens the days of the past week, in the visitor's own calendar; a day checks the movie in on it.
+    const menu = document.querySelector('[data-check-in-menu]');
+    if (checkIn && menu) {
+        for (let ago = 0; ago < 7; ago++) {
+            const day = new Date();
+            day.setDate(day.getDate() - ago);
+            const option = document.createElement('button');
+            option.type = 'button';
+            option.className = 'share-option';
+            option.dataset.checkInDay = [day.getFullYear(), String(day.getMonth() + 1).padStart(2, '0'), String(day.getDate()).padStart(2, '0')].join('-');
+            option.textContent = ago === 0 ? 'Today' : ago === 1 ? 'Yesterday' : WEEKDAY.format(day);
+            menu.appendChild(option);
+        }
+        checkIn.addEventListener('click', () => menu.hidden = !menu.hidden);
+        menu.addEventListener('click', event => {
+            const option = event.target.closest('[data-check-in-day]');
+            if (!option) return;
+            menu.hidden = true;
+            submit('/api/seen/' + checkIn.dataset.movieId + '/check-in?day=' + option.dataset.checkInDay);
+        });
+        document.addEventListener('click', event => {
+            if (!event.target.closest('.check-in')) menu.hidden = true;
+        });
+    }
     // A thumb pressed again takes the vote back.
     voteButtons.forEach(button => {
         button.addEventListener('click', () => {
@@ -639,42 +679,178 @@ function fitPlaceholders() {
     if (document.fonts) document.fonts.ready.then(fit);
 }
 
-// The day a movie was marked seen, as the tags and the movie page show it.
+// The day of a check-in, as the tags and the movie page show it.
 const SEEN_DAY = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 
-// A seen label with its day, "✓ 14 Mar 2021", or the label alone when the movie
-// was marked within the last month: a recent one needs no date.
-function seenLabel(label, seenAt) {
-    if (!seenAt) return label;
-    const date = new Date(seenAt);
-    const monthAgo = new Date();
-    monthAgo.setMonth(monthAgo.getMonth() - 1);
-    return date > monthAgo ? label : label + ' ' + SEEN_DAY.format(date);
+// A day of the past week as the check-in menu and button name it: "Wednesday 21 Oct", "21 Oct".
+const WEEKDAY = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
+const SHORT_DAY = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' });
+
+// How many calendar days ago a moment was, in the visitor's own time zone.
+function daysAgo(date) {
+    const startOf = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    return Math.round((startOf(new Date()) - startOf(date)) / 86_400_000);
 }
 
-// Every list of movies tags the ones the visitor has seen, with the day they
-// marked it, or the checkmark alone when that was within the last month: the
-// seen dates come in one request, by movie id, and the tags go on the cards
-// and rows on the page, and on those the scroll adds later.
+// A seen label with the day of its check-in, "✓ 14 Mar 2021", or the label
+// alone for history, whose day is not known.
+function seenLabel(label, watchedAt) {
+    return watchedAt ? label + ' ' + SEEN_DAY.format(new Date(watchedAt)) : label;
+}
+
+// The visitor's seen movies, by id: the day of a check-in, or null for history.
+const seenMovies = new Map();
+
+// The movies the visitor's friends have seen, by id: each friend's name, or null for one who keeps it private.
+const friendsSeen = new Map();
+
+// Every list of movies tags the ones the visitor has seen, with the day of a
+// check-in, or the checkmark alone for history: the seen movies come in one
+// request, and the tags go on the cards and rows on the page, and on those the
+// scroll adds later.
 async function setupSeenTags() {
-    let dates;
     try {
         const response = await fetch('/api/seen');
         if (!response.ok) return;
-        dates = await response.json();
+        const marks = await response.json();
+        Object.entries(marks.seen).forEach(([id, watchedAt]) => seenMovies.set(id, watchedAt));
+        Object.entries(marks.friends).forEach(([id, names]) => friendsSeen.set(id, names));
     } catch (e) {
         return;
     }
-    if (!Object.keys(dates).length) return;
-    const tagAll = () => document.querySelectorAll('a.movie-card, a.ranked-row').forEach(link => {
-        const id = (link.getAttribute('href').match(/^\/movie\/(tt\d+)/) || [])[1];
-        if (!id || !dates[id] || link.querySelector('.seen-tag')) return;
-        const tag = document.createElement('span');
-        tag.className = 'seen-tag';
-        tag.textContent = seenLabel('✓', dates[id]);
-        tag.title = 'Seen ' + SEEN_DAY.format(new Date(dates[id]));
-        (link.querySelector('.ranked-sub') || link.querySelector('.poster')).appendChild(tag);
+    tagSeenMovies();
+    showSeenCount();
+    new MutationObserver(tagSeenMovies).observe(document.body, { childList: true, subtree: true });
+}
+
+function tagSeenMovies() {
+    document.querySelectorAll('a.movie-card, a.ranked-row').forEach(tagSeenMovie);
+}
+
+// Puts the tag on a card or row: green for a movie the visitor has seen, with
+// the day of a check-in; yellow for one only friends have seen, naming the
+// friend or counting them; none otherwise. The tag follows a mark or unmark.
+function tagSeenMovie(link) {
+    const id = (link.getAttribute('href').match(/^\/movie\/(tt\d+)/) || [])[1];
+    if (!id) return;
+    const wanted = seenTag(id);
+    const existing = link.querySelector('.seen-tag');
+    link.classList.toggle('is-seen', seenMovies.has(id));
+    if (existing && (!wanted || existing.textContent !== wanted.text)) existing.remove();
+    if (!wanted || (existing && existing.isConnected)) return;
+    const tag = document.createElement('span');
+    tag.className = wanted.friend ? 'seen-tag friend-tag' : 'seen-tag';
+    tag.textContent = wanted.text;
+    tag.title = wanted.title;
+    (link.querySelector('.ranked-sub') || link.querySelector('.poster')).appendChild(tag);
+}
+
+// The tag a movie gets, or null: the visitor's own seen tag first, else the friends' marker.
+function seenTag(id) {
+    if (seenMovies.has(id)) {
+        return { text: seenLabel('✓', seenMovies.get(id)), title: seenLabel('Seen', seenMovies.get(id)), friend: false };
+    }
+    const friends = friendsSeen.get(id);
+    if (!friends) return null;
+    const named = friends.filter(name => name);
+    const others = friends.length - named.length;
+    const who = friends.length === 1 ? (named[0] ?? 'A friend') : friends.length + ' friends';
+    const all = [...named, ...(others === 1 ? ['a friend'] : others > 1 ? [others + ' friends'] : [])];
+    return { text: '✓ ' + who, title: 'Seen by ' + all.join(', '), friend: true };
+}
+
+// The catch-up page: a tap on a movie marks it seen as history, or unmarks
+// it, instead of opening it, and the tag follows at once; a movie tapped stays
+// in place, so a tap can be undone. A search finds one movie to mark the same
+// way, the genre and "Hide marked" filter the list on the server, and the
+// count says how many are seen.
+function setupCatchUp() {
+    const list = document.querySelector('[data-catch-up-list]');
+    if (!list) return;
+    document.addEventListener('click', async event => {
+        const card = event.target.closest('[data-catch-up] a.movie-card');
+        if (!card) return;
+        event.preventDefault();
+        const id = card.getAttribute('href').split('/').pop();
+        card.classList.add('marking');
+        try {
+            const response = await fetch('/api/seen/' + id + '?when=earlier', { method: 'POST' });
+            if (!response.ok) return;
+            const state = await response.json();
+            if (state.seen) seenMovies.set(id, state.seenAt ?? null); else seenMovies.delete(id);
+            tagSeenMovies();
+            showSeenCount();
+            // A visitor who is not signed in has something to lose after a few marks: the sign-in note stands out.
+            document.querySelector('[data-signin-nudge]')?.classList.toggle('urgent', seenMovies.size >= SIGN_IN_NUDGE_MARKS);
+        } finally {
+            card.classList.remove('marking');
+        }
     });
-    tagAll();
-    new MutationObserver(tagAll).observe(document.body, { childList: true, subtree: true });
+
+    // The genre and "Hide marked" are filters of the list, so changing one loads it anew.
+    const genre = document.querySelector('[data-catch-up-genre]');
+    const hideMarked = document.querySelector('[data-hide-marked]');
+    const reload = () => {
+        const filters = [];
+        if (genre.value) filters.push('genre=' + encodeURIComponent(genre.value));
+        if (hideMarked.checked) filters.push('unmarked');
+        location.href = '/seen/catch-up' + (filters.length ? '?' + filters.join('&') : '');
+    };
+    genre.addEventListener('change', reload);
+    hideMarked.addEventListener('change', reload);
+
+    const search = document.querySelector('[data-catch-up-search]');
+    const found = document.querySelector('[data-catch-up-found]');
+    let timer;
+    search.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(async () => {
+            const query = search.value.trim();
+            found.replaceChildren();
+            found.hidden = !query;
+            if (!query) return;
+            const response = await fetch('/api/search/movies?query=' + encodeURIComponent(query));
+            if (!response.ok || search.value.trim() !== query) return;
+            (await response.json()).items.forEach(item => found.appendChild(movieCard(item)));
+        }, 250);
+    });
+}
+
+// After this many marks, the catch-up page's sign-in note stands out.
+const SIGN_IN_NUDGE_MARKS = 5;
+
+// The number of movies the visitor has seen, where a page shows it.
+function showSeenCount() {
+    document.querySelectorAll('[data-seen-count]').forEach(count => count.textContent = seenMovies.size.toLocaleString('en-GB'));
+}
+
+// The invite buttons on the friends page: each asks its endpoint for a link,
+// a personal invite, the public one, or a new public one, then hands it to the
+// device's share sheet where there is one, and otherwise copies it; either way
+// the link shows in the field, ready to paste into a message.
+function setupInvite() {
+    const buttons = document.querySelectorAll('[data-invite]');
+    const field = document.querySelector('[data-invite-link]');
+    buttons.forEach(button => button.addEventListener('click', async () => {
+        button.disabled = true;
+        try {
+            const response = await fetch(button.dataset.invite, { method: 'POST' });
+            if (!response.ok) return;
+            const { url } = await response.json();
+            field.value = url;
+            field.hidden = false;
+            field.select();
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title: 'Be my friend on Storm Movies', url });
+                } catch (e) {
+                    // The sheet was dismissed; the link stays in the field.
+                }
+            } else if (navigator.clipboard) {
+                await navigator.clipboard.writeText(url);
+            }
+        } finally {
+            button.disabled = false;
+        }
+    }));
 }

@@ -20,6 +20,10 @@ data class MovieSeenPk(
  * violation and the toggle has its semantics. Marking a movie seen takes it
  * off the watchlist (MovieSeenService). A thumbs up or down ([liked]) is
  * optional and sharpens the recommendations; most seen movies have none.
+ *
+ * [seenAt] is when the movie was marked seen, or last checked in. Its
+ * watches, each on a day, are its [CheckIn]s; a seen movie without any is
+ * history, seen at some time before, whose day is not known or shown.
  */
 data class MovieSeen(
     @PK(generation = NONE) val id: MovieSeenPk,

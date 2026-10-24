@@ -27,5 +27,11 @@ data class User(
     val name: String?,
     val avatarUrl: String?,
     @Serializable(with = InstantAsStringSerializer::class) val createdAt: Instant,
-    @Serializable(with = InstantAsStringSerializer::class) val lastSeenAt: Instant
+    @Serializable(with = InstantAsStringSerializer::class) val lastSeenAt: Instant,
+    /** Whether friends see what this user watches at all. */
+    val shareSeen: Boolean = true,
+    /** Whether friends see it as this user's, rather than as "a friend". */
+    val shareName: Boolean = true,
+    /** Whether friends see the days this user watched on. */
+    val shareDates: Boolean = true
 ) : Entity<String>

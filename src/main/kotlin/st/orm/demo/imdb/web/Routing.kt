@@ -6,6 +6,7 @@ import io.ktor.server.plugins.di.dependencies
 import io.ktor.server.routing.routing
 import st.orm.demo.imdb.service.AccountService
 import st.orm.demo.imdb.service.BrowseService
+import st.orm.demo.imdb.service.CatchUpService
 import st.orm.demo.imdb.service.FreepodSignIn
 import st.orm.demo.imdb.service.GitSignIn
 import st.orm.demo.imdb.service.HomeService
@@ -17,6 +18,7 @@ import st.orm.demo.imdb.service.RecentlyAddedService
 import st.orm.demo.imdb.service.RecommendationService
 import st.orm.demo.imdb.service.SearchService
 import st.orm.demo.imdb.service.InsightsService
+import st.orm.demo.imdb.service.FriendService
 import st.orm.demo.imdb.service.StatisticsService
 import st.orm.demo.imdb.service.TopMoviesService
 import st.orm.demo.imdb.service.WatchlistService
@@ -35,8 +37,10 @@ fun Application.configureRouting() {
     val topMoviesService: TopMoviesService by dependencies
     val watchlistService: WatchlistService by dependencies
     val movieSeenService: MovieSeenService by dependencies
+    val catchUpService: CatchUpService by dependencies
     val statisticsService: StatisticsService by dependencies
     val insightsService: InsightsService by dependencies
+    val friendService: FriendService by dependencies
     val searchService: SearchService by dependencies
     val browseService: BrowseService by dependencies
     val recentlyAddedService: RecentlyAddedService by dependencies
@@ -56,9 +60,10 @@ fun Application.configureRouting() {
         homeRoutes(homeService)
         topMoviesRoutes(topMoviesService)
         watchlistRoutes(watchlistService)
-        movieSeenRoutes(movieSeenService)
+        movieSeenRoutes(movieSeenService, catchUpService, friendService)
         statisticsRoutes(statisticsService)
         insightsRoutes(insightsService)
+        friendsRoutes(friendService)
         searchRoutes(searchService)
         browseRoutes(browseService)
         recentlyAddedRoutes(recentlyAddedService)

@@ -47,6 +47,16 @@
                     <span data-seen-label
                           th:text="${detail.lists.seen} ? 'Seen' : 'Mark as seen'">Mark as seen</span>
                 </button>
+                <!-- Mark as seen records having seen it, without a day; Check in records watching it today. -->
+                <!-- Check in opens the days of the past week; the script fills them in the visitor's own calendar. -->
+                <div class="check-in">
+                    <button class="button list-button check-in-button" data-check-in
+                            th:data-movie-id="${detail.movie.id}"
+                            th:data-seen-at="${detail.lists.seenAt}">
+                        <span data-check-in-label>Check in</span>
+                    </button>
+                    <div class="share-menu check-in-menu" data-check-in-menu hidden></div>
+                </div>
                 <!-- A thumbs up or down on a seen movie sharpens the recommendations; shown once seen. -->
                 <div class="vote-buttons" data-vote-buttons th:hidden="${!detail.lists.seen}">
                     <button class="button vote-button" data-vote="true" title="Liked it"

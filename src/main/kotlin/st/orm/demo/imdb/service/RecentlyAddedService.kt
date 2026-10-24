@@ -9,26 +9,12 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.Period
 import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
-import java.util.Locale
-
-/** One day of additions: the movies that joined the catalogue that day, as the window orders them. */
-data class AdditionDay(
-    val label: String,
-    val movies: List<Movie>
-)
 
 /** The recently added page: the days of the first window, and the cursor of the next window. */
 data class RecentlyAddedView(
-    val days: List<AdditionDay>,
+    val days: List<MovieGroup>,
     val nextCursor: String?
 )
-
-/** The day the movie joined the catalogue, as the page heads it: "23 October 2026", in UTC. */
-fun MovieAddition.additionDay(): String = ADDITION_DAY.format(addedAt)
-
-private val ADDITION_DAY: DateTimeFormatter =
-    DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.ENGLISH).withZone(ZoneOffset.UTC)
 
 /**
  * The first release year that counts as recent: this year, or last year
@@ -52,9 +38,7 @@ class RecentlyAddedService(private val movieAdditionRepository: MovieAdditionRep
     suspend fun recentlyAdded(now: Instant = Instant.now()): RecentlyAddedView = transaction(readOnly = true) {
         val window = movieAdditionRepository.scrollAdditions(recentYear(now), MovieAdditionRepository.newestFirst(PAGE_SIZE))
         RecentlyAddedView(
-            days = window.content()
-                .groupBy { it.additionDay() }
-                .map { (day, additions) -> AdditionDay(day, additions.map { it.movie }) },
+            days = window.content().groupedBy(label = { dayLabel(it.addedAt) }, movie = { it.movie }),
             nextCursor = window.nextCursor()
         )
     }

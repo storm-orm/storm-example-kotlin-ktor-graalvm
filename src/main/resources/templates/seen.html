@@ -8,7 +8,7 @@
     <div class="container">
         <h1 class="page-title">Seen</h1>
         <p class="page-subtitle"
-           th:text="|${#numbers.formatInteger(seenPage.totalCount(), 1, 'COMMA')} movies seen|">3 movies seen</p>
+           th:text="|${#numbers.formatInteger(count, 1, 'COMMA')} movies seen|">3 movies seen</p>
     </div>
 </header>
 
@@ -17,21 +17,26 @@
         <div class="notice" id="import-result" th:if="${imported != null}">
             Imported from IMDb:
             <strong th:text="${imported.added}">120</strong> movies marked as seen,
-            <strong th:text="${imported.updated}">8</strong> already seen took IMDb's date<th:block th:if="${imported.skipped > 0}">,
+            <strong th:text="${imported.updated}">8</strong> seen already, <strong th:text="${imported.checkIns}">40</strong> check-ins recorded<th:block th:if="${imported.skipped > 0}">,
             and <strong th:text="${imported.skipped}">14</strong> titles skipped: series, episodes and movies with fewer votes than the catalogue keeps</th:block>.
         </div>
         <div class="notice notice-error" id="import-failed" th:if="${importFailed}">
             That file is not an IMDb export. Export your ratings or a list on IMDb and upload the CSV file it gives you.
         </div>
 
+        <p class="catch-up-link">
+            <a class="button" th:href="@{/seen/catch-up}">Catch up on movies you saw before</a>
+            <span class="account-hint">Tap through the most watched movies to mark the ones you have seen.</span>
+        </p>
+
         <!-- IMDb has no sign-in for other sites, but it exports a user's ratings and lists as CSV. -->
-        <details class="import-panel" th:open="${seenPage.content().isEmpty()}">
+        <details class="import-panel" th:open="${count == 0}">
             <summary>Import from IMDb</summary>
             <p>
                 Bring your history from IMDb. On IMDb, open <em>Your ratings</em> or one of your lists, choose
                 <em>Export</em>, and download the CSV file from <em>Your account › Exports</em>. Upload it here:
-                every movie in it is marked as seen on the day you rated it, or added it to the list, and that day
-                replaces the one here for movies you already marked. A rating of 8 or more becomes a thumbs up,
+                every movie in it is marked as seen, with a check-in for each day you rated it, or added it to the
+                list. A check-in you made here within a week of such a day takes IMDb's day rather than counting twice. A rating of 8 or more becomes a thumbs up,
                 5 or less a thumbs down, unless you gave one here.
             </p>
             <!-- Drop the file on the zone, or press + for the file dialog; either imports at once. -->
@@ -49,25 +54,50 @@
             </form>
         </details>
 
-        <div class="empty-state" th:if="${seenPage.content().isEmpty()}">
+        <div class="empty-state" th:if="${count == 0}">
             No movies marked as seen yet. Open a movie and press “Mark as seen”, or import your history from IMDb.
         </div>
         <p class="account-hint" th:if="${account.name == null}">
-            Your lists live in this browser. <a th:href="@{/signin(rd='/seen')}">Sign in</a> with a git account to keep them on every device.
+            Your lists live in this browser. <a th:href="@{/signin(rd='/seen')}">Sign in</a> to keep them on every device.
         </p>
-        <div class="movie-grid" id="seen-results">
-            <th:block th:each="entry : ${seenPage.content()}">
-                <a th:replace="~{fragments/cards :: movie(${entry.movie.id}, ${entry.movie.primaryTitle}, ${entry.movie.startYear})}"></a>
+
+        <!-- Two views of the list: everything seen, check-ins included, the latest marked first; or the check-ins alone, by month. -->
+        <nav class="view-tabs" th:if="${count > 0}">
+            <a th:href="@{/seen}" th:classappend="${checkIns == null} ? 'active'">Seen</a>
+            <a th:href="@{/seen(checkins='')}" th:classappend="${checkIns != null} ? 'active'" id="checkins-tab">Check-ins</a>
+        </nav>
+
+        <div class="movie-grid" id="seen-results" th:if="${checkIns == null}">
+            <th:block th:each="movie : ${movies}">
+                <a th:replace="~{fragments/cards :: movie(${movie.id}, ${movie.primaryTitle}, ${movie.startYear})}"></a>
             </th:block>
         </div>
 
-        <div class="pagination" th:if="${seenPage.totalPages() > 1}">
-            <a class="button" th:classappend="${!seenPage.hasPrevious()} ? 'disabled'"
-               th:href="@{/seen(page=${currentPage - 1})}">← Previous</a>
-            <span class="page-info"
-                  th:text="|Page ${currentPage} of ${seenPage.totalPages()}|">Page 1 of 2</span>
-            <a class="button" th:classappend="${!seenPage.hasNext()} ? 'disabled'"
-               th:href="@{/seen(page=${currentPage + 1})}">Next →</a>
+        <th:block th:if="${checkIns != null}">
+            <div class="empty-state" th:if="${checkIns.window.content().isEmpty()}">
+                No check-ins yet: a movie marked as seen today, from its page, is checked in on that day.
+            </div>
+            <div id="seen-results">
+                <section class="day-group" th:each="month : ${checkIns.months}" th:data-group="${month.label}">
+                    <div class="section-header">
+                        <h2 class="section-title" th:text="${month.label}">October 2026</h2>
+                    </div>
+                    <div class="movie-grid">
+                        <th:block th:each="movie : ${month.movies}">
+                            <a th:replace="~{fragments/cards :: movie(${movie.id}, ${movie.primaryTitle}, ${movie.startYear})}"></a>
+                        </th:block>
+                    </div>
+                </section>
+            </div>
+        </th:block>
+
+        <div class="scroll-sentinel" th:if="${nextCursor != null}"
+             data-infinite-scroll
+             th:data-kind="${checkIns != null} ? 'grouped' : 'movie'"
+             data-target="seen-results"
+             th:data-endpoint="${checkIns != null} ? '/api/seen/list?checkins' : '/api/seen/list'"
+             th:data-cursor="${nextCursor}">
+            <div class="spinner" hidden></div>
         </div>
     </div>
 </section>

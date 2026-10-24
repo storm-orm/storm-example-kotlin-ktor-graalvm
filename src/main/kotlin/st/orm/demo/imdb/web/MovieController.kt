@@ -14,6 +14,7 @@ import st.orm.demo.imdb.service.MovieSeenService
 import st.orm.demo.imdb.service.MovieService
 import st.orm.demo.imdb.service.WatchlistService
 import st.orm.ktor.transactional
+import java.time.LocalDate
 
 /** The query parameter a recommendation surface adds to its links, so the visit counts as one that came of it. */
 private const val VIA_FOR_YOU = "for-you"
@@ -61,9 +62,20 @@ fun Route.movieRoutes(movieService: MovieService, watchlistService: WatchlistSer
             val movieId = call.parameters.getOrFail("movieId")
             call.respond(watchlistService.toggle(call.currentUser(), movieId))
         }
+        // Marks or unmarks a movie as seen: as a check-in today, or with ?when=earlier as history.
         post("/api/seen/{movieId}") {
             val movieId = call.parameters.getOrFail("movieId")
-            call.respond(movieSeenService.toggle(call.currentUser(), movieId))
+            val historic = call.request.queryParameters["when"] == "earlier"
+            call.respond(movieSeenService.toggle(call.currentUser(), movieId, historic))
+        }
+        // Checks a movie in, today or with ?day=2026-10-22 on a day of the past week; seen before or not.
+        post("/api/seen/{movieId}/check-in") {
+            val day = call.request.queryParameters["day"]?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+            try {
+                call.respond(movieSeenService.checkIn(call.currentUser(), call.parameters.getOrFail("movieId"), day))
+            } catch (e: IllegalArgumentException) {
+                call.respond(HttpStatusCode.BadRequest, e.message.orEmpty())
+            }
         }
         post("/api/seen/{movieId}/vote") {
             val movieId = call.parameters.getOrFail("movieId")

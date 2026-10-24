@@ -749,8 +749,10 @@ img { display: block; }
 .nav-account-icon {
     display: grid;
     place-items: center;
+    flex-shrink: 0;       /* a tight navbar must not squeeze the circle into an oval */
     width: 34px;
     height: 34px;
+    aspect-ratio: 1;
     border-radius: 50%;
     overflow: hidden;
     border: 1px solid var(--border);
@@ -1105,6 +1107,11 @@ img { display: block; }
 
 .ranked-sub .seen-tag { margin-left: 8px; }
 
+/* A movie only friends have seen: the same tag in yellow, naming the friend or counting them. */
+.seen-tag.friend-tag { background: rgba(245, 197, 24, 0.14); color: var(--gold); }
+
+.poster .seen-tag.friend-tag { background: rgba(11, 13, 20, 0.85); border-color: rgba(245, 197, 24, 0.55); }
+
 .ranked-end { margin-left: auto; display: flex; align-items: center; gap: 14px; }
 
 /* ── Statistics ────────────────────────────────────────────────────── */
@@ -1346,6 +1353,145 @@ img { display: block; }
     white-space: nowrap;
 }
 
+/* ── Seen: when, and catching up ───────────────────────────────────── */
+
+/* The seen page's two views: everything, or the check-ins by day. */
+.view-tabs { display: inline-flex; gap: 4px; margin: 0 0 20px; padding: 4px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); }
+
+.view-tabs a { padding: 7px 16px; border-radius: 999px; color: var(--text-muted); font-size: 14px; font-weight: 500; }
+
+.view-tabs a.active { background: var(--surface-raised); color: var(--accent-strong); }
+
+/* The welcome on the home page, for a visitor with nothing marked or saved yet. */
+.welcome {
+    border-bottom: 1px solid var(--border);
+    background:
+        radial-gradient(80% 140% at 0% 0%, rgba(139, 124, 248, 0.22) 0%, transparent 60%),
+        var(--surface);
+}
+
+.welcome-inner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 18px 32px; padding-top: 26px; padding-bottom: 26px; }
+
+.welcome-title { margin: 0 0 6px; font-family: var(--font-display); font-size: 24px; }
+
+.welcome p { margin: 0; max-width: 680px; color: var(--text-muted); line-height: 1.55; }
+
+.welcome-button { flex-shrink: 0; }
+
+/* The catch-up page's note for a visitor who is not signed in; after a few marks it stands out. */
+.signin-nudge { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+
+.signin-nudge.urgent { border-color: var(--gold); background: rgba(245, 197, 24, 0.12); }
+
+.check-in-button::before {
+    content: "◷";
+    font-size: 15px;
+    line-height: 1;
+}
+
+.check-in-button.active::before { content: "✓"; }
+
+.check-in { position: relative; }
+
+.check-in-menu { min-width: 210px; }
+
+.catch-up-link { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 0 0 18px; }
+
+.catch-up-link .account-hint { margin: 0; }
+
+/* The catch-up toolbar stays in view under the navbar while the list scrolls. */
+.catch-up-toolbar {
+    position: sticky;
+    top: 64px;
+    z-index: 20;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+    margin: 0 -8px 18px;
+    padding: 10px 8px;
+    background: rgba(11, 13, 20, 0.9);
+    backdrop-filter: blur(12px);
+}
+
+.catch-up-search, .catch-up-genre {
+    padding: 9px 14px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-size: 14px;
+}
+
+.catch-up-search { flex: 1 1 220px; min-width: 0; }
+
+.hide-marked { display: inline-flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 14px; cursor: pointer; }
+
+.hide-marked input { accent-color: var(--accent); }
+
+.catch-up-count { margin-left: auto; color: var(--text-muted); font-size: 14px; }
+
+.catch-up-count strong { color: var(--seen); font-size: 16px; }
+
+#catch-up-search-results { margin-bottom: 26px; padding-bottom: 22px; border-bottom: 1px solid var(--border); }
+
+#catch-up-search-results[hidden] { display: none; }
+
+/* On the catch-up page a card is a switch: a seen one is outlined, and dims while it is being marked. */
+.catch-up .movie-card { cursor: pointer; }
+
+.catch-up .movie-card.is-seen .poster { box-shadow: 0 0 0 2px var(--seen); }
+
+.catch-up .movie-card.marking { opacity: 0.6; }
+
+/* ── Friends ───────────────────────────────────────────────────────── */
+
+.friend-seen { display: flex; align-items: center; gap: 6px; margin-top: 3px; color: var(--text-muted); font-size: 12.5px; }
+
+.friend-avatar { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; }
+
+.friends-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; align-items: start; }
+
+.friend-name { display: inline-flex; align-items: center; gap: 10px; }
+
+.friend-name .nav-account-icon { width: 30px; height: 30px; font-size: 13px; }
+
+.link-button { background: none; border: 0; color: var(--text-muted); font: inherit; font-size: 13px; cursor: pointer; }
+
+.link-button:hover { color: var(--text); }
+
+.invite { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-top: 18px; }
+
+.invite-buttons { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+
+.invite-link {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+    background: var(--surface-raised);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+}
+
+.invite-link[hidden] { display: none; }
+
+.switch-row { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); cursor: pointer; font-size: 14px; color: var(--text-muted); }
+
+.switch-row strong { color: var(--text); font-weight: 600; }
+
+.switch-row input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--accent); }
+
+#sharing-card .button { margin-top: 16px; }
+
+.invite-page { max-width: 640px; }
+
+.invite-from { display: flex; align-items: center; gap: 16px; font-size: 17px; }
+
+.invite-avatar { width: 56px; height: 56px; font-size: 22px; }
+
 /* ── Insights ──────────────────────────────────────────────────────── */
 
 /* The totals span the width in equal parts. */
@@ -1500,6 +1646,13 @@ img { display: block; }
 
     #catalogue-totals .stat-chips, #insight-totals .stat-chips { display: grid; grid-template-columns: 1fr 1fr; }
     .signin-providers { grid-template-columns: 1fr; }
+    .friends-grid { grid-template-columns: minmax(0, 1fr); }
+    /* Three posters a row: more to tap through per screen. */
+    .catch-up.movie-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .catch-up .movie-card-title { font-size: 12px; }
+    .catch-up .movie-card-year { font-size: 11px; }
+    .catch-up .poster .seen-tag { left: 4px; bottom: 4px; padding: 1px 6px; font-size: 10.5px; }
+    .catch-up-toolbar { top: 106px; }
     /* Phones: one column, and the standouts scroll sideways again. */
     .insights-grid { grid-template-columns: minmax(0, 1fr); }
     .insights-ratings, .insights-side, .insights-genres { grid-column: auto; }

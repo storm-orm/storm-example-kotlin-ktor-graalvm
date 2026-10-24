@@ -46,6 +46,9 @@
                 <span th:text="${logins.isEmpty()} ? 'Continue with Freepod' : 'Link Freepod'">Continue with Freepod</span>
             </a>
         </div>
+        <p class="account-hint" th:if="${logins.isEmpty() and freepodLoginUrl != null and !providers.isEmpty()}">
+            No GitHub account? Continue with Freepod: it takes an email address.
+        </p>
         <p class="account-hint" th:if="${logins.isEmpty()}">
             The application reads only the account's id, login name, display name and avatar. Nothing is written to the provider.
         </p>

@@ -9,6 +9,7 @@ import st.orm.demo.imdb.model.RecommendationEventKind
 import st.orm.demo.imdb.model.Principal
 import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.model.User
+import st.orm.demo.imdb.repository.CheckInRepository
 import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
@@ -70,6 +71,7 @@ class MovieService(
     private val movieViewRepository: MovieViewRepository,
     private val watchlistRepository: WatchlistRepository,
     private val movieSeenRepository: MovieSeenRepository,
+    private val checkInRepository: CheckInRepository,
     private val userRepository: UserRepository,
     private val recommendationService: RecommendationService
 ) {
@@ -105,7 +107,8 @@ class MovieService(
             relatedMovies = relatedMovies,
             lists = MovieListState.of(
                 onWatchlist = watchlistRepository.contains(user, movie),
-                seen = movieSeenRepository.findById(MovieSeenPk(userId = user.id, movieId = movie.id))
+                seen = movieSeenRepository.findById(MovieSeenPk(userId = user.id, movieId = movie.id)),
+                checkedInAt = checkInRepository.findAll(user, movie).maxOfOrNull { it.watchedAt }
             )
         )
     }

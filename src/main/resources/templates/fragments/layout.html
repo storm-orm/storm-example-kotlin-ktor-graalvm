@@ -42,6 +42,7 @@
             <a th:href="@{/watchlist}" th:classappend="${active == 'watchlist'} ? 'active'">Watchlist</a>
             <a th:href="@{/seen}" th:classappend="${active == 'seen'} ? 'active'">Seen</a>
             <a th:href="@{/insights}" th:classappend="${active == 'insights'} ? 'active'">Insights</a>
+            <a th:if="${account.name != null}" th:href="@{/friends}" th:classappend="${active == 'friends'} ? 'active'">Friends</a>
             <a th:href="@{/statistics}" th:classappend="${active == 'statistics'} ? 'active'">Statistics</a>
         </div>
         <div class="search-box" data-search-box>

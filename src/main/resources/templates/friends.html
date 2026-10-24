@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Friends')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('friends')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <h1 class="page-title">Friends</h1>
+        <p class="page-subtitle">See what your friends watched lately, as far as each of them shares it.</p>
+    </div>
+</header>
+
+<!-- Friends need a signed-in account: who invites whom has to be someone. -->
+<section class="section" th:if="${view == null}">
+    <div class="container">
+        <div class="empty-state" id="friends-signin">
+            Sign in to invite friends and see what they watch.
+            <a th:href="@{/signin(rd='/friends')}">Sign in</a>, with GitHub, or with Freepod if you have no GitHub account.
+        </div>
+    </div>
+</section>
+
+<th:block th:if="${view != null}">
+<section class="section">
+    <div class="container">
+        <div class="notice" th:if="${added}">You are friends now.</div>
+        <div class="section-header">
+            <h2 class="section-title">Recently Seen by Friends</h2>
+        </div>
+        <div class="empty-state" th:if="${view.feed.isEmpty()}">
+            Nothing yet: invite a friend below, or wait for your friends to mark what they saw.
+        </div>
+        <div class="movie-grid" id="friends-feed">
+            <th:block th:each="item : ${view.feed}">
+                <a th:replace="~{fragments/cards :: friendSeen(${item})}"></a>
+            </th:block>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container friends-grid">
+        <div class="stat-card" id="friends-card">
+            <h2>Your friends</h2>
+            <p class="stat-note">
+                Invite one friend with a personal link, accepted once within two weeks, or post your public link
+                anywhere: everyone who accepts it becomes your friend, until you replace it.
+            </p>
+            <div class="empty-state" th:if="${view.friends.isEmpty()}">No friends yet.</div>
+            <div class="stat-row" th:each="friend : ${view.friends}">
+                <span class="friend-name">
+                    <span class="nav-account-icon">
+                        <img th:if="${friend.avatarUrl != null}" th:src="${friend.avatarUrl}" alt="">
+                        <span th:unless="${friend.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(friend.name, 0, 1))}">A</span>
+                    </span>
+                    <span th:text="${friend.name}">Alice</span>
+                </span>
+                <form class="stat-end" th:action="@{/friends/{id}/remove(id=${friend.id})}" method="post">
+                    <button type="submit" class="link-button">Remove</button>
+                </form>
+            </div>
+            <div class="invite">
+                <div class="invite-buttons">
+                    <button type="button" class="button button-primary" data-invite="/api/friends/invite">Invite a friend</button>
+                    <button type="button" class="button" data-invite="/api/friends/public-invite">Share public link</button>
+                    <button type="button" class="link-button" data-invite="/api/friends/public-invite/new">New public link</button>
+                </div>
+                <input class="invite-link" type="text" readonly data-invite-link hidden aria-label="Invite link">
+            </div>
+        </div>
+
+        <!-- What friends see of you: each switch on by default. -->
+        <form class="stat-card" id="sharing-card" th:action="@{/friends/sharing}" method="post">
+            <h2>What you share</h2>
+            <p class="stat-note">With your friends only; nobody else sees any of it.</p>
+            <label class="switch-row">
+                <input type="checkbox" name="shareSeen" th:checked="${view.sharing.shareSeen}">
+                <span><strong>What you watch</strong><br>Your friends see the movies you mark as seen.</span>
+            </label>
+            <label class="switch-row">
+                <input type="checkbox" name="shareName" th:checked="${view.sharing.shareName}">
+                <span><strong>That it's you</strong><br>Off, your movies show as a friend's, without your name.</span>
+            </label>
+            <label class="switch-row">
+                <input type="checkbox" name="shareDates" th:checked="${view.sharing.shareDates}">
+                <span><strong>When you watched</strong><br>Off, your movies show without the day.</span>
+            </label>
+            <button type="submit" class="button">Save</button>
+        </form>
+    </div>
+</section>
+</th:block>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

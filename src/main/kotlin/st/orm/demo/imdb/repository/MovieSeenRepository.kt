@@ -1,6 +1,7 @@
 package st.orm.demo.imdb.repository
 
-import st.orm.Page
+import st.orm.Scrollable
+import st.orm.Window
 import st.orm.Ref
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieSeen
@@ -11,7 +12,9 @@ import st.orm.demo.imdb.model.Rating_
 import st.orm.demo.imdb.model.User
 import st.orm.repository.EntityRepository
 import st.orm.repository.select
+import st.orm.template.and
 import st.orm.template.eq
+import st.orm.template.inList
 import java.math.BigDecimal
 import java.time.Instant
 
@@ -32,13 +35,13 @@ data class SeenWithRating(
 }
 
 /**
- * Query result shape: a movie the user has seen, as its id, and when they
- * marked it. Not backed by a database table or view, so it is a plain data
- * class — deliberately not a Data type.
+ * Query result shape: a movie one of several users has seen, and who, as
+ * ids. Not backed by a database table or view, so it is a plain data class —
+ * deliberately not a Data type.
  */
-data class SeenDate(
+data class SeenBy(
     val movie: Ref<Movie>,
-    val seenAt: Instant
+    val user: Ref<User>
 )
 
 interface MovieSeenRepository : EntityRepository<MovieSeen, MovieSeenPk> {
@@ -48,14 +51,18 @@ interface MovieSeenRepository : EntityRepository<MovieSeen, MovieSeenPk> {
         existsById(MovieSeenPk(userId = user.id, movieId = movie.id))
 
     /**
-     * When the user marked each movie seen, for the seen tag on every list
-     * of movies. The movie is selected as its foreign key, a Ref, so the
-     * query stays on the seen list and loads no movie.
+     * Which movies several users have seen, and who, as ids: the friend
+     * markers, and the seen tags for one user. The movie and the user are both selected as foreign keys, so
+     * the query stays on the seen list and loads neither.
      */
-    fun findSeenDates(user: User): List<SeenDate> =
-        select<SeenDate, _, _> { "${MovieSeen_.movie.id}, ${MovieSeen_.seenAt}" }
-            .where(MovieSeen_.user eq user)
+    fun findSeenBy(users: List<User>): List<SeenBy> =
+        select<SeenBy, _, _> { "${MovieSeen_.movie.id}, ${MovieSeen_.user}" }
+            .where(MovieSeen_.user inList users)
             .resultList
+
+    /** The movies the user has seen, as ids: the seen tags of every list. */
+    fun findSeenMovies(user: User): List<Ref<Movie>> =
+        findSeenBy(listOf(user)).map { it.movie }
 
     /** Everything the user has seen, in no particular order: the seeds of the recommendations. */
     fun findAll(user: User): List<MovieSeen> =
@@ -74,13 +81,16 @@ interface MovieSeenRepository : EntityRepository<MovieSeen, MovieSeenPk> {
             .resultList
 
     /**
-     * One page of the movies the user has seen, the most recently marked
-     * first, with offset-based pagination. Page numbers are 0-based.
+     * The movies the user has seen with keyset scrolling, the latest marked
+     * or watched first ([newestFirst]): the seen page, one window at a time
+     * however long the list grows.
      */
-    fun findPage(user: User, pageNumber: Int, pageSize: Int): Page<MovieSeen> =
-        select(MovieSeen_.user eq user)
-            .orderByDescending(MovieSeen_.seenAt)
-            .page(pageNumber, pageSize)
+    fun scroll(user: User, scrollable: Scrollable<MovieSeen>): Window<MovieSeen> =
+        select(MovieSeen_.user eq user).scroll(scrollable)
+
+    /** How many movies the user has seen. */
+    fun countFor(user: User): Long =
+        count(MovieSeen_.user eq user)
 
     /** The movies the user marked as seen most recently, for the home page. */
     fun findMostRecent(user: User, limit: Int): List<MovieSeen> =
@@ -99,5 +109,12 @@ interface MovieSeenRepository : EntityRepository<MovieSeen, MovieSeenPk> {
         val present = select(MovieSeen_.user eq into).resultList.map { it.movie.id }.toSet()
         insert(entries.filterNot { it.movie.id in present }.map { MovieSeen(into, it.movie, it.seenAt) })
         removeAll(MovieSeen_.user eq from)
+    }
+
+    companion object {
+        /** The latest marked first, then the movie's id, which addresses a row within one user's list. */
+        fun newestFirst(size: Int): Scrollable<MovieSeen> =
+            Scrollable.of(MovieSeen_.movie.id, size)
+                .sortByDescending(MovieSeen_.seenAt)
     }
 }

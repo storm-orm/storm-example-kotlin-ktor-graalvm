@@ -10,6 +10,7 @@ import st.orm.Ref
 import st.orm.TransactionPropagation
 import st.orm.Window
 import st.orm.demo.imdb.model.Movie
+import st.orm.demo.imdb.model.MovieSeen
 import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.model.Reason
 import st.orm.demo.imdb.model.ReasonKind
@@ -19,6 +20,7 @@ import st.orm.demo.imdb.model.RecommendationEvent
 import st.orm.demo.imdb.model.RecommendationEventKind
 import st.orm.demo.imdb.model.RecommendationPk
 import st.orm.demo.imdb.model.User
+import st.orm.demo.imdb.repository.CheckInRepository
 import st.orm.demo.imdb.repository.DIRECTOR
 import st.orm.demo.imdb.repository.MovieAdditionRepository
 import st.orm.demo.imdb.repository.MovieGenreRepository
@@ -34,6 +36,7 @@ import st.orm.demo.imdb.repository.RecommendationRepository
 import st.orm.demo.imdb.repository.RecommendationRepository.Companion.bestFirst
 import st.orm.demo.imdb.repository.UserRepository
 import st.orm.demo.imdb.repository.WatchlistRepository
+import st.orm.template.entityId
 import st.orm.template.ref
 import st.orm.template.transaction
 import java.math.BigDecimal
@@ -107,7 +110,8 @@ class RecommendationService(
     private val ratingRepository: RatingRepository,
     private val movieViewRepository: MovieViewRepository,
     private val recommendationRepository: RecommendationRepository,
-    private val recommendationEventRepository: RecommendationEventRepository
+    private val recommendationEventRepository: RecommendationEventRepository,
+    private val checkInRepository: CheckInRepository
 ) {
     private val logger = LoggerFactory.getLogger(RecommendationService::class.java)
 
@@ -364,7 +368,8 @@ class RecommendationService(
      * weighed by their vote, the watchlist, and the dismissed picks, which
      * weigh against. What happened lately counts most: a seed's weight
      * halves every [RECENCY_HALF_LIFE], down to a floor, so a taste that
-     * moved on is followed and an old favourite still counts for something.
+     * moved on is followed and an old favourite still counts for something;
+     * a movie seen without a check-in weighs as the floor, as its day is not known.
      * Two queries bring the seeds' genres and the credits their taste is
      * read from, the top-billed cast and the director, and the weights are
      * summed per genre, per person and per decade. A director weighs more
@@ -375,7 +380,8 @@ class RecommendationService(
      */
     private fun profileOf(user: User, now: Instant): TasteProfile {
         val seen = movieSeenRepository.findAll(user)
-        val seeds = seen.map { Seed(it.movie, seenWeight(it.liked) * recencyFactor(it.seenAt, now), wanted = false) } +
+        val checkedIn = checkInRepository.findLatestPerMovie(user).associate { it.movie.entityId() to it.watchedAt }
+        val seeds = seen.map { Seed(it.movie, seenWeight(it.liked) * seenRecency(checkedIn[it.movie.id], now), wanted = false) } +
             watchlistRepository.findAll(user).map { Seed(it.movie, WATCHLIST_WEIGHT * recencyFactor(it.addedAt, now), wanted = true) } +
             dismissalRepository.findAll(user).map { Seed(it.movie, DISMISSED_WEIGHT * recencyFactor(it.dismissedAt, now), wanted = false) }
         if (seeds.isEmpty()) return TasteProfile.EMPTY
@@ -402,6 +408,10 @@ class RecommendationService(
             ratingRange = RatingRange.of(seenRatings)
         )
     }
+
+    /** How much a seen movie's weight keeps: by the day of its latest check-in, or as the oldest taste does without one. */
+    private fun seenRecency(checkedInAt: Instant?, now: Instant) =
+        if (checkedInAt == null) RECENCY_FLOOR else recencyFactor(checkedInAt, now)
 
     private fun seenWeight(liked: Boolean?) = when (liked) {
         true -> LIKED_WEIGHT

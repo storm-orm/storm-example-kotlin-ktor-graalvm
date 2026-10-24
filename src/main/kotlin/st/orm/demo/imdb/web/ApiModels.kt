@@ -2,10 +2,21 @@ package st.orm.demo.imdb.web
 
 import kotlinx.serialization.Serializable
 import st.orm.demo.imdb.model.Movie
+import st.orm.demo.imdb.model.CheckIn
 import st.orm.demo.imdb.model.MovieAddition
 import st.orm.demo.imdb.model.Person
 import st.orm.demo.imdb.model.Recommendation
-import st.orm.demo.imdb.service.additionDay
+import st.orm.demo.imdb.service.dayLabel
+import st.orm.demo.imdb.service.monthLabel
+
+/**
+ * What the seen tags of every list of movies read, in one request: the
+ * visitor's seen movies, by id, with the day of a check-in or null for
+ * history; and the movies friends have seen, with each friend's name, or
+ * null for a friend who keeps it to themselves.
+ */
+@Serializable
+data class SeenMarks(val seen: Map<String, String?>, val friends: Map<String, List<String?>>)
 
 @Serializable
 data class MovieSearchItem(val id: String, val title: String, val year: Int?)
@@ -13,9 +24,9 @@ data class MovieSearchItem(val id: String, val title: String, val year: Int?)
 @Serializable
 data class PersonSearchItem(val id: String, val name: String)
 
-/** A movie of the recently added page, under the day it joined the catalogue. */
+/** A movie of a grouped list: under the day it joined the catalogue, or the month it was checked in. */
 @Serializable
-data class AddedMovieItem(val id: String, val title: String, val year: Int?, val day: String)
+data class GroupedMovieItem(val id: String, val title: String, val year: Int?, val group: String)
 
 /**
  * One keyset window of results plus the opaque cursor for the next window.
@@ -51,4 +62,7 @@ fun Recommendation.toRecommendedItem() =
 fun Person.toSearchItem() = PersonSearchItem(id = id, name = primaryName)
 
 fun MovieAddition.toAddedItem() =
-    AddedMovieItem(id = movie.id, title = movie.primaryTitle, year = movie.startYear, day = additionDay())
+    GroupedMovieItem(id = movie.id, title = movie.primaryTitle, year = movie.startYear, group = dayLabel(addedAt))
+
+fun CheckIn.toCheckInItem() =
+    GroupedMovieItem(id = movie.id, title = movie.primaryTitle, year = movie.startYear, group = monthLabel(watchedAt))

@@ -32,7 +32,9 @@ data class HomeView(
     /** The visitor's recently viewed (above), watchlist, seen list and recommendations; the other sections are the site's. */
     val watchlistEntries: List<Watchlist>,
     val seenEntries: List<MovieSeen>,
-    val recommendations: HomeRecommendations
+    val recommendations: HomeRecommendations,
+    /** What the visitor's friends saw lately, as far as they share it. */
+    val friendsSeen: List<FriendSeenMovie>
 )
 
 class HomeService(
@@ -43,7 +45,8 @@ class HomeService(
     private val movieGenreRepository: MovieGenreRepository,
     private val watchlistRepository: WatchlistRepository,
     private val movieSeenRepository: MovieSeenRepository,
-    private val recommendationService: RecommendationService
+    private val recommendationService: RecommendationService,
+    private val friendService: FriendService
 ) {
 
     /** All home page sections for the visitor, read in one read-only transaction. */
@@ -55,7 +58,8 @@ class HomeService(
             genreCounts = statisticsService.genreCounts(),
             watchlistEntries = watchlistRepository.findMostRecent(user, LIST_PREVIEW_LIMIT),
             seenEntries = movieSeenRepository.findMostRecent(user, LIST_PREVIEW_LIMIT),
-            recommendations = recommendationService.forHome(user)
+            recommendations = recommendationService.forHome(user),
+            friendsSeen = friendService.latestOfFriends(user, LIST_PREVIEW_LIMIT)
         )
     }
 
