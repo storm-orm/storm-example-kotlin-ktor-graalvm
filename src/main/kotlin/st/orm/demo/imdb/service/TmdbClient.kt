@@ -1,5 +1,6 @@
 package st.orm.demo.imdb.service
 
+import st.orm.demo.imdb.model.WatchProvider
 import tools.jackson.databind.JsonNode
 import tools.jackson.databind.ObjectMapper
 import java.io.IOException
@@ -9,8 +10,16 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
 
-/** A movie as TMDB has it: its TMDB id, its IMDb id if TMDB knows it, and the YouTube key of its trailer, if any. */
-data class TmdbMovie(val tmdbId: Int, val imdbId: String?, val trailerKey: String?)
+/**
+ * A movie as TMDB has it: its TMDB id, its IMDb id if TMDB knows it, the
+ * YouTube key of its trailer, if any, and per country the platforms it plays on.
+ */
+data class TmdbMovie(
+    val tmdbId: Int,
+    val imdbId: String?,
+    val trailerKey: String?,
+    val watchProviders: Map<String, List<WatchProvider>>
+)
 
 /**
  * The few calls this application makes to TMDB's API: a movie by its IMDb
@@ -36,13 +45,17 @@ class TmdbClient(
     fun findTmdbId(imdbId: String): Int? =
         get("/3/find/$imdbId?external_source=imdb_id")?.path("movie_results")?.firstOrNull()?.path("id")?.asInt()
 
-    /** The movie with this TMDB id, with its IMDb id and its trailer, or null when TMDB has no such movie. */
+    /**
+     * The movie with this TMDB id, with its IMDb id, its trailer and the
+     * platforms it plays on, in one call, or null when TMDB has no such movie.
+     */
     fun movie(tmdbId: Int): TmdbMovie? =
-        get("/3/movie/$tmdbId?append_to_response=videos&include_video_language=en,null")?.let { json ->
+        get("/3/movie/$tmdbId?append_to_response=videos,watch/providers&include_video_language=en,null")?.let { json ->
             TmdbMovie(
                 tmdbId = tmdbId,
                 imdbId = json.path("imdb_id").asString(null)?.takeIf { it.startsWith("tt") },
-                trailerKey = trailerOf(json.path("videos").path("results"))
+                trailerKey = trailerOf(json.path("videos").path("results")),
+                watchProviders = watchProvidersOf(json.path("watch/providers").path("results"))
             )
         }
 
@@ -61,6 +74,19 @@ class TmdbClient(
                 ).thenByDescending { it.path("published_at").asString("") }
             )
             .firstOrNull()?.path("key")?.asString(null)
+
+    /**
+     * Per country, the platforms that stream a movie or show it free, in
+     * TMDB's order: by subscription first, then free and with ads. Renting
+     * and buying are left out, and so is a country where it plays nowhere.
+     */
+    private fun watchProvidersOf(countries: JsonNode): Map<String, List<WatchProvider>> =
+        countries.properties().associate { (country, offers) ->
+            country to OFFER_TYPES
+                .flatMap { type -> offers.path(type).sortedBy { it.path("display_priority").asInt() } }
+                .map { WatchProvider(it.path("provider_id").asInt(), it.path("provider_name").asString(""), it.path("logo_path").asString(null)) }
+                .distinctBy { it.id }
+        }.filterValues { it.isNotEmpty() }
 
     private fun get(pathAndQuery: String): JsonNode? {
         check(enabled) { "TMDB has no API key." }
@@ -82,5 +108,6 @@ class TmdbClient(
 
     private companion object {
         val TRAILER_TYPES = setOf("Trailer", "Teaser")
+        val OFFER_TYPES = listOf("flatrate", "free", "ads")
     }
 }

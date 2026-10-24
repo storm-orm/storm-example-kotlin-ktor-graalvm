@@ -100,7 +100,7 @@ fun Application.configureDependencies() {
         provide { WikipediaSummaryService(resolve(), resolve(), resolve()) }
         // TMDB, for the trailers and for imports of TMDB exports, with the key from application.conf (tmdb).
         provide { TmdbClient(tmdbApiKey, resolve()) }
-        provide { TmdbService(resolve(), resolve(), resolve()) }
+        provide { TmdbService(resolve(), resolve(), resolve(), resolve()) }
         provide { MovieSourceService(resolve(), resolve()) }
         provide { PersonGalleryService(resolve(), resolve(), resolve(), resolve(), resolve<GalleryRefreshProperties>().maxAge) }
         provide { PosterController(resolve()) }

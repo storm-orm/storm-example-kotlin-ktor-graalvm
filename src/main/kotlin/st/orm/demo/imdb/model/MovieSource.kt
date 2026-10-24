@@ -1,8 +1,10 @@
 package st.orm.demo.imdb.model
 
+import kotlinx.serialization.Serializable
 import st.orm.Discriminator
 import st.orm.Entity
 import st.orm.FK
+import st.orm.Json
 import st.orm.PK
 import st.orm.Ref
 import st.orm.template.ref
@@ -40,10 +42,11 @@ data class ImdbSource(
 }
 
 /**
- * TMDB, asked when a movie page wants the trailer or an import names a movie
- * by its TMDB id: the TMDB id and the trailer's YouTube key, either null
- * where TMDB has none, and when TMDB was asked, as its terms let the answer
- * be kept six months.
+ * TMDB, asked when a movie page wants the trailer or the platforms, or an
+ * import names a movie by its TMDB id: the TMDB id and the trailer's YouTube
+ * key, either null where TMDB has none, the platforms it plays on per
+ * country, null where TMDB was asked before they were, and when TMDB was
+ * asked, as its terms let the answer be kept six months.
  */
 @Discriminator("tmdb")
 data class TmdbSource(
@@ -51,8 +54,17 @@ data class TmdbSource(
     @FK override val movie: Ref<Movie>,
     override val externalId: String?,
     val trailerKey: String?,
+    @Json val watchProviders: WatchProviders?,
     val fetchedAt: Instant
 ) : MovieSource
+
+/**
+ * Where a movie plays: per country (ISO 3166-1 alpha-2), the ids of the
+ * platforms ([WatchProvider]) that stream it or show it free, in TMDB's
+ * order. A country where it plays nowhere is left out.
+ */
+@Serializable
+data class WatchProviders(val byCountry: Map<String, List<Int>>)
 
 /** The source a row is of. */
 val MovieSource.source: Source

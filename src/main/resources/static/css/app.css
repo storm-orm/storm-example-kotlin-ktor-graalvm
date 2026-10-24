@@ -103,7 +103,12 @@ img { display: block; }
     backdrop-filter: blur(24px) saturate(180%);
     background: rgba(var(--background-rgb), 0.42);
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    transition: transform 0.45s ease;
 }
+
+/* The trailer brought forward has the screen: the navbar slides up out of the way, and back down
+   when the trailer goes back behind the hero. */
+:root:has(.trailer-playing) .navbar { transform: translateY(-100%); }
 
 /* A hero that opens the page reaches up under the navbar (--navbar-height, measured by the script),
    so the trailer or the backdrop runs to the top of the screen; its content stays below the navbar. */
@@ -398,14 +403,18 @@ img { display: block; }
     flex-wrap: wrap;
 }
 
+/* A tag is clear glass: barely tinted, a blur of what is behind it, and a light catching its top edge. */
 .genre-chip {
     display: inline-flex;
     align-items: center;
     gap: 8px;
     padding: 7px 14px;
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.05);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 999px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 4px 14px rgba(0, 0, 0, 0.18);
     font-size: 13.5px;
     font-weight: 500;
     transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
@@ -413,7 +422,7 @@ img { display: block; }
 
 .genre-chip:hover {
     border-color: var(--accent);
-    background: var(--surface-raised);
+    background: rgba(255, 255, 255, 0.1);
     transform: translateY(-1px);
 }
 
@@ -647,8 +656,9 @@ img { display: block; }
 
 /* ── Buttons ───────────────────────────────────────────────────────── */
 
-/* A button is glass: see-through over a blur of what is behind it, tinted with a gradient of two
-   colors (--from and --to, as channels), with an edge of the same gradient drawn solid (::after). */
+/* A button is clear glass: see-through over a blur of what is behind it, faintly tinted with a
+   gradient of two colors (--from and --to, as channels), a light catching its top edge, and an edge
+   of the same gradient (::after) that comes up on hover. */
 .button {
     --from: var(--violet-rgb);
     --to: var(--cyan-rgb);
@@ -659,10 +669,10 @@ img { display: block; }
     padding: 10px 20px;
     border-radius: 999px;
     border: 1.5px solid transparent;
-    background: linear-gradient(135deg, rgba(var(--from), 0.2), rgba(var(--to), 0.1));
-    -webkit-backdrop-filter: blur(16px) saturate(170%);
-    backdrop-filter: blur(16px) saturate(170%);
-    box-shadow: 0 6px 20px rgba(var(--from), 0.16);
+    background: linear-gradient(135deg, rgba(var(--from), 0.1), rgba(var(--to), 0.04)) rgba(255, 255, 255, 0.05);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 6px 20px rgba(0, 0, 0, 0.22);
     color: var(--text);
     font-size: 14.5px;
     font-weight: 600;
@@ -682,14 +692,14 @@ img { display: block; }
     -webkit-mask-composite: xor;
     mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     mask-composite: exclude;
-    opacity: 0.8;
+    opacity: 0.5;
     pointer-events: none;
     transition: opacity 0.15s ease;
 }
 
 .button:hover {
-    background: linear-gradient(135deg, rgba(var(--from), 0.32), rgba(var(--to), 0.18));
-    box-shadow: 0 8px 26px rgba(var(--from), 0.28);
+    background: linear-gradient(135deg, rgba(var(--from), 0.22), rgba(var(--to), 0.1)) rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 8px 26px rgba(var(--from), 0.24);
     transform: translateY(-1px);
 }
 
@@ -721,6 +731,19 @@ img { display: block; }
 .hero-actions .button { gap: 6px; padding: 7px 14px; font-size: 13.5px; }
 
 .list-buttons .vote-button { padding: 7px 10px; font-size: 14px; }
+
+/* Where a movie plays: the platforms' logos in a row under the buttons, small and without text. */
+.watch-providers { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+
+.watch-providers[hidden] { display: none; }
+
+.watch-provider {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
 
 .list-button.active {
     --from: var(--accent-rgb);
@@ -899,6 +922,23 @@ img { display: block; }
 .account-login { display: inline-flex; align-items: center; gap: 10px; }
 
 .signout-form { margin: 0 0 22px; }
+
+.country-card { max-width: 520px; margin-bottom: 22px; }
+
+.country-select {
+    display: block;
+    width: 100%;
+    margin-bottom: 16px;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text);
+    font: inherit;
+    font-size: 16px;  /* below 16px, iOS zooms the page in on focus */
+}
+
+.country-select option { background: var(--surface-raised); color: var(--text); }
 
 /* The providers in their own colours, each with its mark: the git providers' single-colour marks
    (Simple Icons, CC0) are masks filled with the button's text colour, Freepod's is its full-colour
@@ -1441,9 +1481,13 @@ img { display: block; }
 
 :root:has(.trailer-fullscreen) { overflow: hidden; }
 
+/* The bar rises with the navbar, from just under it to the top of the screen. */
+@keyframes trailer-bar-rise { from { transform: translateY(var(--under-nav, 0px)); } }
+
 .trailer-bar {
     position: absolute;
-    top: var(--under-nav, 0px);
+    top: 0;
+    animation: trailer-bar-rise 0.45s ease;
     left: 0;
     right: 0;
     z-index: 4;
@@ -2050,8 +2094,8 @@ img { display: block; }
 
 .section .section-title::before { background: linear-gradient(180deg, rgb(var(--tone, var(--accent-rgb))), var(--violet)); box-shadow: 0 0 10px rgba(var(--tone, var(--accent-rgb)), 0.7); }
 
-.genre-chip { border-color: rgba(var(--tone, var(--accent-rgb)), 0.35); }
-.genre-chip:hover, .genre-chip.active { border-color: rgb(var(--tone, var(--accent-rgb))); background: rgba(var(--tone, var(--accent-rgb)), 0.14); }
+.genre-chip { border-color: rgba(var(--tone, var(--accent-rgb)), 0.22); }
+.genre-chip:hover, .genre-chip.active { border-color: rgba(var(--tone, var(--accent-rgb)), 0.8); background: rgba(var(--tone, var(--accent-rgb)), 0.1); }
 
 .stat-card::before { height: 2px; background: linear-gradient(90deg, transparent, rgb(var(--tone, var(--accent-rgb))), transparent); }
 
@@ -2103,6 +2147,15 @@ img { display: block; }
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 18px 40px rgba(0, 0, 0, 0.35);
     -webkit-backdrop-filter: blur(22px) saturate(160%);
     backdrop-filter: blur(22px) saturate(160%);
+}
+
+/* The search suggestions hang from the navbar, which is glass itself: a blur inside a blur only sees
+   the navbar, so the page would show through sharp. They are near-solid instead, with the same tint
+   (scoped to the search box, to outweigh the panel rule above). */
+.search-box .search-suggestions {
+    background:
+        linear-gradient(135deg, rgba(var(--accent-rgb), 0.1), rgba(var(--violet-rgb), 0.04)),
+        rgba(22, 20, 29, 0.95);
 }
 
 /* A fine grain over everything, as on a printed poster. */

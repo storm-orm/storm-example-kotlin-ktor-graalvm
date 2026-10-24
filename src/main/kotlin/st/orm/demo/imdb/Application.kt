@@ -286,7 +286,8 @@ private fun Application.configureStorm() {
                     "db/migration/V13__check_ins.sql",
                     "db/migration/V14__clubs.sql",
                     "db/migration/V15__friend_requests.sql",
-                    "db/migration/V16__movie_sources.sql"
+                    "db/migration/V16__movie_sources.sql",
+                    "db/migration/V17__watch_providers.sql"
                 )))
                 .load()
                 .migrate()

@@ -6,15 +6,19 @@ import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.plugins.di.dependencies
 import io.ktor.server.plugins.origin
+import io.ktor.server.request.acceptLanguageItems
 import io.ktor.server.response.respond
 import io.ktor.server.thymeleaf.ThymeleafContent
 import io.ktor.util.AttributeKey
 import io.ktor.util.date.GMTDate
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.service.AccountService
+import st.orm.demo.imdb.service.Countries
+import st.orm.demo.imdb.service.Country
 import st.orm.demo.imdb.service.FreepodSignIn
 import st.orm.demo.imdb.service.FriendService
 import st.orm.demo.imdb.service.TmdbService
+import java.util.Locale
 
 /**
  * The visitor's account on a request. The account is a random id in the
@@ -92,6 +96,18 @@ fun ApplicationCall.currentUser(): User {
     attributes.put(CurrentUserKey, user)
     return user
 }
+
+/**
+ * The visitor's country, for where movies play: the one the account names,
+ * else the first the browser's languages name (nl-NL is the Netherlands),
+ * else none, as for a browser that names a language only.
+ */
+fun ApplicationCall.country(): Country? =
+    Countries.of(currentUser().country) ?: browserCountry()
+
+/** The first country the browser's languages name, by preference. */
+fun ApplicationCall.browserCountry(): Country? =
+    request.acceptLanguageItems().firstNotNullOfOrNull { Countries.of(Locale.forLanguageTag(it.value).country.ifEmpty { null }) }
 
 /** Puts the account in the cookie, for a year; the cookie never reaches scripts. */
 fun ApplicationCall.setAccountCookie(accountId: String) {

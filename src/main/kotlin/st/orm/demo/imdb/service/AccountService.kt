@@ -118,6 +118,11 @@ class AccountService(
     private fun User.withProfile(profile: ProviderProfile, now: Instant, joinedAvatarUrl: String? = null) =
         copy(name = profile.name ?: profile.username, avatarUrl = profile.avatarUrl ?: avatarUrl ?: joinedAvatarUrl, lastSeenAt = now)
 
+    /** Sets the country the user is from, or leaves it to the browser for null or a code that names no country. */
+    suspend fun updateCountry(user: User, country: String?) = transaction {
+        userRepository.update(user.copy(country = Countries.of(country)?.code))
+    }
+
     /** The logins linked to the user, for the account page; none for an account nobody signed in to. */
     fun loginsOf(user: User): List<UserLogin> = userLoginRepository.findAll(user)
 

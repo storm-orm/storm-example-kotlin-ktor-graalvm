@@ -39,5 +39,7 @@ data class User(
     /** as this user's, */
     val clubShareName: Boolean = true,
     /** and the days, off by default, as members of a club are not always friends. */
-    val clubShareDates: Boolean = false
+    val clubShareDates: Boolean = false,
+    /** The country the user is from (ISO 3166-1 alpha-2), for where movies play; null leaves it to the browser. */
+    val country: String? = null
 ) : Entity<String>

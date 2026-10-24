@@ -159,6 +159,34 @@ class TmdbTest {
         assertNull(stored.findByMovie(matrix))
     }
 
+    @Test
+    fun `where a movie plays comes per country with the trailer, kept a week`(orm: ORMTemplate) {
+        val tmdb = tmdbService(orm, client())
+        val now = Instant.parse("2026-10-01T00:00:00Z")
+
+        // Streaming first, in TMDB's order, then free and with ads, each platform once; renting is left out.
+        assertEquals(listOf("Disney Plus", "Netflix"), runBlocking { tmdb.watchProviders("tt0133093", "NL", now) }.map { it.name })
+        assertEquals(listOf("/disney.jpg", "/netflix.jpg"), runBlocking { tmdb.watchProviders("tt0133093", "NL", now) }.map { it.logoPath })
+        assertEquals(listOf("Tubi TV"), runBlocking { tmdb.watchProviders("tt0133093", "US", now) }.map { it.name })
+        // Only to buy is nowhere to stream, and a country TMDB does not name has none either.
+        assertTrue(runBlocking { tmdb.watchProviders("tt0133093", "DE", now) }.isEmpty())
+        assertTrue(runBlocking { tmdb.watchProviders("tt0133093", "BE", now) }.isEmpty())
+        // One lookup answered all of it, the trailer included.
+        assertEquals(listOf("/3/find/tt0133093", "/3/movie/603"), requests.map { it.substringBefore('?') })
+        assertTrue(requests.last().contains("append_to_response=videos,watch/providers"))
+        requests.clear()
+        assertEquals("vKQi3bBA1y8", runBlocking { tmdb.trailer("tt0133093", now) })
+        assertTrue(requests.isEmpty())
+
+        // Six days on, the stored platforms; eight days on, TMDB again, while the trailer alone would wait.
+        runBlocking { tmdb.watchProviders("tt0133093", "NL", now.plusSeconds(6L * 24 * 3600)) }
+        assertTrue(requests.isEmpty())
+        runBlocking { tmdb.trailer("tt0133093", now.plusSeconds(8L * 24 * 3600)) }
+        assertTrue(requests.isEmpty())
+        runBlocking { tmdb.watchProviders("tt0133093", "NL", now.plusSeconds(8L * 24 * 3600)) }
+        assertEquals(2, requests.size)
+    }
+
     private companion object {
         val MATRIX = """
             {"id":603,"imdb_id":"tt0133093","title":"The Matrix","videos":{"results":[
@@ -166,7 +194,17 @@ class TmdbTest {
               {"site":"Vimeo","type":"Trailer","key":"vimeo1","official":true,"iso_639_1":"en","published_at":"2022-01-01T00:00:00.000Z"},
               {"site":"YouTube","type":"Trailer","key":"fanmade","official":false,"iso_639_1":"en","published_at":"2023-01-01T00:00:00.000Z"},
               {"site":"YouTube","type":"Trailer","key":"vKQi3bBA1y8","official":true,"iso_639_1":"en","published_at":"2019-05-02T00:00:00.000Z"}
-            ]}}
+            ]},"watch/providers":{"results":{
+              "NL":{"link":"https://www.themoviedb.org/movie/603/watch?locale=NL",
+                "flatrate":[{"provider_id":8,"provider_name":"Netflix","logo_path":"/netflix.jpg","display_priority":2},
+                            {"provider_id":337,"provider_name":"Disney Plus","logo_path":"/disney.jpg","display_priority":1}],
+                "ads":[{"provider_id":8,"provider_name":"Netflix","logo_path":"/netflix.jpg","display_priority":2}],
+                "rent":[{"provider_id":2,"provider_name":"Apple TV","logo_path":"/apple.jpg","display_priority":0}]},
+              "US":{"link":"https://www.themoviedb.org/movie/603/watch?locale=US",
+                "free":[{"provider_id":73,"provider_name":"Tubi TV","logo_path":"/tubi.jpg","display_priority":5}]},
+              "DE":{"link":"https://www.themoviedb.org/movie/603/watch?locale=DE",
+                "buy":[{"provider_id":2,"provider_name":"Apple TV","logo_path":"/apple.jpg","display_priority":0}]}
+            }}}
         """.trimIndent()
     }
 }

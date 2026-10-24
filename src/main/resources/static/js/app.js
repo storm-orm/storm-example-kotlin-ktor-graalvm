@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupNavbarHeight();
     setupHeroBands();
     setupTrailers();
+    setupWatchProviders();
     setupPosterGlows();
     setupPosterTilt();
     setupCardTitles();
@@ -132,6 +133,32 @@ function setupTrailers() {
             });
         } catch (e) {
             // No trailer then: the page is complete without it.
+        }
+    });
+}
+
+/* ── Where a movie plays (from TMDB, with JustWatch's data) ────────── */
+
+// The platforms a movie streams on in the visitor's country, as their logos; the name is the
+// tooltip and what a screen reader says. Nowhere, or no country known, and the row stays hidden.
+function setupWatchProviders() {
+    document.querySelectorAll('[data-watch-providers-endpoint]').forEach(async row => {
+        try {
+            const response = await fetch(row.dataset.watchProvidersEndpoint);
+            if (!response.ok) return;
+            const platforms = await response.json();
+            platforms.filter(platform => platform.logoUrl).forEach(platform => {
+                const logo = document.createElement('img');
+                logo.className = 'watch-provider';
+                logo.src = platform.logoUrl;
+                logo.alt = platform.name;
+                logo.title = platform.name;
+                logo.addEventListener('error', () => logo.remove());
+                row.appendChild(logo);
+            });
+            row.hidden = row.childElementCount === 0;
+        } catch (e) {
+            // No platforms then: the page is complete without them.
         }
     });
 }

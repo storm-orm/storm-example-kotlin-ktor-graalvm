@@ -56,6 +56,17 @@
             Linking an account that has lists of its own here brings both together: the lists of this one move to it,
             and every linked login leads there.
         </p>
+        <!-- Signed in: the country the user is from, for the platforms a movie page shows. -->
+        <form class="stat-card country-card" id="country-card" th:if="${account.name != null}" th:action="@{/account/country}" method="post">
+            <h2>Your country</h2>
+            <p class="stat-note">Movie pages show the platforms a movie streams on in this country.</p>
+            <select class="country-select" name="country" aria-label="Your country">
+                <option value="" th:text="${browserCountry != null} ? |From your browser (${browserCountry.name})| : 'From your browser'">From your browser</option>
+                <option th:each="country : ${countries}" th:value="${country.code}" th:text="${country.name}"
+                        th:selected="${account.country == country.code}">Netherlands</option>
+            </select>
+            <button type="submit" class="button">Save</button>
+        </form>
         <form class="signout-form" th:if="${account.name != null}" th:action="@{/signout}" method="post">
             <button type="submit" class="button" id="signout">Sign out</button>
         </form>

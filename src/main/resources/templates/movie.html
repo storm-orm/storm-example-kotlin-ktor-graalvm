@@ -108,6 +108,9 @@
                         </div>
                     </div>
                 </div>
+                <!-- Where it plays in the visitor's country, from TMDB: logos only, shown once the page has found some. -->
+                <div class="watch-providers" hidden th:if="${tmdb}"
+                     th:data-watch-providers-endpoint="|/api/watch-providers/${detail.movie.id}|"></div>
             </div>
         </div>
     </div>

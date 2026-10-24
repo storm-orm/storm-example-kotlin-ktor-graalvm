@@ -11,7 +11,9 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.thymeleaf.ThymeleafContent
 import io.ktor.server.util.getOrFail
+import io.ktor.server.request.receiveParameters
 import st.orm.demo.imdb.service.AccountService
+import st.orm.demo.imdb.service.Countries
 import st.orm.demo.imdb.service.FreepodSignIn
 import st.orm.demo.imdb.service.GitProvider
 import st.orm.demo.imdb.service.GitSignIn
@@ -34,7 +36,8 @@ data class AccountLogin(val provider: String, val label: String, val username: S
  *
  * Signed in, the same page is the account page: it lists the account's
  * logins and offers the providers not linked yet, and signing in with one
- * of them links it (AccountService.signIn).
+ * of them links it (AccountService.signIn). It also holds the country the
+ * user is from, for where movies play.
  */
 fun Route.accountRoutes(accountService: AccountService, gitSignIn: GitSignIn, freepodSignIn: FreepodSignIn) {
     val random = SecureRandom()
@@ -53,7 +56,9 @@ fun Route.accountRoutes(accountService: AccountService, gitSignIn: GitSignIn, fr
                         .takeIf { freepodSignIn.enabled && logins.none { it.provider == freepodSignIn.key } },
                     "logins" to logins,
                     "returnTo" to returnTo,
-                    "failure" to call.request.queryParameters["failure"]
+                    "failure" to call.request.queryParameters["failure"],
+                    "countries" to Countries.all,
+                    "browserCountry" to call.browserCountry()
                 )
             )
         )
@@ -112,6 +117,13 @@ fun Route.accountRoutes(accountService: AccountService, gitSignIn: GitSignIn, fr
         }
         call.setAccountCookie(user.id)
         call.respondRedirect(returnTo)
+    }
+
+    // The country a signed-in user is from, for where movies play; empty leaves it to the browser.
+    post("/account/country") {
+        val user = call.currentUser().takeIf { it.name != null } ?: return@post call.respondRedirect("/signin")
+        accountService.updateCountry(user, call.receiveParameters()["country"]?.ifBlank { null })
+        call.respondRedirect("/signin")
     }
 
     // Signing out forgets the account cookie; the next page starts a new,

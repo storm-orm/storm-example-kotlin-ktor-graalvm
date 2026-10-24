@@ -15,6 +15,7 @@ import st.orm.demo.imdb.repository.RecommendationEventRepository
 import st.orm.demo.imdb.repository.RecommendationRepository
 import st.orm.demo.imdb.repository.UserRepository
 import st.orm.demo.imdb.repository.TmdbSourceRepository
+import st.orm.demo.imdb.repository.WatchProviderRepository
 import st.orm.demo.imdb.repository.WatchlistRepository
 import st.orm.demo.imdb.service.MovieSeenService
 import st.orm.demo.imdb.service.MovieSourceService
@@ -66,4 +67,4 @@ fun movieSeenService(orm: ORMTemplate, tmdbClient: TmdbClient = TmdbClient(null,
 )
 
 fun tmdbService(orm: ORMTemplate, tmdbClient: TmdbClient) =
-    TmdbService(orm.repository<MovieRepository>(), orm.repository<TmdbSourceRepository>(), tmdbClient)
+    TmdbService(orm.repository<MovieRepository>(), orm.repository<TmdbSourceRepository>(), orm.repository<WatchProviderRepository>(), tmdbClient)

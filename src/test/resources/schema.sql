@@ -90,7 +90,8 @@ CREATE TABLE app_user (
     share_dates  BOOLEAN NOT NULL DEFAULT TRUE,
     club_share_seen  BOOLEAN NOT NULL DEFAULT TRUE,
     club_share_name  BOOLEAN NOT NULL DEFAULT TRUE,
-    club_share_dates BOOLEAN NOT NULL DEFAULT FALSE
+    club_share_dates BOOLEAN NOT NULL DEFAULT FALSE,
+    country          VARCHAR(2)
 );
 
 CREATE TABLE user_login (
@@ -247,9 +248,16 @@ CREATE TABLE movie_source (
     movie_id    VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
     external_id VARCHAR,
     trailer_key VARCHAR,
+    watch_providers VARCHAR,
     fetched_at  TIMESTAMP,
     UNIQUE (movie_id, kind),
     CHECK ((kind = 'tmdb') = (fetched_at IS NOT NULL))
 );
 CREATE UNIQUE INDEX idx_movie_source_kind_external_id ON movie_source (kind, external_id);
 CREATE INDEX idx_movie_source_fetched_at ON movie_source (fetched_at);
+
+CREATE TABLE watch_provider (
+    id        INTEGER PRIMARY KEY,
+    name      VARCHAR NOT NULL,
+    logo_path VARCHAR
+);
