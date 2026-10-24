@@ -530,12 +530,21 @@ img { display: block; }
 .movie-card-title {
     font-size: 14px;
     font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    line-height: 1.35;
+    overflow-wrap: break-word;
 }
 
-.movie-card-year { color: var(--text-muted); font-size: 12.5px; margin-top: 1px; }
+.movie-card-year { color: var(--text-muted); font-size: 12.5px; margin-top: 1px; white-space: nowrap; }
+
+/* A title is never cut short: it wraps, and once it does (title-wrapped, set by the script), the
+   year follows on its last line rather than on a line of its own. */
+.title-wrapped .movie-card-title,
+.title-wrapped .movie-card-year { display: inline; }
+
+/* Inline, the lines take their height from the card's text, so it is set to the title's. */
+.movie-card-info.title-wrapped { font-size: 14px; line-height: 1.35; }
+
+.title-wrapped .movie-card-year { margin-left: 6px; }
 
 .movie-card .rank {
     position: absolute;
@@ -794,6 +803,9 @@ img { display: block; }
 
 .movie-card-reasons { display: flex; flex-direction: column; gap: 2px; margin-top: 5px; }
 
+/* The cards keep their reasons, but do not show them for now. */
+.recommended .movie-card-reasons { display: none; }
+
 .movie-card-reasons span {
     color: var(--accent-strong);
     font-size: 11.5px;
@@ -834,7 +846,7 @@ img { display: block; }
 
 .section-note-inline { color: var(--text-muted); font-size: 13.5px; }
 
-.section-title-link { color: var(--accent-strong); }
+.section-title-link { color: inherit; }
 
 .section-title-link:hover { text-decoration: underline; }
 
@@ -1391,7 +1403,7 @@ img { display: block; }
     overflow: hidden;
     pointer-events: none;
     opacity: 0;
-    transition: top 0.5s ease, opacity 1.6s ease;
+    transition: opacity 1.6s ease;
 }
 
 /* Shown once the player says it plays (the script adds it), so a held-back autoplay shows no player. */
@@ -1410,14 +1422,15 @@ img { display: block; }
 }
 
 /* The trailer brought forward (Trailer, then Exit trailer), in the hero's own space: its content
-   and shading give way, and the player, sharp and as large as the hero, takes clicks. */
+   and shading give way, and the player, sharp and as large as the hero, takes clicks. It keeps the
+   space it had behind, under the navbar and the trailer bar too, so the movie does not change size. */
 .hero::before, .movie-hero::before, .hero-content, .movie-hero-content { transition: opacity 0.4s ease; }
 
 .trailer-playing::before,
 .trailer-playing .hero-content,
 .trailer-playing .movie-hero-content { opacity: 0; pointer-events: none; }
 
-.trailer-playing .backdrop-video { z-index: 3; top: calc(var(--under-nav, 0px) + 56px); opacity: 1; pointer-events: auto; }
+.trailer-playing .backdrop-video { z-index: 3; opacity: 1; pointer-events: auto; }
 
 .trailer-playing .backdrop-video iframe { width: 100%; height: 100%; transform: translate(-50%, -50%); filter: none; }
 
@@ -1440,7 +1453,10 @@ img { display: block; }
     justify-content: space-between;
     gap: 16px;
     padding: 0 24px;
-    background: var(--background);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    backdrop-filter: blur(24px) saturate(180%);
+    background: rgba(var(--background-rgb), 0.42);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .trailer-bar-title { overflow: hidden; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
@@ -1988,7 +2004,6 @@ img { display: block; }
     .trailer-playing .hero-content, .trailer-playing .movie-hero-content { opacity: 1; pointer-events: auto; }
     .trailer-playing .hero-head, .trailer-playing .hero-poster, .trailer-playing .movie-hero-poster { opacity: 0; pointer-events: none; }
     .trailer-playing .hero-body .trailer-button:not([hidden]) { display: inline-flex; }
-    .trailer-playing .backdrop-video { top: var(--under-nav, 0px); }
     .trailer-playing .trailer-bar { display: none; }
     .friend-action + .member-actions { flex-basis: 100%; justify-content: flex-end; padding-left: 0; border-left: 0; }
 
@@ -2049,13 +2064,22 @@ img { display: block; }
 
 .nav-links a:hover { color: var(--green); }
 
-/* The page titles in a hot gradient, pink into orange, in the letters. */
+/* The page titles white, like the section titles, with a hot bar, pink into orange, to their left. */
 .page-title {
-    background: linear-gradient(90deg, var(--accent), var(--orange));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    display: flex;
+    align-items: center;
     text-shadow: none;
+}
+
+.page-title::before {
+    content: "";
+    flex-shrink: 0;
+    width: 6px;
+    height: 0.8em;
+    margin-right: 14px;
+    border-radius: 3px;
+    background: linear-gradient(180deg, var(--accent), var(--orange));
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.7);
 }
 
 /* The trailer in neon green into cyan beside the pink buttons. */

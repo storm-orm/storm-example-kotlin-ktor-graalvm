@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupTrailers();
     setupPosterGlows();
     setupPosterTilt();
+    setupCardTitles();
 });
 
 // Under the mouse a poster gives a little: it tilts toward the cursor, a light follows the cursor
@@ -57,6 +58,29 @@ function setupNavbarHeight() {
     const measure = () => document.documentElement.style.setProperty('--navbar-height', `${navbar.offsetHeight}px`);
     new ResizeObserver(measure).observe(navbar);
     measure();
+}
+
+/* ── Card titles ───────────────────────────────────────────────────── */
+
+// A title under a poster wraps rather than being cut short, and once it wraps, the year (or what
+// stands in its place) follows on its last line, so a card takes two lines where it would take three.
+// Measured again whenever a card changes width; the change itself waits for the next frame, so the
+// card's new height does not call the observer back within its own round.
+const cardTitles = new ResizeObserver(entries => entries.forEach(entry => {
+    requestAnimationFrame(() => fitCardTitle(entry.target));
+}));
+
+function fitCardTitle(info) {
+    const title = info.querySelector('.movie-card-title');
+    info.classList.remove('title-wrapped');
+    const wrapped = title.offsetHeight > parseFloat(getComputedStyle(title).lineHeight) * 1.5;
+    info.classList.toggle('title-wrapped', wrapped);
+}
+
+function setupCardTitles() {
+    document.querySelectorAll('.movie-card-info').forEach(info => {
+        if (info.querySelector('.movie-card-title + .movie-card-year')) cardTitles.observe(info);
+    });
 }
 
 /* ── Poster glows ─────────────────────────────────────────────────── */
@@ -735,6 +759,7 @@ function movieCard(movie) {
     year.textContent = movie.year ?? '';
     info.appendChild(year);
     card.appendChild(info);
+    cardTitles.observe(info);
 
     return card;
 }
