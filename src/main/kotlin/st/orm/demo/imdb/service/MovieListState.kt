@@ -9,7 +9,7 @@ import java.time.Instant
  * Whether a movie is on the user's watchlist, whether the user has seen it
  * and the day of its latest check-in, if it has one, and the thumbs up or down given to it (null without one):
  * the state of the buttons on the movie page, and the answer of every
- * toggle, since marking a movie seen takes it off the watchlist.
+ * toggle, since checking a movie in takes it off the watchlist.
  */
 @Serializable
 data class MovieListState(

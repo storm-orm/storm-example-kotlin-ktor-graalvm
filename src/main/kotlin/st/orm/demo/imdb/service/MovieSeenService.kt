@@ -63,10 +63,10 @@ class MovieSeenService(
      * its check-ins with it, and returns the state of both lists afterwards.
      * Marked as seen before ([historic]), the movie gets no check-in: the
      * movie page's Mark as seen and the catch-up page mark that way, and
-     * [checkIn] records a watch on a day. A movie just seen comes off the
-     * watchlist: that is what a list of movies to watch means. Unmarking does
-     * not put it back. Either way the user's recommendations are recomputed
-     * in the background.
+     * [checkIn] records a watch on a day. Only a check-in takes the movie off
+     * the watchlist: one watched long ago may be on it to be watched again.
+     * Unmarking does not put it back. Either way the user's recommendations
+     * are recomputed in the background.
      *
      * Like the watchlist toggle, the cycle runs in the route's
      * `transactional { }` block, so the mark and the watchlist removal are
@@ -82,8 +82,11 @@ class MovieSeenService(
             MovieListState.of(onWatchlist = watchlistRepository.contains(stored, movie), seen = null, checkedInAt = null)
         } else {
             val seen = markSeen(stored, movie, now)
-            val checkIn = if (historic) null else CheckIn(stored, movie, now).also { checkInRepository.insert(it) }
-            MovieListState.of(onWatchlist = false, seen = seen, checkedInAt = checkIn?.watchedAt)
+            val checkIn = if (historic) null else CheckIn(stored, movie, now).also {
+                checkInRepository.insert(it)
+                watchlistRepository.remove(stored, movie)
+            }
+            MovieListState.of(onWatchlist = checkIn == null && watchlistRepository.contains(stored, movie), seen = seen, checkedInAt = checkIn?.watchedAt)
         }
         recommendationService.refreshLater(stored)
         return state
@@ -97,7 +100,7 @@ class MovieSeenService(
      * which falls on that same calendar day in practically every time zone.
      * A movie not seen yet is marked seen; one seen before gets one more
      * check-in, as a rewatch is, unless it has one on that day already.
-     * Either way the movie leaves the watchlist.
+     * Either way the movie leaves the watchlist, a rewatch put on it as well.
      */
     suspend fun checkIn(user: User, movieId: String, day: LocalDate? = null, now: Instant = Instant.now()): MovieListState {
         val today = LocalDate.ofInstant(now, ZoneOffset.UTC)
@@ -110,8 +113,7 @@ class MovieSeenService(
         val before = movieSeenRepository.findById(MovieSeenPk(userId = stored.id, movieId = movie.id))
         val seen = before?.let { if (watchedAt.isAfter(it.seenAt)) it.copy(seenAt = watchedAt).also { latest -> movieSeenRepository.update(latest) } else it }
             ?: markSeen(stored, movie, watchedAt)
-        // A rewatch put on the watchlist comes off it, as the first watch did.
-        if (before != null) watchlistRepository.remove(stored, movie)
+        watchlistRepository.remove(stored, movie)
         val checkIns = checkInRepository.findAll(stored, movie)
         val onThatDay = checkIns.any { dayOf(it.watchedAt) == dayOf(watchedAt) }
         if (!onThatDay) checkInRepository.insert(CheckIn(stored, movie, watchedAt))
@@ -135,14 +137,13 @@ class MovieSeenService(
         val seen = before?.copy(liked = liked)?.also { movieSeenRepository.update(it) }
             ?: markSeen(stored, movie, now, liked)
         recommendationService.refreshLater(stored)
-        return MovieListState.of(onWatchlist = false, seen = seen, checkedInAt = checkInRepository.findAll(stored, movie).maxOfOrNull { it.watchedAt })
+        return MovieListState.of(onWatchlist = watchlistRepository.contains(stored, movie), seen = seen, checkedInAt = checkInRepository.findAll(stored, movie).maxOfOrNull { it.watchedAt })
     }
 
-    /** Marks a movie seen that was not: the row, the watchlist, and the event the recommendations count. */
+    /** Marks a movie seen that was not: the row, and the event the recommendations count. */
     private fun markSeen(user: User, movie: Movie, at: Instant, liked: Boolean? = null): MovieSeen =
         MovieSeen(user = user, movie = movie, seenAt = at, liked = liked).also {
             movieSeenRepository.insert(it)
-            watchlistRepository.remove(user, movie)
             recommendationService.record(user, movie, RecommendationEventKind.SEEN)
         }
 
@@ -157,8 +158,9 @@ class MovieSeenService(
      * counted twice; importing the same export again changes nothing. A title
      * without a day is seen without a check-in. The latest rating becomes a
      * thumb, 8 and up for a thumbs up and 5 and down for a thumbs down,
-     * unless the user gave one here. As with marking one movie, the movies
-     * come off the watchlist.
+     * unless the user gave one here. As with a check-in here, a movie comes
+     * off the watchlist, but only for a day after it was put on it: rated
+     * years ago, it may be on the watchlist to be watched again.
      *
      * The movies, the seen rows and the check-ins are read in one query each,
      * the seen rows written in one batched upsert, the check-ins in one
@@ -186,6 +188,8 @@ class MovieSeenService(
         val movies = movieRepository.findAllById(rowsByTitle.keys)
         val seenBefore = movieSeenRepository.findAll(stored).associateBy { it.movie.id }
         val checkInsBefore = checkInRepository.findAll(stored).groupBy { it.movie.id }
+        val listedAt = watchlistRepository.findAll(stored).associate { it.movie.id to it.addedAt }
+        val watchedSinceListed = mutableListOf<Movie>()
         val added = mutableListOf<CheckIn>()
         val moved = mutableListOf<CheckIn>()
         val seenRows = movies.map { movie ->
@@ -195,6 +199,8 @@ class MovieSeenService(
             added += match.added.map { CheckIn(stored, movie, it) }
             val seen = seenBefore[movie.id]
             val latestCheckIn = (checkInsBefore[movie.id].orEmpty().map { it.watchedAt } + match.moved.map { it.watchedAt } + match.added).maxOrNull()
+            val latestImported = (match.moved.map { it.watchedAt } + match.added).maxOrNull()
+            if (latestImported != null && listedAt[movie.id]?.isBefore(latestImported) == true) watchedSinceListed += movie
             val latestRating = titleRows.sortedWith(compareBy(nullsFirst()) { it.date }).lastOrNull { it.rating != null }?.rating
             MovieSeen(
                 user = stored,
@@ -206,7 +212,7 @@ class MovieSeenService(
         movieSeenRepository.upsert(seenRows)
         checkInRepository.insert(added)
         checkInRepository.update(moved)
-        watchlistRepository.removeAll(stored, movies)
+        watchlistRepository.removeAll(stored, watchedSinceListed)
         recommendationService.refreshLater(stored)
         HistoryImport(
             added = movies.count { it.id !in seenBefore },

@@ -38,9 +38,11 @@ class ImdbImportTest {
         val seen = orm.repository<MovieSeenRepository>()
         val watchlist = orm.repository<WatchlistRepository>()
         val user = orm.insertUser("visitor-import")
-        // Already here: The Matrix, seen and liked yesterday; Reloaded on the watchlist.
+        // Already here: The Matrix, seen and liked yesterday; Reloaded on the watchlist, rated long before it,
+        // and Pulp Fiction, listed before it was rated.
         seen.insert(MovieSeen(user, movies.getById("tt0133093"), Instant.parse("2026-10-23T20:00:00Z"), liked = true))
         watchlist.insert(Watchlist(user, movies.getById("tt0234215"), Instant.parse("2026-10-01T10:00:00Z")))
+        watchlist.insert(Watchlist(user, movies.getById("tt0110912"), Instant.parse("2018-12-01T10:00:00Z")))
 
         val rows = listOf(
             ExportRow(Source.IMDB, "tt0133093", LocalDate.of(2021, 3, 14), 4),
@@ -56,10 +58,12 @@ class ImdbImportTest {
         val matrix = seen.getById(MovieSeenPk(user.id, "tt0133093"))
         assertEquals(Instant.parse("2021-03-14T12:00:00Z"), matrix.seenAt)
         assertEquals(true, matrix.liked)
-        // A 9 is a thumbs up, a 7 no thumb; Reloaded leaves the watchlist.
+        // A 9 is a thumbs up, a 7 no thumb. Pulp Fiction, watched since it was listed, leaves the watchlist;
+        // Reloaded, rated years before, stays on it, to be watched again.
         assertEquals(true, seen.getById(MovieSeenPk(user.id, "tt0234215")).liked)
         assertNull(seen.getById(MovieSeenPk(user.id, "tt0110912")).liked)
-        assertFalse(watchlist.contains(user, movies.getById("tt0234215")))
+        assertFalse(watchlist.contains(user, movies.getById("tt0110912")))
+        assertTrue(watchlist.contains(user, movies.getById("tt0234215")))
         // One batched upsert for the seen rows, one delete for the watchlist.
         assertEquals(1, capture.count(Operation.DELETE))
     }
@@ -155,6 +159,22 @@ class ImdbImportTest {
         watchlist.insert(Watchlist(user, matrix, Instant.parse("2026-10-21T10:00:00Z")))
         assertFalse(runBlocking { service.checkIn(user, matrix.id, LocalDate.of(2026, 10, 24), now) }.onWatchlist)
         assertFalse(watchlist.contains(user, matrix))
+    }
+
+    @Test
+    fun `marking a movie watched some time ago leaves it on the watchlist, a check-in takes it off`(orm: ORMTemplate) {
+        val movies = orm.repository<MovieRepository>()
+        val watchlist = orm.repository<WatchlistRepository>()
+        val user = orm.insertUser("visitor-history")
+        val service = service(orm)
+        val godfather = movies.getById("tt0068646")
+        watchlist.insert(Watchlist(user, godfather, Instant.parse("2026-10-01T10:00:00Z")))
+
+        assertTrue(runBlocking { service.toggle(user, godfather.id, historic = true) }.onWatchlist)
+        assertTrue(watchlist.contains(user, godfather))
+        assertTrue(runBlocking { service.vote(user, godfather.id, liked = true) }.onWatchlist)
+        assertFalse(runBlocking { service.checkIn(user, godfather.id) }.onWatchlist)
+        assertFalse(watchlist.contains(user, godfather))
     }
 
     @Test

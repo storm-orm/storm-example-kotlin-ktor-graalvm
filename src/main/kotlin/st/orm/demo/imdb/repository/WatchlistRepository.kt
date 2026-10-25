@@ -30,7 +30,7 @@ interface WatchlistRepository : EntityRepository<Watchlist, WatchlistPk> {
         removeAll((Watchlist_.user eq user) and (Watchlist_.movie eq movie))
     }
 
-    /** Takes several movies off the user's watchlist at once: the ones an import marked as seen. */
+    /** Takes several movies off the user's watchlist at once: the ones an import found watched since they were put on it. */
     fun removeAll(user: User, movies: List<Movie>) {
         if (movies.isNotEmpty()) removeAll((Watchlist_.user eq user) and (Watchlist_.movie inList movies))
     }

@@ -958,8 +958,8 @@ function personCard(person) {
 
 /* ── Watchlist and seen toggles ───────────────────────────────────── */
 
-// Every toggle answers with the state of both lists and the vote: marking a
-// movie seen takes it off the watchlist, so the other button follows, and
+// Every toggle answers with the state of both lists and the vote: checking a
+// movie in takes it off the watchlist, so the other button follows, and
 // the thumbs appear once the movie is watched. One button carries Watched and
 // the check-ins; its menu tells having watched it some time ago, as history,
 // from watching it on a day, a check-in, and unmarks it again.
