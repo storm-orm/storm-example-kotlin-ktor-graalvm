@@ -17,7 +17,7 @@ import st.orm.demo.imdb.repository.TopMoviesSort
 import st.orm.demo.imdb.repository.UserRepository
 import st.orm.demo.imdb.repository.WikidataSourceRepository
 import st.orm.demo.imdb.service.WikidataClient
-import st.orm.demo.imdb.service.WikidataMovie
+import st.orm.demo.imdb.service.TmdbClient
 import st.orm.demo.imdb.service.WikidataService
 import st.orm.repository.repository
 import st.orm.template.ORMTemplate
@@ -34,17 +34,28 @@ import java.util.concurrent.CopyOnWriteArrayList
  * the lists to the tags and languages a user wants. The query service is a
  * local server answering as Wikidata does: The Matrix and The Godfather made
  * in the United States, The Shawshank Redemption, for the test, in India in
- * Hindi, Amélie in France in French; the other two it has no item for.
+ * a language it does not name, Amélie in France in French; the other two it
+ * has no item for. The same server answers as TMDB, which has the language
+ * of The Shawshank Redemption, Hindi, and of Pulp Fiction, English.
  */
 @StormTest(scripts = ["/schema.sql", "/data.sql"])
 class WikidataTest {
 
     private lateinit var server: HttpServer
     private val requests = CopyOnWriteArrayList<String>()
+    private val tmdbRequests = CopyOnWriteArrayList<String>()
 
     @BeforeEach
     fun startWikidata() {
         server = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0)
+        server.createContext("/3/find/") { exchange ->
+            tmdbRequests += exchange.requestURI.path
+            val language = TMDB_LANGUAGES[exchange.requestURI.path.substringAfterLast('/')]
+            val body = if (language != null) """{"movie_results":[{"id":1,"original_language":"$language"}]}""" else """{"movie_results":[]}"""
+            val bytes = body.toByteArray()
+            exchange.sendResponseHeaders(200, bytes.size.toLong())
+            exchange.responseBody.use { it.write(bytes) }
+        }
         server.createContext("/sparql") { exchange ->
             val query = exchange.requestBody.readAllBytes().decodeToString()
             requests += query
@@ -61,6 +72,7 @@ class WikidataTest {
 
     private fun wikidataService(orm: ORMTemplate) = WikidataService(
         WikidataClient(jacksonObjectMapper(), "http://127.0.0.1:${server.address.port}/sparql"),
+        TmdbClient("test-key", jacksonObjectMapper(), "http://127.0.0.1:${server.address.port}"),
         orm.repository<MovieRepository>(),
         orm.repository<WikidataSourceRepository>(),
         orm.repository<MovieLanguageRepository>(),
@@ -69,11 +81,11 @@ class WikidataTest {
 
     @Test
     fun `each tag has its rule`() {
-        assertEquals(listOf(Tag.HOLLYWOOD), WikidataService.tagsOf(WikidataMovie("Q1", setOf("US", "GB"), setOf("en"))))
-        assertEquals(listOf(Tag.BOLLYWOOD), WikidataService.tagsOf(WikidataMovie("Q2", setOf("IN"), setOf("hi"))))
+        assertEquals(listOf(Tag.HOLLYWOOD), WikidataService.tagsOf(setOf("US", "GB"), setOf("en")))
+        assertEquals(listOf(Tag.BOLLYWOOD), WikidataService.tagsOf(setOf("IN"), setOf("hi")))
         // Made in India in Telugu is Indian cinema, not Bollywood; made in France, neither.
-        assertEquals(emptyList<Tag>(), WikidataService.tagsOf(WikidataMovie("Q3", setOf("IN"), setOf("te"))))
-        assertEquals(emptyList<Tag>(), WikidataService.tagsOf(WikidataMovie("Q4", setOf("FR"), setOf("fr"))))
+        assertEquals(emptyList<Tag>(), WikidataService.tagsOf(setOf("IN"), setOf("te")))
+        assertEquals(emptyList<Tag>(), WikidataService.tagsOf(setOf("FR"), setOf("fr")))
     }
 
     @Test
@@ -81,15 +93,23 @@ class WikidataTest {
         val now = Instant.parse("2026-10-25T04:00:00Z")
         runBlocking { wikidataService(orm).askAboutMovies(now) }
 
-        // The catalogue's six movies fit one window: one query.
+        // The catalogue's six movies fit one window: one query. TMDB is asked about the three without
+        // a language on Wikidata: The Shawshank Redemption, and the two Wikidata has no item for.
         assertEquals(1, requests.size)
+        assertEquals(setOf("/3/find/tt0111161", "/3/find/tt0110912", "/3/find/tt0234215"), tmdbRequests.toSet())
         val sources = orm.repository<WikidataSourceRepository>().findAll().associate { it.movie.id() to it.externalId }
         assertEquals(6, sources.size)
         assertEquals("Q83495", sources["tt0133093"])
         assertEquals(null, sources["tt0110912"])  // Pulp Fiction: asked, and no item
         val tags = orm.repository<MovieTagRepository>().findAll().map { it.id.movieId to it.id.tag }.toSet()
         assertEquals(setOf("tt0133093" to Tag.HOLLYWOOD, "tt0068646" to Tag.HOLLYWOOD, "tt0111161" to Tag.BOLLYWOOD), tags)
-        assertEquals(listOf("en", "it"), orm.repository<MovieLanguageRepository>().findLanguages(orm.repository<MovieRepository>().getById("tt0068646")).sorted())
+        val languages = orm.repository<MovieLanguageRepository>()
+        val movies = orm.repository<MovieRepository>()
+        assertEquals(listOf("en", "it"), languages.findLanguages(movies.getById("tt0068646")).sorted())
+        // TMDB's languages fill Wikidata's gaps: Hindi makes The Shawshank Redemption, made in India, Bollywood.
+        assertEquals(listOf("hi"), languages.findLanguages(movies.getById("tt0111161")))
+        assertEquals(listOf("en"), languages.findLanguages(movies.getById("tt0110912")))
+        assertEquals(emptyList<String>(), languages.findLanguages(movies.getById("tt0234215")))
 
         // Asked lately, a movie is not asked again until it is due.
         runBlocking { wikidataService(orm).askAboutMovies(now.plusSeconds(3600)) }
@@ -138,10 +158,12 @@ class WikidataTest {
              "languages":{"type":"literal","value":"$languages"}}
         """.trimIndent()
 
+        val TMDB_LANGUAGES = mapOf("tt0111161" to "hi", "tt0110912" to "en")
+
         val ANSWERS = mapOf(
             "tt0133093" to answer("tt0133093", "Q83495", "US", "en"),
             "tt0068646" to answer("tt0068646", "Q47703", "US", "en it"),
-            "tt0111161" to answer("tt0111161", "Q172241", "IN", "hi"),
+            "tt0111161" to answer("tt0111161", "Q172241", "IN", ""),
             "tt0211915" to answer("tt0211915", "Q484048", "FR", "fr")
         )
     }

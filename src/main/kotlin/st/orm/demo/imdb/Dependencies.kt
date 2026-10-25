@@ -108,7 +108,7 @@ fun Application.configureDependencies() {
         provide { MovieSourceService(resolve(), resolve(), resolve()) }
         // Wikidata, for where each movie was made and in what language: its languages and tags.
         provide { WikidataClient(resolve()) }
-        provide { WikidataService(resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { WikidataService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { MovieFilterService(resolve(), resolve(), resolve()) }
         provide { StreamingService(resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PersonGalleryService(resolve(), resolve(), resolve(), resolve(), resolve<GalleryRefreshProperties>().maxAge) }

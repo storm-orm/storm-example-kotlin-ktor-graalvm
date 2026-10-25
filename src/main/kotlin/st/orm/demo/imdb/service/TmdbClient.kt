@@ -46,6 +46,17 @@ class TmdbClient(
         get("/3/find/$imdbId?external_source=imdb_id")?.path("movie_results")?.firstOrNull()?.path("id")?.asInt()
 
     /**
+     * The language the movie with this IMDb id was originally made in, as
+     * TMDB has it: an ISO 639 code, or null when TMDB has no such movie or
+     * says it has no language. TMDB names Cantonese "cn", which is "yue".
+     */
+    fun findOriginalLanguage(imdbId: String): String? =
+        get("/3/find/$imdbId?external_source=imdb_id")?.path("movie_results")?.firstOrNull()
+            ?.path("original_language")?.asString(null)
+            ?.takeUnless { it.isEmpty() || it == NO_LANGUAGE }
+            ?.let { if (it == CANTONESE) "yue" else it }
+
+    /**
      * The movie with this TMDB id, with its IMDb id, its trailer and the
      * platforms it plays on, in one call, or null when TMDB has no such movie.
      */
@@ -132,5 +143,7 @@ class TmdbClient(
     private companion object {
         val TRAILER_TYPES = setOf("Trailer", "Teaser")
         val OFFER_TYPES = listOf("flatrate", "free", "ads")
+        const val NO_LANGUAGE = "xx"
+        const val CANTONESE = "cn"
     }
 }
