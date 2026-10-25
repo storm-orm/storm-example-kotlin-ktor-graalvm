@@ -125,7 +125,7 @@ class TmdbService(
             logger.warn("Asking TMDB for the services in {} failed: {}", country, e.message)
             return cached?.providers.orEmpty()
         }
-        transaction { watchProviderRepository.upsert(providers) }
+        transaction { watchProviderRepository.store(providers) }
         regions[country] = Region(now, providers)
         return providers
     }
@@ -177,7 +177,7 @@ class TmdbService(
      */
     private fun store(movie: Movie, tmdb: TmdbMovie?, now: Instant): TmdbSource {
         val platforms = tmdb?.watchProviders.orEmpty()
-        watchProviderRepository.upsert(platforms.values.flatten().distinctBy { it.id })
+        watchProviderRepository.store(platforms.values.flatten())
         val source = TmdbSource(
             movie = movie.ref(),
             externalId = tmdb?.tmdbId?.toString(),
