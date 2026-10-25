@@ -97,6 +97,7 @@ class MovieSeenService(
      * which falls on that same calendar day in practically every time zone.
      * A movie not seen yet is marked seen; one seen before gets one more
      * check-in, as a rewatch is, unless it has one on that day already.
+     * Either way the movie leaves the watchlist.
      */
     suspend fun checkIn(user: User, movieId: String, day: LocalDate? = null, now: Instant = Instant.now()): MovieListState {
         val today = LocalDate.ofInstant(now, ZoneOffset.UTC)
@@ -109,6 +110,8 @@ class MovieSeenService(
         val before = movieSeenRepository.findById(MovieSeenPk(userId = stored.id, movieId = movie.id))
         val seen = before?.let { if (watchedAt.isAfter(it.seenAt)) it.copy(seenAt = watchedAt).also { latest -> movieSeenRepository.update(latest) } else it }
             ?: markSeen(stored, movie, watchedAt)
+        // A rewatch put on the watchlist comes off it, as the first watch did.
+        if (before != null) watchlistRepository.remove(stored, movie)
         val checkIns = checkInRepository.findAll(stored, movie)
         val onThatDay = checkIns.any { dayOf(it.watchedAt) == dayOf(watchedAt) }
         if (!onThatDay) checkInRepository.insert(CheckIn(stored, movie, watchedAt))

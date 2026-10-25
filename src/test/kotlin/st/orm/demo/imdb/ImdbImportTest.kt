@@ -139,6 +139,25 @@ class ImdbImportTest {
     }
 
     @Test
+    fun `a check-in takes the movie off the watchlist, also a rewatch put on it again`(orm: ORMTemplate) {
+        val movies = orm.repository<MovieRepository>()
+        val watchlist = orm.repository<WatchlistRepository>()
+        val user = orm.insertUser("visitor-rewatch")
+        val service = service(orm)
+        val now = Instant.parse("2026-10-24T20:00:00Z")
+        val matrix = movies.getById("tt0133093")
+        watchlist.insert(Watchlist(user, matrix, Instant.parse("2026-10-01T10:00:00Z")))
+
+        // The first check-in marks it watched and takes it off.
+        assertFalse(runBlocking { service.checkIn(user, matrix.id, LocalDate.of(2026, 10, 20), now) }.onWatchlist)
+        assertFalse(watchlist.contains(user, matrix))
+        // Put on the watchlist again to rewatch, the next check-in takes it off too.
+        watchlist.insert(Watchlist(user, matrix, Instant.parse("2026-10-21T10:00:00Z")))
+        assertFalse(runBlocking { service.checkIn(user, matrix.id, LocalDate.of(2026, 10, 24), now) }.onWatchlist)
+        assertFalse(watchlist.contains(user, matrix))
+    }
+
+    @Test
     fun `the IMDb rating maps to a thumb at the ends of the scale only`() {
         assertEquals(listOf(false, false, null, null, true, true), listOf(1, 5, 6, 7, 8, 10).map { MovieSeenService.thumbFor(it) })
         assertNull(MovieSeenService.thumbFor(null))
