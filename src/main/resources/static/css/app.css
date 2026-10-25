@@ -95,15 +95,27 @@ img { display: block; }
 /* ── Navbar ────────────────────────────────────────────────────────── */
 
 /* The navbar is flat glass: what scrolls under it, the hero's trailer included, shows through
-   blurred, barely tinted and without an edge, so over a hero it reads as part of the picture. */
+   blurred and barely tinted, so over a hero it reads as part of the picture. */
 .navbar {
     position: sticky;
     top: 0;
     z-index: 50;
+    transition: transform 0.45s ease;
+}
+
+/* The glass is a layer of its own under the links, so it can fade without them: blurred and tinted
+   at the top, clear by the bottom, so no edge shows where the navbar ends. */
+.navbar::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
     -webkit-backdrop-filter: blur(24px) saturate(160%);
     backdrop-filter: blur(24px) saturate(160%);
-    background: rgba(var(--background-rgb), 0.2);
-    transition: transform 0.45s ease;
+    background: linear-gradient(rgba(var(--background-rgb), 0.3), rgba(var(--background-rgb), 0));
+    -webkit-mask-image: linear-gradient(#000 45%, transparent);
+    mask-image: linear-gradient(#000 45%, transparent);
+    pointer-events: none;
 }
 
 /* The trailer brought forward has the screen: the navbar slides up out of the way, and back down
@@ -2265,9 +2277,8 @@ img { display: block; }
 /* The totals in their color, half of it, mixed into the text color. */
 .data-page .stat-chip .value { color: color-mix(in srgb, rgb(var(--tone, var(--accent-rgb))) 55%, var(--text)); text-shadow: none; }
 
-/* The search suggestions hang from the navbar, which is glass itself: a blur inside a blur only sees
-   the navbar, so the page would show through sharp. They are near-solid instead, with the same tint
-   (scoped to the search box, to outweigh the panel rule above). */
+/* The search suggestions hang from the navbar over whatever the page shows: near-solid, so a list
+   reads over anything, with the same tint (scoped to the search box, to outweigh the panel rule above). */
 .search-box .search-suggestions {
     background:
         linear-gradient(135deg, rgba(var(--accent-rgb), 0.1), rgba(var(--violet-rgb), 0.04)),
