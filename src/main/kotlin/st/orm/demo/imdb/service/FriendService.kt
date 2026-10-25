@@ -49,7 +49,7 @@ data class FriendsView(
     val friends: List<User>,
     val feed: List<SharedCheckIn>,
     val sharing: User,
-    /** The visitor's personal invite links still open. */
+    /** The visitor's invite links still open, the public one and the personal ones. */
     val invites: List<OpenInvite>
 )
 
@@ -94,7 +94,7 @@ class FriendService(
             friends = friends,
             feed = feed(friends, FEED_LIMIT),
             sharing = user,
-            invites = friendInviteRepository.findPersonalSince(user, now.minus(Invite.VALIDITY)).map { OpenInvite.of(it, now) }
+            invites = friendInviteRepository.findOpen(user, now.minus(Invite.VALIDITY)).map { OpenInvite.of(it, now) }
         )
     }
 
@@ -157,9 +157,9 @@ class FriendService(
         friendInviteRepository.findPublic(user)?.token ?: newInvite(user, now, reusable = true)
     }
 
-    /** Withdraws one of the visitor's personal invite links: it stops working. */
+    /** Withdraws one of the visitor's invite links, public or personal: it stops working. */
     suspend fun withdrawInvite(user: User, token: String) = transaction {
-        friendInviteRepository.removePersonal(user, token)
+        friendInviteRepository.removeInvite(user, token)
     }
 
     /** Replaces the visitor's public invite link with a new one: the old link stops working. */

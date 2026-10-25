@@ -1852,6 +1852,20 @@ img { display: block; }
 
 .open-invites[hidden] { display: none; }
 
+.open-invite { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+
+/* Personal or public, as a small tag: a public link is open to anyone who has it, so it stands out. */
+.open-invite-kind {
+    padding: 2px 9px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.open-invite-kind.public { border-color: rgba(var(--green-rgb), 0.45); color: var(--green); }
+
 .open-invite-age { color: var(--text-muted); font-size: 13.5px; }
 
 .switch-row { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); cursor: pointer; font-size: 14px; color: var(--text-muted); }

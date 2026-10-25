@@ -5,16 +5,18 @@ import java.time.Duration
 import java.time.Instant
 
 /**
- * A personal invite link still open, as the friends page and a club's page
- * list it: its token, for the link, and its age and what is left of its two
- * weeks in whole days, for "made 2 days ago, open 12 more days".
+ * An invite link still open, as the friends page and a club's page list it:
+ * its token, for the link, whether it is the [public] one, and its age in
+ * whole days; a personal one also what is left of its two weeks, for "made 2
+ * days ago, open 12 more days". A public one is open until it is replaced.
  */
-data class OpenInvite(val token: String, val daysOld: Long, val daysLeft: Long) {
+data class OpenInvite(val token: String, val public: Boolean, val daysOld: Long, val daysLeft: Long?) {
     companion object {
         fun of(invite: Invite, now: Instant) = OpenInvite(
             token = invite.token,
+            public = invite.reusable,
             daysOld = Duration.between(invite.createdAt, now).toDays(),
-            daysLeft = Math.ceilDiv(Duration.between(now, invite.createdAt.plus(Invite.VALIDITY)).toSeconds(), SECONDS_PER_DAY)
+            daysLeft = if (invite.reusable) null else Math.ceilDiv(Duration.between(now, invite.createdAt.plus(Invite.VALIDITY)).toSeconds(), SECONDS_PER_DAY)
         )
 
         /** A day begun counts as a day left: a link made a minute ago is open 14 more days. */

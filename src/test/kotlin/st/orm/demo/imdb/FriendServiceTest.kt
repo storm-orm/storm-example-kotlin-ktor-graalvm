@@ -85,7 +85,7 @@ class FriendServiceTest {
     }
 
     @Test
-    fun `the personal invites still open are listed, and withdrawn by their inviter only`(orm: ORMTemplate) {
+    fun `the invites still open are listed, public and personal, and withdrawn by their inviter only`(orm: ORMTemplate) {
         val service = service(orm)
         val alice = orm.insertUser("alice", name = "Alice")
         val bob = orm.insertUser("bob", name = "Bob")
@@ -93,18 +93,21 @@ class FriendServiceTest {
         val expired = runBlocking { service.createInvite(alice, now.minus(Duration.ofDays(15))) }
         val older = runBlocking { service.createInvite(alice, now.minus(Duration.ofDays(3))) }
         val newer = runBlocking { service.createInvite(alice, now) }
-        runBlocking { service.publicInvite(alice, now) }
+        val public = runBlocking { service.publicInvite(alice, now.minus(Duration.ofDays(30))) }
 
-        // The personal ones within two weeks, the newest first; the expired one and the public link are not listed.
+        // The public link first, open until replaced, then the personal ones within two weeks, the newest
+        // first; the expired one is not listed.
         val invites = runBlocking { service.friendsOf(alice, now) }.invites
-        assertEquals(listOf(newer, older), invites.map { it.token })
-        assertEquals(listOf(0L to 14L, 3L to 11L), invites.map { it.daysOld to it.daysLeft })
+        assertEquals(listOf(public, newer, older), invites.map { it.token })
+        assertEquals(listOf(true, false, false), invites.map { it.public })
+        assertEquals(listOf(null, 14L, 11L), invites.map { it.daysLeft })
         assertTrue(expired !in invites.map { it.token })
 
         // Bob cannot withdraw Alice's invite; Alice can, and its link stops working.
         runBlocking { service.withdrawInvite(bob, older) }
-        assertEquals(2, runBlocking { service.friendsOf(alice, now) }.invites.size)
+        assertEquals(3, runBlocking { service.friendsOf(alice, now) }.invites.size)
         runBlocking { service.withdrawInvite(alice, older) }
+        runBlocking { service.withdrawInvite(alice, public) }
         assertEquals(listOf(newer), runBlocking { service.friendsOf(alice, now) }.invites.map { it.token })
         assertNull(orm.repository<FriendInviteRepository>().findById(older))
     }

@@ -9,6 +9,7 @@ import st.orm.template.and
 import st.orm.template.eq
 import st.orm.template.greaterEq
 import st.orm.template.less
+import st.orm.template.or
 import java.time.Instant
 
 /** The invites to clubs: the invite rows of the kind 'club', which only these queries see. */
@@ -23,15 +24,19 @@ interface ClubInviteRepository : EntityRepository<ClubInvite, String> {
         removeAll((ClubInvite_.club eq club) and (ClubInvite_.reusable eq true))
     }
 
-    /** The club's personal invites made since a moment, by any of its admins, the newest first: the ones still open. */
-    fun findPersonalSince(club: Club, since: Instant): List<ClubInvite> =
-        select((ClubInvite_.club eq club) and (ClubInvite_.reusable eq false) and (ClubInvite_.createdAt greaterEq since))
-            .orderByDescending(ClubInvite_.createdAt)
+    /**
+     * The club's invites still open, by any of its admins: the public one,
+     * and the personal ones made since a moment. The public one first, then
+     * the newest first.
+     */
+    fun findOpen(club: Club, personalSince: Instant): List<ClubInvite> =
+        select((ClubInvite_.club eq club) and ((ClubInvite_.reusable eq true) or (ClubInvite_.createdAt greaterEq personalSince)))
+            .orderByDescending(ClubInvite_.reusable, ClubInvite_.createdAt)
             .resultList
 
-    /** Withdraws one of the club's personal invites: its link stops working. */
-    fun removePersonal(club: Club, token: String) {
-        removeAll((ClubInvite_.token eq token) and (ClubInvite_.club eq club) and (ClubInvite_.reusable eq false))
+    /** Withdraws one of the club's invites, public or personal: its link stops working. */
+    fun removeInvite(club: Club, token: String) {
+        removeAll((ClubInvite_.token eq token) and (ClubInvite_.club eq club))
     }
 
     /** Removes the club's personal invites created before a moment: the ones no longer accepted. */

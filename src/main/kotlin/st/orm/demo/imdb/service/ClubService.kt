@@ -39,7 +39,7 @@ data class ClubView(
     val friendStatus: Map<String, FriendStatus>,
     val feed: List<SharedCheckIn>,
     val mostSeen: List<MovieSeenCount>,
-    /** The club's personal invite links still open, for its admins; none for the other members. */
+    /** The club's invite links still open, the public one and the personal ones, for its admins; none for the other members. */
     val invites: List<OpenInvite>
 ) {
     /** How many of the members are admins: the last one is not offered to step down. */
@@ -109,7 +109,7 @@ class ClubService(
             friendStatus = friendStatus(user, members),
             feed = feed(sharing),
             mostSeen = if (sharing.size < MOST_SEEN_MINIMUM) emptyList() else movieSeenRepository.countSeenBy(sharing.map { it.user }, MOST_SEEN_MINIMUM.toLong(), MOST_SEEN_LIMIT),
-            invites = if (!me.admin) emptyList() else clubInviteRepository.findPersonalSince(club, now.minus(Invite.VALIDITY)).map { OpenInvite.of(it, now) }
+            invites = if (!me.admin) emptyList() else clubInviteRepository.findOpen(club, now.minus(Invite.VALIDITY)).map { OpenInvite.of(it, now) }
         )
     }
 
@@ -273,9 +273,9 @@ class ClubService(
         clubInviteRepository.findPublic(club)?.token ?: newInvite(club, user, now, reusable = true)
     }
 
-    /** Withdraws one of the club's personal invite links, for an admin: it stops working. */
+    /** Withdraws one of the club's invite links, public or personal, for an admin: it stops working. */
     suspend fun withdrawInvite(user: User, clubId: Long, token: String) = transaction {
-        administeredBy(user, clubRepository.findById(clubId))?.let { clubInviteRepository.removePersonal(it, token) }
+        administeredBy(user, clubRepository.findById(clubId))?.let { clubInviteRepository.removeInvite(it, token) }
     }
 
     /** Replaces the club's public invite link with a new one: the old link stops working. */
