@@ -984,6 +984,24 @@
     "allDeclaredFields": true
   },
   {
+    "name": "st.orm.demo.imdb.model.Photo",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.model.Photo$serializer",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.model.Photo$Companion",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
     "name": "st.orm.demo.imdb.model.MovieFilter",
     "allDeclaredConstructors": true,
     "allPublicMethods": true,

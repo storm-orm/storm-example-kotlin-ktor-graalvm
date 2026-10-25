@@ -42,9 +42,9 @@ dependencies {
     implementation("io.micrometer:micrometer-registry-prometheus:1.15.4")
 
     // Storm ORM: the Ktor integration and serialization modules. The Gradle plugin
-    // already provides storm-kotlin, storm-core, and the metamodel processor.
+    // already provides storm-kotlin, storm-core, and the metamodel processor. The JSON
+    // columns (@Json) go through kotlinx.serialization, one converter for every one of them.
     implementation("st.orm:storm-ktor")
-    implementation("st.orm:storm-jackson3")
     implementation("st.orm:storm-kotlinx-serialization")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
     runtimeOnly("st.orm:storm-postgresql")
