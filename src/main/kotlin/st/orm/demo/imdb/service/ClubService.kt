@@ -16,6 +16,8 @@ import st.orm.demo.imdb.repository.MovieSeenCount
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.UserRepository
 import st.orm.template.entityId
+import st.orm.demo.imdb.model.ClubMember_
+import st.orm.template.eq
 import st.orm.template.transaction
 import java.time.Instant
 
@@ -95,6 +97,19 @@ class ClubService(
         ClubsView(memberships.map { ClubSummary(it, memberCounts.getValue(it.club.id)) }, defaults = user)
     }
 
+    /** Whether the visitor is in any club: the home page is about the community once they are. */
+    fun isMember(user: User): Boolean = clubMemberRepository.exists(ClubMember_.user eq user)
+
+    /**
+     * What the other members of the visitor's clubs watched lately, across
+     * the clubs, as far as each shares it in that club: the home page row.
+     */
+    suspend fun latestInClubs(user: User, limit: Int): List<SharedCheckIn> = transaction(readOnly = true) {
+        val clubs = clubMemberRepository.findClubs(user).map { it.club }
+        val others = clubMemberRepository.findMembers(clubs).filter { it.user.id != user.id && it.sharesSeen }
+        feed(others, limit)
+    }
+
     /**
      * A club's page for the visitor, or null when they are not a member.
      * The feed and the most seen are of the members who share what they
@@ -135,10 +150,11 @@ class ClubService(
     }
 
     /** The latest check-ins of the members who share what they watch, each shown as far as its member shares their name and the day. */
-    private fun feed(sharing: List<ClubMember>): List<SharedCheckIn> {
+    private fun feed(sharing: List<ClubMember>, limit: Int = FEED_LIMIT): List<SharedCheckIn> {
         if (sharing.isEmpty()) return emptyList()
+        // A member of two of the visitor's clubs is one person: the sharing of the club listed first counts.
         val membersById = sharing.associateBy { it.user.id }
-        return checkInRepository.findLatestOf(sharing.map { it.user }, FEED_LIMIT).map { checkIn ->
+        return checkInRepository.findLatestOf(membersById.values.map { it.user }, limit).map { checkIn ->
             val member = membersById.getValue(checkIn.user.entityId())
             SharedCheckIn(
                 movie = checkIn.movie,

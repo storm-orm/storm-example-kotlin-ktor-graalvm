@@ -14,6 +14,8 @@ import st.orm.demo.imdb.repository.FriendshipRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.UserRepository
 import st.orm.template.entityId
+import st.orm.demo.imdb.model.Friendship_
+import st.orm.template.eq
 import st.orm.template.transaction
 import java.time.Instant
 import java.time.ZoneOffset
@@ -101,6 +103,9 @@ class FriendService(
             inCommon = tasteOverlap.inCommon(user, friends) { it.shareSeen }
         )
     }
+
+    /** Whether the visitor has friends: the home page is about the community once they do. */
+    fun hasFriends(user: User): Boolean = friendshipRepository.exists(Friendship_.user eq user)
 
     /** What the visitor's friends saw lately, for the home page row; empty without friends who share. */
     suspend fun latestOfFriends(user: User, limit: Int): List<SharedCheckIn> = transaction(readOnly = true) {

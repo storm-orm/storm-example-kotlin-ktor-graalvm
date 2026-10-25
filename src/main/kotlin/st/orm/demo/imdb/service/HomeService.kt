@@ -34,7 +34,15 @@ data class HomeView(
     val seenEntries: List<MovieSeen>,
     val recommendations: HomeRecommendations,
     /** What the visitor's friends saw lately, as far as they share it. */
-    val friendsSeen: List<SharedCheckIn>
+    val friendsSeen: List<SharedCheckIn>,
+    /** What the other members of the visitor's clubs saw lately, as far as they share it. */
+    val clubsSeen: List<SharedCheckIn>,
+    /**
+     * Whether the visitor has friends or is in a club: then the page is
+     * about them, with longer rows of what they saw, and without the seen
+     * list, the recently viewed and the top ten, which are not read at all.
+     */
+    val community: Boolean
 )
 
 class HomeService(
@@ -46,21 +54,31 @@ class HomeService(
     private val watchlistRepository: WatchlistRepository,
     private val movieSeenRepository: MovieSeenRepository,
     private val recommendationService: RecommendationService,
-    private val friendService: FriendService
+    private val friendService: FriendService,
+    private val clubService: ClubService
 ) {
 
-    /** All home page sections for the visitor, read in one read-only transaction. */
+    /**
+     * All home page sections for the visitor, read in one read-only
+     * transaction. A visitor with friends or clubs gets the community's rows
+     * at twice the length, and not the seen list, the recently viewed or the
+     * top ten, which are then not read.
+     */
     suspend fun buildHomeView(user: User): HomeView = transaction(readOnly = true) {
         val recommendations = recommendationService.forHome(user)
+        val community = user.name != null && (friendService.hasFriends(user) || clubService.isMember(user))
+        val feedLimit = if (community) COMMUNITY_ROW_LIMIT else LIST_PREVIEW_LIMIT
         HomeView(
             featured = recommendations.featured?.let { featured(it) },
-            recentlyViewed = recentlyViewed(user),
-            topRated = ratingRepository.findTopRated(TOP_RATED_MINIMUM_VOTES, user.movieFilter, TOP_RATED_LIMIT),
+            recentlyViewed = if (community) emptyList() else recentlyViewed(user),
+            topRated = if (community) emptyList() else ratingRepository.findTopRated(TOP_RATED_MINIMUM_VOTES, user.movieFilter, TOP_RATED_LIMIT),
             genreCounts = statisticsService.genreCounts(),
             watchlistEntries = watchlistRepository.findMostRecent(user, LIST_PREVIEW_LIMIT),
-            seenEntries = movieSeenRepository.findMostRecent(user, LIST_PREVIEW_LIMIT),
+            seenEntries = if (community) emptyList() else movieSeenRepository.findMostRecent(user, LIST_PREVIEW_LIMIT),
             recommendations = recommendations,
-            friendsSeen = friendService.latestOfFriends(user, LIST_PREVIEW_LIMIT)
+            friendsSeen = friendService.latestOfFriends(user, feedLimit),
+            clubsSeen = if (community) clubService.latestInClubs(user, feedLimit) else emptyList(),
+            community = community
         )
     }
 
@@ -84,5 +102,6 @@ class HomeService(
         private const val TOP_RATED_LIMIT = 10
         private const val TOP_RATED_MINIMUM_VOTES = 25_000
         private const val LIST_PREVIEW_LIMIT = 12
+        private const val COMMUNITY_ROW_LIMIT = 24
     }
 }

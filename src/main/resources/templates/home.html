@@ -5,7 +5,7 @@
 <nav th:replace="~{fragments/layout :: navbar('home')}"></nav>
 
 <!-- New here: nothing marked or saved yet. The catch-up page is the quickest way to what the site does. -->
-<section class="welcome" id="welcome" th:if="${view.seenEntries.isEmpty() and view.watchlistEntries.isEmpty()}">
+<section class="welcome" id="welcome" th:if="${!view.community and view.seenEntries.isEmpty() and view.watchlistEntries.isEmpty()}">
     <div class="container welcome-inner">
         <div>
             <h2 class="welcome-title">Start with what you have already watched</h2>
@@ -122,6 +122,36 @@
     </div>
 </section>
 
+<!-- What friends saw lately, and the members of the visitor's clubs, as far as each shares it: with a
+     community, the page is about them, and these rows follow what to watch next at twice the length. -->
+<section class="section" th:if="${!view.friendsSeen.isEmpty()}" id="friends-seen-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Friends Recently Saw</h2>
+            <a class="section-link" th:href="@{/friends}">View all →</a>
+        </div>
+        <div class="movie-row">
+            <th:block th:each="item : ${view.friendsSeen}">
+                <a th:replace="~{fragments/cards :: sharedCheckIn(${item})}"></a>
+            </th:block>
+        </div>
+    </div>
+</section>
+
+<section class="section" th:if="${!view.clubsSeen.isEmpty()}" id="clubs-seen-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Recently Watched in Your Clubs</h2>
+            <a class="section-link" th:href="@{/clubs}">View all →</a>
+        </div>
+        <div class="movie-row">
+            <th:block th:each="item : ${view.clubsSeen}">
+                <a th:replace="~{fragments/cards :: sharedCheckIn(${item})}"></a>
+            </th:block>
+        </div>
+    </div>
+</section>
+
 <!-- Because you saw: a shelf per movie of the visitor's own that argued for the most picks. -->
 <section class="section" th:each="shelf : ${view.recommendations.shelves}" th:id="|shelf-${shelf.seed.id}|">
     <div class="container">
@@ -148,21 +178,6 @@
         <div class="movie-row" th:data-service-logos="${hasServices} ? '/api/my-services'">
             <th:block th:each="entry : ${view.watchlistEntries}">
                 <a th:replace="~{fragments/cards :: movie(${entry.movie.id}, ${entry.movie.primaryTitle}, ${entry.movie.startYear})}"></a>
-            </th:block>
-        </div>
-    </div>
-</section>
-
-<!-- What friends saw lately, as far as they share it -->
-<section class="section" th:if="${!view.friendsSeen.isEmpty()}" id="friends-seen-section">
-    <div class="container">
-        <div class="section-header">
-            <h2 class="section-title">Friends Recently Saw</h2>
-            <a class="section-link" th:href="@{/friends}">View all →</a>
-        </div>
-        <div class="movie-row">
-            <th:block th:each="item : ${view.friendsSeen}">
-                <a th:replace="~{fragments/cards :: sharedCheckIn(${item})}"></a>
             </th:block>
         </div>
     </div>
@@ -197,8 +212,8 @@
     </div>
 </section>
 
-<!-- Top 10 -->
-<section class="section" id="top-rated-section">
+<!-- Top 10: not for a visitor with a community, whose page is about them. -->
+<section class="section" id="top-rated-section" th:unless="${view.community}">
     <div class="container">
         <div class="section-header">
             <h2 class="section-title">Top 10 Movies</h2>
