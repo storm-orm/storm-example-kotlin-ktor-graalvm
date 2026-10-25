@@ -250,6 +250,12 @@
     "allDeclaredFields": true
   },
   {
+    "name": "st.orm.demo.imdb.repository.LanguageCount",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
     "name": "st.orm.demo.imdb.service.FriendsView",
     "allDeclaredConstructors": true,
     "allPublicMethods": true,
