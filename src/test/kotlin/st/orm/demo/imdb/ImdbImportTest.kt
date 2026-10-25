@@ -143,7 +143,7 @@ class ImdbImportTest {
     }
 
     @Test
-    fun `a check-in takes the movie off the watchlist, also a rewatch put on it again`(orm: ORMTemplate) {
+    fun `a check-in takes the movie off the watchlist, unless it was put on it after the day checked in`(orm: ORMTemplate) {
         val movies = orm.repository<MovieRepository>()
         val watchlist = orm.repository<WatchlistRepository>()
         val user = orm.insertUser("visitor-rewatch")
@@ -155,9 +155,12 @@ class ImdbImportTest {
         // The first check-in marks it watched and takes it off.
         assertFalse(runBlocking { service.checkIn(user, matrix.id, LocalDate.of(2026, 10, 20), now) }.onWatchlist)
         assertFalse(watchlist.contains(user, matrix))
-        // Put on the watchlist again to rewatch, the next check-in takes it off too.
-        watchlist.insert(Watchlist(user, matrix, Instant.parse("2026-10-21T10:00:00Z")))
-        assertFalse(runBlocking { service.checkIn(user, matrix.id, LocalDate.of(2026, 10, 24), now) }.onWatchlist)
+        // Put on the watchlist again to rewatch, a check-in on a day before that leaves it on;
+        // one on the day it was listed, or later, takes it off.
+        watchlist.insert(Watchlist(user, matrix, Instant.parse("2026-10-22T18:00:00Z")))
+        assertTrue(runBlocking { service.checkIn(user, matrix.id, LocalDate.of(2026, 10, 21), now) }.onWatchlist)
+        assertTrue(watchlist.contains(user, matrix))
+        assertFalse(runBlocking { service.checkIn(user, matrix.id, LocalDate.of(2026, 10, 22), now) }.onWatchlist)
         assertFalse(watchlist.contains(user, matrix))
     }
 
