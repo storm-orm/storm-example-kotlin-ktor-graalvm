@@ -1939,7 +1939,7 @@ img { display: block; }
 .open-invite-age { color: var(--text-muted); font-size: 13.5px; }
 
 /* The cog beside a page title leads to what the page manages; the way back is a link under it. */
-.page-title-row { display: flex; align-items: center; gap: 14px; }
+.page-title-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
 
 .page-manage {
     display: inline-flex;
