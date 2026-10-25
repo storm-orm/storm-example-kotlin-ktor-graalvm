@@ -1564,7 +1564,9 @@ img { display: block; }
     border: 0;
     transform: translate(-50%, -50%) scale(var(--video-scale, 3));
     filter: blur(2px) brightness(0.55) saturate(1.25);
-    transition: width 0.5s ease, height 0.5s ease, transform 0.5s ease, filter 0.5s ease;
+    /* Coming forward and going back are instant: the framing is the same on both sides, and a size
+       and a scale animated together would swell on the way. Only the sharpness fades. */
+    transition: filter 0.5s ease;
 }
 
 /* The trailer brought forward (Trailer, then exit), in the hero's own space: its content and shading
@@ -1581,6 +1583,9 @@ img { display: block; }
 .trailer-playing .backdrop-video iframe { width: var(--video-fill-width); height: var(--video-fill-height); transform: translate(-50%, -50%); filter: none; }
 
 .trailer-playing.trailer-full-frame .backdrop-video iframe { width: 100%; height: 100%; }
+
+/* Once forward (the script marks it a frame later), the whole frame and the fill ease into each other. */
+.trailer-playing.trailer-settled .backdrop-video iframe { transition: width 0.5s ease, height 0.5s ease, filter 0.5s ease; }
 
 /* A phone turned to landscape: the trailer covers the screen, above the navbar, the page held still. */
 .trailer-fullscreen .backdrop-video { position: fixed; inset: 0; z-index: 1000; background: #000; }

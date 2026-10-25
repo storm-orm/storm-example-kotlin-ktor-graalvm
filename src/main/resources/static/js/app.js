@@ -399,6 +399,8 @@ function bringForward(hero, behind, buttons) {
         const frame = player.getIframe();
         buttons.forEach(button => { button.textContent = 'Exit trailer'; });
         hero.classList.add('trailer-playing');
+        // The size switch is instant; from the next frame on, the whole frame and the fill ease into each other.
+        requestAnimationFrame(() => requestAnimationFrame(() => hero.classList.add('trailer-settled')));
         frame.tabIndex = 0;
         // On from where it is, with sound; a browser that pauses rather than let the page unmute
         // (iOS) gets it playing on, muted, and YouTube's volume button gives the sound.
@@ -450,7 +452,7 @@ function bringForward(hero, behind, buttons) {
             frame.tabIndex = -1;
             controls.remove();
             document.removeEventListener('keydown', onKey);
-            hero.classList.remove('trailer-playing', 'trailer-full-frame');
+            hero.classList.remove('trailer-settled', 'trailer-playing', 'trailer-full-frame');
             buttons.forEach(button => { button.textContent = 'Trailer'; });
             delete hero.sendTrailerBack;
         };
