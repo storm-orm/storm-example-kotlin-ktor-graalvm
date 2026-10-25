@@ -1888,7 +1888,7 @@ img { display: block; }
 
 .friend-avatar { width: 18px; height: 18px; border-radius: 50%; object-fit: cover; }
 
-.friends-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; align-items: start; }
+.friends-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; align-items: stretch; }
 
 .friend-name { display: inline-flex; align-items: center; gap: 10px; }
 
@@ -1914,6 +1914,11 @@ img { display: block; }
 }
 
 .invite-link[hidden] { display: none; }
+
+/* A Save with nothing to save is grey; with a change it is the primary button (app.js). */
+form[data-saves] .button:disabled { opacity: 0.5; cursor: default; filter: grayscale(0.5); }
+
+form[data-saves] .button:disabled::after { opacity: 0.2; }
 
 /* The personal invite links still open, under the invite buttons. */
 .open-invites { align-self: stretch; margin-top: 6px; }
