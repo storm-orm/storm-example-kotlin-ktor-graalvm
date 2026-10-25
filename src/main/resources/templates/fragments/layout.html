@@ -2,9 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head th:fragment="head(title)">
     <meta charset="UTF-8">
-    <!-- The page runs to the edges of the screen, under a phone's status bar too, which the navbar covers. -->
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="theme-color" content="#0a090e">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="|${title} · Storm Movies|">Storm Movies</title>
     <link rel="icon" type="image/png" th:href="@{/img/favicon.png}">
     <!-- A page that can be shared sets a share card: the link then unfurls into the card in a chat or a timeline. -->

@@ -89,8 +89,7 @@ img { display: block; }
     --gutter: 24px;
     max-width: 1200px;
     margin: 0 auto;
-    /* Clear of a phone's notch in landscape. */
-    padding: 0 max(var(--gutter), env(safe-area-inset-right, 0px)) 0 max(var(--gutter), env(safe-area-inset-left, 0px));
+    padding: 0 var(--gutter);
 }
 
 /* ── Navbar ────────────────────────────────────────────────────────── */
@@ -101,8 +100,6 @@ img { display: block; }
     position: sticky;
     top: 0;
     z-index: 50;
-    /* On a phone, the navbar reaches up under the status bar, so the page does not show through there. */
-    padding-top: env(safe-area-inset-top, 0px);
     transition: transform 0.45s ease;
 }
 
@@ -116,10 +113,8 @@ img { display: block; }
     z-index: -1;
     -webkit-backdrop-filter: blur(24px) saturate(160%);
     backdrop-filter: blur(24px) saturate(160%);
-    /* Solid along the top edge: what a phone's Safari paints behind its status bar is copied from there. */
     background: linear-gradient(
-        var(--background) 24px,
-        rgba(var(--background-rgb), 0.7) 36px,
+        rgba(var(--background-rgb), 0.7),
         rgba(var(--background-rgb), 0.6) 15%,
         rgba(var(--background-rgb), 0.48) 30%,
         rgba(var(--background-rgb), 0.35) 45%,
@@ -2196,8 +2191,8 @@ img { display: block; }
        hero, blurred, the band scrolls along. */
     .trailer-playing .hero-content, .trailer-playing .movie-hero-content { opacity: 1; pointer-events: auto; }
     .trailer-playing .hero-head, .trailer-playing .hero-poster, .trailer-playing .movie-hero-poster { opacity: 0; pointer-events: none; }
-    .trailer-playing:not(.trailer-fullscreen) .backdrop-video { position: fixed; top: env(safe-area-inset-top, 0px); z-index: 40; background: #000; }
-    .trailer-exit { position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); right: 12px; z-index: 41; }
+    .trailer-playing:not(.trailer-fullscreen) .backdrop-video { position: fixed; z-index: 40; background: #000; }
+    .trailer-exit { position: fixed; top: 12px; right: 12px; z-index: 41; }
     .friend-action + .member-actions { flex-basis: 100%; justify-content: flex-end; padding-left: 0; border-left: 0; }
 
     .hero-content, .movie-hero-content { padding: 28px 16px 32px; }
