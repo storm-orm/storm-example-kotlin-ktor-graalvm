@@ -73,7 +73,7 @@ class StreamingService(
      * Which of the user's services the movies they watched stream on in the
      * country, today: per service, the watched movies on it, and its share
      * of all of them, a movie on several services counting for each; a movie
-     * on none of them is left out. A user who watched many movies has most
+     * on none of them is left out, and so is a service none of them is on. A user who watched many movies has most
      * of them not looked up on TMDB yet, so each call looks up a few dozen
      * more ([LOOKUPS_PER_CALL]) and says how many are known, for the page to
      * ask again until all are.
@@ -87,7 +87,8 @@ class StreamingService(
         val counts = onServices.flatten().groupingBy { it }.eachCount()
         val total = counts.values.sum()
         val shares = services
-            .map { ServiceShare(it, counts[it.id] ?: 0, if (total == 0) 0 else Math.round(100.0 * (counts[it.id] ?: 0) / total).toInt()) }
+            .filter { it.id in counts }
+            .map { ServiceShare(it, counts.getValue(it.id), Math.round(100.0 * counts.getValue(it.id) / total).toInt()) }
             .sortedByDescending { it.movies }
         return ServiceShares(shares, counted = onServices.size, known = available.size, watched = watched.size)
     }
