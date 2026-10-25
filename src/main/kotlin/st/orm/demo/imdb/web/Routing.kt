@@ -21,9 +21,9 @@ import st.orm.demo.imdb.service.SearchService
 import st.orm.demo.imdb.service.InsightsService
 import st.orm.demo.imdb.service.FriendService
 import st.orm.demo.imdb.service.ClubService
+import st.orm.demo.imdb.service.CommunityService
 import st.orm.demo.imdb.service.InviteService
 import st.orm.demo.imdb.service.StatisticsService
-import st.orm.demo.imdb.service.TopMoviesService
 import st.orm.demo.imdb.service.WatchlistService
 import st.orm.demo.imdb.service.StreamingService
 import st.orm.demo.imdb.service.TmdbService
@@ -39,13 +39,13 @@ fun Application.configureRouting() {
     val gitSignIn: GitSignIn by dependencies
     val freepodSignIn: FreepodSignIn by dependencies
     val homeService: HomeService by dependencies
-    val topMoviesService: TopMoviesService by dependencies
     val watchlistService: WatchlistService by dependencies
     val movieSeenService: MovieSeenService by dependencies
     val catchUpService: CatchUpService by dependencies
     val statisticsService: StatisticsService by dependencies
     val insightsService: InsightsService by dependencies
     val friendService: FriendService by dependencies
+    val communityService: CommunityService by dependencies
     val clubService: ClubService by dependencies
     val inviteService: InviteService by dependencies
     val searchService: SearchService by dependencies
@@ -68,12 +68,12 @@ fun Application.configureRouting() {
 
         accountRoutes(accountService, streamingService, movieFilterService, gitSignIn, freepodSignIn)
         homeRoutes(homeService)
-        topMoviesRoutes(topMoviesService)
         watchlistRoutes(watchlistService)
         movieSeenRoutes(movieSeenService, catchUpService, friendService, clubService)
         statisticsRoutes(statisticsService)
         insightsRoutes(insightsService, streamingService)
         friendsRoutes(friendService)
+        communityRoutes(communityService)
         clubsRoutes(clubService)
         inviteRoutes(inviteService)
         searchRoutes(searchService)

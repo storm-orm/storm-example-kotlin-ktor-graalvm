@@ -6,13 +6,14 @@ import st.orm.demo.imdb.model.MovieSeen
 import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.model.Watchlist
-import st.orm.demo.imdb.repository.GenreMovieCount
 import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.MovieViewRepository
 import st.orm.demo.imdb.repository.RatingRepository
 import st.orm.demo.imdb.repository.WatchlistRepository
+import st.orm.demo.imdb.model.MovieSeen_
+import st.orm.template.eq
 import st.orm.template.ref
 import st.orm.template.transaction
 
@@ -28,7 +29,6 @@ data class HomeView(
     val featured: FeaturedMovie?,
     val recentlyViewed: List<Movie>,
     val topRated: List<Rating>,
-    val genreCounts: List<GenreMovieCount>,
     /** The visitor's recently viewed (above), watchlist, seen list and recommendations; the other sections are the site's. */
     val watchlistEntries: List<Watchlist>,
     val seenEntries: List<MovieSeen>,
@@ -42,14 +42,15 @@ data class HomeView(
      * about them, with longer rows of what they saw, and without the seen
      * list, the recently viewed and the top ten, which are not read at all.
      */
-    val community: Boolean
+    val community: Boolean,
+    /** How many movies the visitor has marked watched: under ten, the page points them to the catch-up page. */
+    val seenCount: Long
 )
 
 class HomeService(
     private val movieRepository: MovieRepository,
     private val movieViewRepository: MovieViewRepository,
     private val ratingRepository: RatingRepository,
-    private val statisticsService: StatisticsService,
     private val movieGenreRepository: MovieGenreRepository,
     private val watchlistRepository: WatchlistRepository,
     private val movieSeenRepository: MovieSeenRepository,
@@ -72,13 +73,13 @@ class HomeService(
             featured = recommendations.featured?.let { featured(it) },
             recentlyViewed = if (community) emptyList() else recentlyViewed(user),
             topRated = if (community) emptyList() else ratingRepository.findTopRated(TOP_RATED_MINIMUM_VOTES, user.movieFilter, TOP_RATED_LIMIT),
-            genreCounts = statisticsService.genreCounts(),
             watchlistEntries = watchlistRepository.findMostRecent(user, LIST_PREVIEW_LIMIT),
             seenEntries = if (community) emptyList() else movieSeenRepository.findMostRecent(user, LIST_PREVIEW_LIMIT),
             recommendations = recommendations,
             friendsSeen = friendService.latestOfFriends(user, feedLimit),
             clubsSeen = if (community) clubService.latestInClubs(user, feedLimit) else emptyList(),
-            community = community
+            community = community,
+            seenCount = movieSeenRepository.count(MovieSeen_.user eq user)
         )
     }
 

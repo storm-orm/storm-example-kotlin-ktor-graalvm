@@ -24,11 +24,11 @@ import st.orm.demo.imdb.service.PersonService
 import st.orm.demo.imdb.service.SearchService
 import st.orm.demo.imdb.service.FriendService
 import st.orm.demo.imdb.service.ClubService
+import st.orm.demo.imdb.service.CommunityService
 import st.orm.demo.imdb.service.InviteService
 import st.orm.demo.imdb.service.CatchUpService
 import st.orm.demo.imdb.service.InsightsService
 import st.orm.demo.imdb.service.StatisticsService
-import st.orm.demo.imdb.service.TopMoviesService
 import st.orm.demo.imdb.service.ViewLogProperties
 import st.orm.demo.imdb.service.ViewLogService
 import st.orm.demo.imdb.service.WatchlistService
@@ -88,19 +88,19 @@ fun Application.configureDependencies() {
             )
         }
         provide { AccountService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
-        provide { HomeService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { HomeService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { TasteOverlap(resolve(), resolve()) }
+        provide { CommunityService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { FriendService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { ClubService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { InviteService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
-        provide { TopMoviesService(resolve(), resolve()) }
         provide { WatchlistService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { MovieSeenService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { CatchUpService(resolve(), resolve()) }
         provide { StatisticsService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { InsightsService(resolve(), resolve(), resolve(), resolve()) }
         provide { SearchService(resolve(), resolve()) }
-        provide { BrowseService(resolve(), resolve()) }
+        provide { BrowseService(resolve(), resolve(), resolve(), resolve()) }
         provide { RecentlyAddedService(resolve()) }
         provide { MovieService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PersonService(resolve(), resolve()) }

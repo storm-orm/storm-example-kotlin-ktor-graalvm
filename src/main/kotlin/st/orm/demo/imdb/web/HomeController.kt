@@ -8,6 +8,10 @@ import st.orm.demo.imdb.service.HomeService
 
 fun Route.homeRoutes(homeService: HomeService) {
     get("/") {
-        call.respondPage(ThymeleafContent("home", mapOf("view" to homeService.buildHomeView(call.currentUser()))))
+        call.respondPage(ThymeleafContent("home", mapOf(
+            "view" to homeService.buildHomeView(call.currentUser()),
+            // Whether the visitor has been to the catch-up page: the page nudges them there until they have.
+            "catchUpSeen" to (call.request.cookies[CATCH_UP_COOKIE] != null)
+        )))
     }
 }

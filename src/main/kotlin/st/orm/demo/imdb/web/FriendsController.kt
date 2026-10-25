@@ -22,21 +22,13 @@ data class InviteLink(val url: String)
 fun inviteUrl(origin: String, token: String) = "$origin/invite/$token"
 
 /**
- * Friends need a signed-in account on both sides: the page asks a visitor
- * who is not to sign in, and returns them here. Inviting, the requests
+ * Friends need a signed-in account on both sides. Inviting, the requests
  * between club members, removing and the sharing settings are form posts
- * and a small JSON call, each answered with a redirect back to the page or
- * the link to share; the invite page itself is [inviteRoutes].
+ * and a small JSON call, each answered with a redirect back to the
+ * community page or the link to share; the invite page itself is
+ * [inviteRoutes], and the page that lists the friends [communityRoutes].
  */
 fun Route.friendsRoutes(friendService: FriendService) {
-    get("/friends") {
-        val user = call.currentUser()
-        val view = if (user.name != null) friendService.friendsOf(user) else null
-        // With friends, the page is about them, and the friend list, the invites and the sharing are behind a tab.
-        val tab = if (view == null || view.friends.isEmpty() || call.request.queryParameters["tab"] == "manage") "manage" else "community"
-        call.respondPage(ThymeleafContent("friends", mapOf("view" to view, "tab" to tab, "added" to (call.request.queryParameters["added"] != null))))
-    }
-
     // Invite links: a personal one for one friend, the public one to post anywhere, and a new public
     // one that replaces it. Each answers with the link, for the page to share.
     for ((path, create) in listOf<Pair<String, suspend (User) -> String>>(
@@ -53,9 +45,9 @@ fun Route.friendsRoutes(friendService: FriendService) {
 
     // Withdrawing a personal invite link: it stops working.
     post("/friends/invites/{token}/withdraw") {
-        val user = call.currentUser().takeIf { it.name != null } ?: return@post call.respondRedirect("/friends")
+        val user = call.currentUser().takeIf { it.name != null } ?: return@post call.respondRedirect("/community")
         friendService.withdrawInvite(user, call.parameters.getOrFail("token"))
-        call.respondRedirect("/friends#friends-card")
+        call.respondRedirect("/community?manage#friends-card")
     }
 
     // The friend invite links made before invites of both kinds shared one page lead there.
@@ -67,10 +59,10 @@ fun Route.friendsRoutes(friendService: FriendService) {
     // on the friends page and the club's. Each goes back to the club's page when it names a club.
     fun requestPost(path: String, action: suspend (user: User, userId: String, clubId: Long?) -> Unit) {
         post(path) {
-            val user = call.currentUser().takeIf { it.name != null } ?: return@post call.respondRedirect("/friends")
+            val user = call.currentUser().takeIf { it.name != null } ?: return@post call.respondRedirect("/community")
             val clubId = call.receiveParameters()["clubId"]?.toLongOrNull()
             action(user, call.parameters.getOrFail("userId"), clubId)
-            call.respondRedirect(clubId?.let { "/clubs/$it" } ?: "/friends")
+            call.respondRedirect(clubId?.let { "/clubs/$it" } ?: "/community")
         }
     }
     requestPost("/friends/requests/{userId}") { user, userId, clubId -> clubId?.let { friendService.request(user, userId, it) } }
@@ -79,15 +71,15 @@ fun Route.friendsRoutes(friendService: FriendService) {
     requestPost("/friends/requests/{userId}/dismiss") { user, userId, _ -> friendService.dismiss(user, userId) }
 
     post("/friends/{friendId}/remove") {
-        val user = call.currentUser().takeIf { it.name != null } ?: return@post call.respondRedirect("/friends")
+        val user = call.currentUser().takeIf { it.name != null } ?: return@post call.respondRedirect("/community")
         friendService.remove(user, call.parameters.getOrFail("friendId"))
-        call.respondRedirect("/friends")
+        call.respondRedirect("/community?manage")
     }
 
     post("/friends/sharing") {
-        val user = call.currentUser().takeIf { it.name != null } ?: return@post call.respondRedirect("/friends")
+        val user = call.currentUser().takeIf { it.name != null } ?: return@post call.respondRedirect("/community")
         val form: Parameters = call.receiveParameters()
         friendService.updateSharing(user, shareSeen = form["shareSeen"] != null, shareName = form["shareName"] != null, shareDates = form["shareDates"] != null)
-        call.respondRedirect("/friends")
+        call.respondRedirect("/community?manage")
     }
 }

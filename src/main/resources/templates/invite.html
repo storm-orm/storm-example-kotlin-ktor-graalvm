@@ -16,25 +16,26 @@
         <th:block th:if="${befriend != null}">
             <div class="invite-from">
                 <span th:replace="~{fragments/community :: avatar(${befriend.inviter}, 'invite-avatar')}"></span>
-                <p><strong th:text="${befriend.inviter.name}">Alice</strong> invites you to be friends on Storm Movies.</p>
+                <p><strong th:text="${befriend.inviter.name}">Alice</strong> would like to be friends with you on MOVIE/DB.</p>
             </div>
             <p class="account-hint">
-                Friends see what each other watched lately, as far as each shares it: you choose on the Friends page
-                whether they see your movies, your name with them, and the days.
+                Friends see what each other has been watching, as much as each of you chooses to share. On the
+                Community page you decide whether friends see your movies, your name next to them, and the dates.
             </p>
         </th:block>
         <th:block th:if="${join != null}">
             <div class="invite-from">
                 <span th:replace="~{fragments/community :: avatar(${join.inviter}, 'invite-avatar')}"></span>
                 <p>
-                    <strong th:text="${join.inviter.name}">Alice</strong> invites you to join
+                    <strong th:text="${join.inviter.name}">Alice</strong> has invited you to join
                     <strong th:text="${join.club.name}">Office film club</strong>
-                    (<th:block th:text="${join.memberCount == 1} ? '1 member' : |${join.memberCount} members|">4 members</th:block>).
+                    (<th:block th:text="${join.memberCount == 1} ? '1 member so far' : |${join.memberCount} members|">4 members</th:block>).
                 </p>
             </div>
             <p class="account-hint">
-                Members see what the others watched, as far as each shares it in the club: you choose whether they see
-                your movies, your name with them, and the days. Members need not be friends.
+                The members of a club see what the others have been watching, as much as each chooses to share. You
+                decide whether they see your movies, your name next to them, and the dates. You don't need to be
+                friends to be in a club together.
             </p>
         </th:block>
         <th:block th:if="${befriend != null or join != null}">
@@ -47,16 +48,16 @@
             </p>
         </th:block>
         <div class="empty-state" th:if="${own}">
-            This is your own invite link. Share it with a friend: they accept it once, within two weeks.
+            This is your own link. Send it to a friend: it works once, for two weeks.
         </div>
         <div class="empty-state" th:if="${member != null}">
-            You are in <a th:href="@{/clubs/{id}(id=${member.club.id})}" th:text="${member.club.name}">the club</a> already.
+            You're already a member of <a th:href="@{/clubs/{id}(id=${member.club.id})}" th:text="${member.club.name}">the club</a>.
         </div>
         <div class="empty-state" th:if="${full}">
-            This club has no room for more members.
+            This club is full.
         </div>
         <div class="empty-state" th:if="${gone}" id="invite-gone">
-            This invite was used already, expired, or never existed. Ask for a new one.
+            This link has already been used, has expired, or never existed. Ask for a new one.
         </div>
     </div>
 </section>

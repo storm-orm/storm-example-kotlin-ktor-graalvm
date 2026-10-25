@@ -24,6 +24,8 @@ import st.orm.demo.imdb.repository.WatchlistRepository
 import st.orm.template.transaction
 import java.text.NumberFormat
 import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
@@ -51,7 +53,9 @@ data class MovieDetail(
     val cast: List<CastCredit>,
     val relatedMovies: List<RelatedMovie>,
     /** The state of the visitor's two lists for this movie. */
-    val lists: MovieListState
+    val lists: MovieListState,
+    /** The days the visitor checked the movie in, the latest first, as the page shows them: "23 Oct 2026". */
+    val checkIns: List<String> = emptyList()
 ) {
     /**
      * The movie in a line, for where only a line fits: the share message,
@@ -68,6 +72,9 @@ data class MovieDetail(
 }
 
 private val VOTES: NumberFormat = NumberFormat.getIntegerInstance(Locale.ENGLISH)
+
+/** A check-in's day as the page shows it, the way the community's feeds do. */
+private val CHECK_IN_DAY: DateTimeFormatter = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH).withZone(ZoneOffset.UTC)
 
 class MovieService(
     private val movieRepository: MovieRepository,
@@ -106,6 +113,7 @@ class MovieService(
         val relatedMovies = if (castMembers.isEmpty()) emptyList() else {
             principalRepository.findMoviesSharingCast(castMembers, excludedMovie = movie, limit = RELATED_MOVIES_LIMIT)
         }
+        val checkIns = checkInRepository.findAll(user, movie).map { it.watchedAt }.sortedDescending()
         MovieDetail(
             movie = movie,
             rating = ratingRepository.findById(movie),
@@ -117,8 +125,9 @@ class MovieService(
             lists = MovieListState.of(
                 onWatchlist = watchlistRepository.contains(user, movie),
                 seen = movieSeenRepository.findById(MovieSeenPk(userId = user.id, movieId = movie.id)),
-                checkedInAt = checkInRepository.findAll(user, movie).maxOfOrNull { it.watchedAt }
-            )
+                checkedInAt = checkIns.firstOrNull()
+            ),
+            checkIns = checkIns.map(CHECK_IN_DAY::format)
         )
     }
 

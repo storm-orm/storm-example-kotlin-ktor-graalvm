@@ -152,29 +152,4 @@ class MovieRepositoryTest {
         assertEquals(listOf("The Godfather"), titles("the god"))
     }
 
-    @Test
-    fun `scrollByGenre scrolls a genre most voted first`(orm: ORMTemplate, capture: SqlCapture) {
-        val genreRepository = orm.repository<GenreRepository>()
-        val movieRepository = orm.repository<MovieRepository>()
-        val drama = genreRepository.findByName("Drama")!!
-
-        capture.clear()
-        val firstWindow = capture.execute {
-            movieRepository.scrollByGenre(drama, null, MovieRepository.mostVotedFirst(2))
-        }
-        capture.printStatements("scrollByGenre")
-        assertEquals(1, capture.count(Operation.SELECT))
-        assertTrue(capture.statements().single().statement().contains("movie_genre"))
-        // Shawshank (2.9M votes) and Pulp Fiction (2.2M) before The Godfather
-        // (2.0M), the reverse of their ids.
-        assertEquals(listOf("The Shawshank Redemption", "Pulp Fiction"), firstWindow.content().map { it.primaryTitle })
-        assertTrue(firstWindow.hasNext())
-
-        val secondWindow = movieRepository.scrollByGenre(
-            drama,
-            null,
-            MovieRepository.mostVotedFirst(2).from(firstWindow.nextCursor()!!)
-        )
-        assertEquals(listOf("The Godfather"), secondWindow.content().map { it.primaryTitle })
-    }
 }

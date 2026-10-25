@@ -40,7 +40,7 @@ fun Route.inviteRoutes(inviteService: InviteService) {
         call.respondRedirect(
             when (val accepted = inviteService.accept(token, user)) {
                 null -> "/invite/$token"
-                Accepted.Friends -> "/friends?added"
+                Accepted.Friends -> "/community?added"
                 is Accepted.Joined -> "/clubs/${accepted.club.id}?joined"
             }
         )
@@ -57,10 +57,10 @@ private fun ApplicationCall.inviteCard(token: String, state: InviteState): Share
     val (title, description) = when (state) {
         is InviteState.Befriend ->
             "${state.inviter.name ?: "A friend"} invites you to MOVIE/DB" to
-                "Friends on MOVIE/DB see what each other watched lately."
+                "Friends on MOVIE/DB see what each other has been watching."
         is InviteState.Join ->
             "Join ${state.club.name} on MOVIE/DB" to
-                "${state.inviter.name ?: "A member"} invites you to ${state.club.name}, a film club of ${members(state.memberCount)}."
+                "${state.inviter.name ?: "A member"} has invited you to ${state.club.name}, a film club of ${members(state.memberCount)}."
         else -> "An invite to MOVIE/DB" to "Find what to watch next, together."
     }
     return ShareCard(title, description, "$origin/img/invite-card.jpg", "$origin/invite/$token", type = "website", largeImage = true)

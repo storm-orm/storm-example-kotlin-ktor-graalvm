@@ -52,7 +52,6 @@ class StormMoviesInterfaceTest {
         page.navigate("$baseUrl/")
 
         assertThat(page.locator(".navbar [data-search-input]")).isVisible()
-        assertThat(page.locator(".search-hero [data-search-input]")).isVisible()
 
         // A new visitor's featured movie is one of the catalogue's picks.
         assertThat(page.locator(".hero-title")).isVisible()
@@ -61,6 +60,8 @@ class StormMoviesInterfaceTest {
 
         assertThat(page.locator("#top-rated-section .movie-card")).hasCount(10)
 
+        // The genres are the browse page's.
+        page.navigate("$baseUrl/browse")
         val genreChips = page.locator(".genre-bar .genre-chip")
         assertTrue(genreChips.count() >= 10) { "Expected a well-filled genre bar" }
         assertThat(genreChips.first().locator(".count")).hasText(Pattern.compile("[\\d,]+"))
@@ -135,9 +136,9 @@ class StormMoviesInterfaceTest {
         val shortcut = if (System.getProperty("os.name").lowercase().contains("mac")) "Meta+f" else "Control+f"
         page.navigate("$baseUrl/")
         page.keyboard().press(shortcut)
-        assertThat(page.locator(".search-hero [data-search-input]")).isFocused()
+        assertThat(page.locator(".navbar [data-search-input]")).isFocused()
 
-        page.navigate("$baseUrl/top")
+        page.navigate("$baseUrl/browse")
         page.keyboard().press(shortcut)
         assertThat(page.locator(".navbar [data-search-input]")).isFocused()
     }
@@ -175,10 +176,10 @@ class StormMoviesInterfaceTest {
 
     @Test
     fun `browsing a genre loads more movies on scroll`() {
-        page.navigate("$baseUrl/browse/Drama")
+        page.navigate("$baseUrl/browse?genre=Drama&sort=votes")
 
-        assertThat(page.locator(".page-title")).hasText("Drama")
-        assertThat(page.locator(".page-subtitle")).containsText(Pattern.compile("[\\d,]+ movies"))
+        assertThat(page.locator(".page-title")).hasText("Browse")
+        assertThat(page.locator(".page-subtitle")).containsText(Pattern.compile("Drama · [\\d,]+ movies"))
 
         val initialCount = page.locator("#browse-results .movie-card").count()
         assertEquals(24, initialCount)
@@ -248,7 +249,7 @@ class StormMoviesInterfaceTest {
         page.request().post("$baseUrl/api/seen/tt0111161")
 
         // A ranked row: the tag sits beside the year; a check-in carries its day.
-        page.navigate("$baseUrl/top")
+        page.navigate("$baseUrl/browse")
         val row = page.locator("a.ranked-row[href='/movie/tt0111161']")
         assertThat(row.locator(".seen-tag")).hasText(Pattern.compile("✓ \\d{1,2} \\w{3} \\d{4}"))
         // History, marked as seen earlier, is the checkmark alone.
@@ -261,7 +262,7 @@ class StormMoviesInterfaceTest {
         // Seen longer ago, here by an IMDb import, the tag and the movie page's button carry the day.
         page.request().post("$baseUrl/seen/import", RequestOptions.create().setMultipart(FormData.create()
             .set("export", FilePayload("ratings.csv", "text/csv", "Const,Your Rating,Date Rated\ntt0068646,9,2020-01-02\n".toByteArray()))))
-        page.navigate("$baseUrl/top")
+        page.navigate("$baseUrl/browse")
         assertThat(page.locator("a.ranked-row[href='/movie/tt0068646'] .seen-tag")).hasText("✓ 2 Jan 2020")
         // The movie's Watched button keeps its short label and says the day in its title.
         page.navigate("$baseUrl/movie/tt0068646")
@@ -589,16 +590,16 @@ class StormMoviesInterfaceTest {
     }
 
     @Test
-    fun `friends and clubs share the community pages, both for signed-in visitors`() {
-        page.navigate("$baseUrl/friends")
+    fun `friends and clubs are one community page, for signed-in visitors`() {
+        page.navigate("$baseUrl/community")
         assertThat(page.locator(".page-title")).hasText("Community")
-        assertThat(page.locator("#friends-tab")).hasClass(Pattern.compile("active"))
-        assertThat(page.locator("#friends-signin")).isVisible()
+        assertThat(page.locator("#community-signin a")).hasAttribute("href", Pattern.compile("/signin\\?rd=.*community"))
 
-        page.locator("#clubs-tab").click()
-        page.waitForURL(Pattern.compile(".*/clubs$"))
-        assertThat(page.locator("#clubs-tab")).hasClass(Pattern.compile("active"))
-        assertThat(page.locator("#clubs-signin a")).hasAttribute("href", Pattern.compile("/signin\\?rd=.*clubs"))
+        // The friends and clubs pages of before lead here.
+        page.navigate("$baseUrl/friends")
+        page.waitForURL(Pattern.compile(".*/community$"))
+        page.navigate("$baseUrl/clubs")
+        page.waitForURL(Pattern.compile(".*/community\\?manage$"))
     }
 
     @Test
@@ -704,7 +705,7 @@ class StormMoviesInterfaceTest {
     fun `movies without posters show the styled gradient placeholder`() {
         // Deterministic poster failure: block the poster endpoint entirely.
         page.route("**/api/poster/**") { route -> route.abort() }
-        page.navigate("$baseUrl/browse/Drama")
+        page.navigate("$baseUrl/browse?genre=Drama&sort=votes")
 
         val firstPoster = page.locator("#browse-results .movie-card .poster").first()
         assertThat(firstPoster.locator("img")).isHidden()
@@ -753,11 +754,11 @@ class StormMoviesInterfaceTest {
             val mobile = phone.newPage()
             val screenshots = Paths.get("build/e2e-screenshots")
             for ((path, name) in listOf(
-                "/" to "home", "/top" to "top", "/watchlist" to "watchlist", "/seen" to "seen",
+                "/" to "home", "/browse" to "browse", "/watchlist" to "watchlist", "/seen" to "seen",
                 "/signin" to "signin", "/statistics" to "statistics", "/insights" to "insights",
-                "/seen/catch-up" to "catch-up", "/friends" to "friends", "/clubs" to "clubs",
+                "/seen/catch-up" to "catch-up", "/community" to "community", "/community?manage" to "community-manage",
                 "/search?query=matrix" to "search", "/movie/tt0133093" to "movie",
-                "/person/nm0000206" to "person", "/browse/Drama" to "browse"
+                "/person/nm0000206" to "person", "/browse?genre=Drama&sort=votes" to "browse-genre"
             )) {
                 mobile.navigate("$baseUrl$path")
                 val width = mobile.evaluate("window.innerWidth") as Number
@@ -768,7 +769,7 @@ class StormMoviesInterfaceTest {
                 )
             }
             // The navbar search box spans the screen, and its suggestions with it.
-            mobile.navigate("$baseUrl/top")
+            mobile.navigate("$baseUrl/browse")
             val input = mobile.locator(".navbar [data-search-input]")
             assertThat(input).isVisible()
             input.fill("matrix")

@@ -994,5 +994,17 @@
     "allDeclaredConstructors": true,
     "allPublicMethods": true,
     "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.BrowseSort",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.CommunityView",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
   }
 ]

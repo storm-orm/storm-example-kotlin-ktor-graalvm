@@ -50,7 +50,7 @@
         <div class="stat-card" id="genres-card">
             <h2>Top Genres by Rating</h2>
             <div class="stat-row" th:each="genreStat : ${genreStatistics}">
-                <a class="genre-chip" th:href="@{/browse/{name}(name=${genreStat.genre.name})}"
+                <a class="genre-chip" th:href="@{/browse(genre=${genreStat.genre.name})}"
                    th:text="${genreStat.genre.name}">Genre</a>
                 <div class="stat-end">
                     <span class="stat-count"

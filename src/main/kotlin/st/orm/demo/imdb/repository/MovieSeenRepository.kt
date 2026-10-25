@@ -79,6 +79,17 @@ interface MovieSeenRepository : EntityRepository<MovieSeen, MovieSeenPk> {
             .resultList
 
     /**
+     * The movies [other] has seen that [user] has seen too, the other's
+     * latest first: the same semi-join as the count, listing the rows.
+     */
+    fun findSeenInCommon(user: User, other: User, limit: Int): List<MovieSeen> =
+        select(MovieSeen_.user eq other)
+            .semiJoin<MovieSeen>().on<Movie> { MovieSeen_.user eq user }
+            .orderByDescending(MovieSeen_.seenAt)
+            .limit(limit)
+            .resultList
+
+    /**
      * How many of the movies each of several users has seen the [user] has
      * seen too: what they have in common. The other users' seen rows are
      * counted, kept by a semi-join to the user's own seen rows on the movie,

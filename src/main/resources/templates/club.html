@@ -6,8 +6,11 @@
 
 <header class="page-header">
     <div class="container">
-        <a class="back-link" th:href="@{/clubs}">← Clubs</a>
-        <h1 class="page-title" th:text="${view.club.name}">Office film club</h1>
+        <a class="back-link" th:href="@{/community}">← Community</a>
+        <div class="page-title-row">
+            <h1 class="page-title" th:text="${view.club.name}">Office film club</h1>
+            <a th:if="${tab == 'club'}" th:replace="~{fragments/community :: manageLink(@{/clubs/{id}(id=${view.club.id}, tab='manage')}, 'Manage the club')}"></a>
+        </div>
         <p class="page-subtitle" th:text="${view.members.size() == 1} ? 'Just you so far' : |${view.members.size()} members|">4 members</p>
     </div>
 </header>
@@ -16,11 +19,7 @@
     <div class="container">
         <div class="notice" th:if="${joined}">Welcome to the club.</div>
         <div class="notice notice-error" th:if="${lastAdmin}">A club keeps at least one admin: make another member an admin first.</div>
-        <!-- The club's page is about the club; its members, invites, name and the sharing are behind a tab. -->
-        <nav class="view-tabs page-tabs">
-            <a th:href="@{/clubs/{id}(id=${view.club.id})}" th:classappend="${tab == 'club'} ? 'active'">Overview</a>
-            <a th:href="@{/clubs/{id}(id=${view.club.id}, tab='manage')}" th:classappend="${tab == 'manage'} ? 'active'">Manage</a>
-        </nav>
+        <p class="page-switch" th:if="${tab == 'manage'}"><a th:href="@{/clubs/{id}(id=${view.club.id})}">← Back to the club</a></p>
     </div>
 </section>
 
@@ -118,8 +117,8 @@
             <!-- Only admins invite, with a personal link or the club's public one. -->
             <div class="invite" th:if="${view.me.admin}" th:data-invite-title="|Join ${view.club.name} on Storm Movies|">
                 <p class="stat-note">
-                    Invite one person with a personal link, accepted once within two weeks, or share the club's public
-                    link: everyone who accepts it joins, until you replace it.
+                    Send someone a personal link: it works once, for two weeks. Or share the club's public link;
+                    everyone who opens it and accepts joins, until you make a new one.
                 </p>
                 <div class="invite-buttons">
                     <button type="button" class="button button-primary" th:data-invite="|/api/clubs/${view.club.id}/invite|">Invite someone</button>

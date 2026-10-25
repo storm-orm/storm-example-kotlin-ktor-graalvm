@@ -1614,6 +1614,34 @@ img { display: block; }
 
 .trailer-button::before { content: "▶"; font-size: 11px; }
 
+/* The visitor's check-ins of the movie: the latest as a glass pill, the rest unfolding under it on a tap. */
+.check-ins { margin-top: 14px; }
+
+.check-in-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px 6px 10px;
+    border: 1px solid rgba(var(--green-rgb), 0.4);
+    border-radius: 999px;
+    background: rgba(var(--green-rgb), 0.08);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    color: var(--text);
+    font-size: 13.5px;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.check-in-pill:hover { border-color: rgba(var(--green-rgb), 0.7); }
+
+.check-in-tick { color: var(--green); font-weight: 700; }
+
+.check-in-more { padding: 1px 7px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); color: var(--text-muted); font-size: 12px; }
+
+.check-in-list { margin: 10px 0 0; padding: 0 0 0 12px; list-style: none; color: var(--text-muted); font-size: 13.5px; line-height: 1.8; border-left: 2px solid rgba(var(--green-rgb), 0.35); }
+
 /* Shown once the movie turns out to have a trailer; the button style would show it before. */
 .trailer-button[hidden] { display: none; }
 
@@ -1885,8 +1913,39 @@ img { display: block; }
 
 .open-invite-age { color: var(--text-muted); font-size: 13.5px; }
 
-/* The tabs within a community page: the community itself, and what to manage. */
-.page-tabs { margin-bottom: 0; }
+/* The cog beside a page title leads to what the page manages; the way back is a link under it. */
+.page-title-row { display: flex; align-items: center; gap: 14px; }
+
+.page-manage {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-muted);
+    transition: color 0.15s ease, border-color 0.15s ease, transform 0.3s ease;
+}
+
+.page-manage:hover { color: var(--text); border-color: rgba(255, 255, 255, 0.3); transform: rotate(30deg); }
+
+.page-manage svg { display: block; }
+
+.club-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+
+/* The movies in common, unfolded under a person. */
+.in-common-movies { grid-column: 1 / -1; margin: 6px 0 4px; }
+
+.page-switch { margin: 0; }
+
+.page-switch a { color: var(--accent-strong); font-size: 14px; font-weight: 500; }
+
+.page-switch a:hover { color: var(--text); }
+
+/* The browse page's orders, under its genres. */
+.browse-tabs { margin: 6px 0 22px; }
 
 /* What the visitor has in common with each person: the name, the numbers under it, and a bar for the share. */
 .in-common-row { display: grid; grid-template-columns: minmax(0, 1fr) 140px; gap: 6px 18px; align-items: center; }
@@ -1904,6 +1963,8 @@ img { display: block; }
 .in-common-bar, .in-common-bar .bar-track, .in-common-bar .bar-fill { display: block; }
 
 .in-common-bar .bar-track { height: 8px; border-radius: 4px; }
+
+.in-common-toggle { grid-column: 1; justify-self: start; padding-left: 0; }
 
 .in-common-bar .bar-fill { border-radius: 4px; background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.55), rgba(var(--accent-rgb), 0.9)); }
 

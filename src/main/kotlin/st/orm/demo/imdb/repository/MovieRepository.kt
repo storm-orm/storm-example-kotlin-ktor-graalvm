@@ -123,22 +123,6 @@ interface MovieRepository : EntityRepository<Movie, String> {
             .limit(limit)
             .resultList
 
-    /**
-     * The movies in a genre that [filter] lets through, with keyset
-     * scrolling. The junction table has a composite key and cannot be
-     * scrolled directly, so the scroll runs on
-     * the movie's simple primary key with a JOIN through the junction table.
-     * The scroll key has to identify one movie, which a key on the junction
-     * table would not. The rating is joined so the [scrollable] can order the
-     * genre by its vote count, as the browse page does ([mostVotedFirst]);
-     * every imported movie has one, so the inner join drops none.
-     */
-    fun scrollByGenre(genre: Genre, filter: MovieFilter?, scrollable: Scrollable<Movie>): Window<Movie> =
-        inGenre(genre, filter)
-            .innerJoin<Rating>().on<Movie>()
-            .narrow<Movie>()
-            .scroll(scrollable)
-
     /** How many movies of a genre [filter] lets through: the count the browse page shows. */
     fun countByGenre(genre: Genre, filter: MovieFilter?): Long =
         inGenre(genre, filter).resultCount
@@ -177,9 +161,8 @@ interface MovieRepository : EntityRepository<Movie, String> {
     companion object {
         /**
          * Most votes first, then the id, which addresses a row: the order of
-         * the search page within each rank and of the browse page. The vote
-         * count is a column of the rating [searchMovies] and [scrollByGenre]
-         * join.
+         * the search page within each rank. The vote count is a column of the
+         * rating [searchMovies] joins.
          */
         fun mostVotedFirst(size: Int): Scrollable<Movie> =
             Scrollable.of(Movie_.id, size).sortByDescending(Rating_.voteCount)

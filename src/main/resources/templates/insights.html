@@ -16,7 +16,7 @@
         <div class="empty-state" id="insights-empty">
             Mark the movies you have watched, and this page fills in: your favourite actors and
             directors, your genres and decades, and the ratings you usually watch.
-            <a th:href="@{/top}">Start with the top movies</a>.
+            <a th:href="@{/browse}">Start with the top movies</a>.
         </div>
     </div>
 </section>
@@ -158,7 +158,7 @@
             <h2>Your genres</h2>
             <p class="stat-note">A movie of several genres counts for each.</p>
             <div class="bar-row genre-bar-row" th:each="bar : ${insights.genres}">
-                <a th:href="@{/browse/{name}(name=${bar.item.genre.name})}" th:text="${bar.item.genre.name}">Drama</a>
+                <a th:href="@{/browse(genre=${bar.item.genre.name})}" th:text="${bar.item.genre.name}">Drama</a>
                 <div class="bar-track"><div class="bar-fill" th:style="|width: ${bar.share}%|"></div></div>
                 <span class="bar-value" th:text="${bar.count}">12</span>
             </div>

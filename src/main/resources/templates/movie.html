@@ -39,7 +39,7 @@
                 </div>
                 <div class="movie-genres">
                     <a class="genre-chip" th:each="genre : ${detail.genres}"
-                       th:href="@{/browse/{name}(name=${genre.name})}" th:text="${genre.name}">Genre</a>
+                       th:href="@{/browse(genre=${genre.name})}" th:text="${genre.name}">Genre</a>
                     <!-- Where it plays in the visitor's country, from TMDB: logos only, after the tags, shown once the page has found some. -->
                     <span class="watch-providers" hidden th:if="${tmdb}"
                           th:data-watch-providers-endpoint="|/api/watch-providers/${detail.movie.id}|"></span>
@@ -60,7 +60,7 @@
                         <span class="votes" th:text="|${#numbers.formatInteger(detail.rating.voteCount, 1, 'COMMA')} votes|">votes</span>
                     </th:block>
                     <a class="genre-chip" th:each="genre : ${detail.genres}"
-                       th:href="@{/browse/{name}(name=${genre.name})}" th:text="${genre.name}">Genre</a>
+                       th:href="@{/browse(genre=${genre.name})}" th:text="${genre.name}">Genre</a>
                     <span class="watch-providers" hidden th:if="${tmdb}"
                           th:data-watch-providers-endpoint="|/api/watch-providers/${detail.movie.id}|"></span>
                 </div>
@@ -118,6 +118,17 @@
                             <a class="share-option" data-share-mail>Email</a>
                         </div>
                     </div>
+                </div>
+                <!-- The visitor's check-ins of this movie: the latest as a pill, the others unfolding from it; a new one joins (app.js). -->
+                <div class="check-ins" data-check-ins th:hidden="${detail.checkIns.isEmpty()}">
+                    <button type="button" class="check-in-pill" data-check-ins-toggle aria-expanded="false">
+                        <span class="check-in-tick">✓</span>
+                        <span>Checked in <span data-check-in-latest th:text="${detail.checkIns.isEmpty() ? '' : detail.checkIns[0]}">23 Oct 2026</span></span>
+                        <span class="check-in-more" data-check-in-more th:hidden="${detail.checkIns.size() < 2}" th:text="|+${detail.checkIns.size() - 1}|">+2</span>
+                    </button>
+                    <ul class="check-in-list" data-check-in-list hidden>
+                        <li th:each="day : ${detail.checkIns}" th:text="${day}">23 Oct 2026</li>
+                    </ul>
                 </div>
             </div>
         </div>

@@ -22,24 +22,18 @@ import st.orm.demo.imdb.service.Leaving
  * answered with the link to share.
  */
 fun Route.clubsRoutes(clubService: ClubService) {
-    get("/clubs") {
-        val user = call.currentUser()
-        val view = if (user.name != null) clubService.clubsOf(user) else null
-        call.respondPage(ThymeleafContent("clubs", mapOf("view" to view, "closed" to (call.request.queryParameters["closed"] != null))))
-    }
-
     post("/clubs") {
-        val user = call.currentUser().takeIf { it.name != null } ?: return@post call.respondRedirect("/clubs")
+        val user = call.currentUser().takeIf { it.name != null } ?: return@post call.respondRedirect("/community")
         val name = call.receiveParameters()["name"]?.trim().orEmpty()
-        if (name.isEmpty()) return@post call.respondRedirect("/clubs")
+        if (name.isEmpty()) return@post call.respondRedirect("/community?manage")
         call.respondRedirect("/clubs/${clubService.create(user, name).id}")
     }
 
     post("/clubs/sharing") {
-        val user = call.currentUser().takeIf { it.name != null } ?: return@post call.respondRedirect("/clubs")
+        val user = call.currentUser().takeIf { it.name != null } ?: return@post call.respondRedirect("/community")
         val form = call.receiveParameters()
         clubService.updateDefaults(user, shareSeen = form["shareSeen"] != null, shareName = form["shareName"] != null, shareDates = form["shareDates"] != null)
-        call.respondRedirect("/clubs")
+        call.respondRedirect("/community?manage")
     }
 
     get("/clubs/{id}") {
@@ -60,7 +54,7 @@ fun Route.clubsRoutes(clubService: ClubService) {
     fun clubPost(path: String, action: suspend RoutingContext.(user: User, clubId: Long) -> String?) {
         post(path) {
             val clubId = call.parameters.getOrFail<Long>("id")
-            val user = call.currentUser().takeIf { it.name != null } ?: return@post call.respondRedirect("/clubs")
+            val user = call.currentUser().takeIf { it.name != null } ?: return@post call.respondRedirect("/community")
             call.respondRedirect(action(user, clubId) ?: "/clubs/$clubId")
         }
     }
@@ -79,8 +73,8 @@ fun Route.clubsRoutes(clubService: ClubService) {
     }
     clubPost("/clubs/{id}/leave") { user, clubId ->
         when (clubService.leave(user, clubId)) {
-            Leaving.LEFT -> "/clubs"
-            Leaving.CLOSED -> "/clubs?closed"
+            Leaving.LEFT -> "/community?manage"
+            Leaving.CLOSED -> "/community?manage&closed"
             Leaving.LAST_ADMIN -> "/clubs/$clubId?last-admin"
         }
     }

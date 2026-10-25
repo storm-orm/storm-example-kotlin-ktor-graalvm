@@ -73,6 +73,7 @@ fun Route.movieSeenRoutes(movieSeenService: MovieSeenService, catchUpService: Ca
         val parameters = call.request.queryParameters
         val user = call.currentUser()
         val view = catchUpService.catchUp(parameters["genre"], user.takeIf { "unmarked" in parameters }, user.movieFilter)
+        call.rememberCookie(CATCH_UP_COOKIE, "seen")
         // The scroll asks for the next windows with the same filters.
         val filters = listOfNotNull(view.genre?.let { "genre=" + it.name.encodeURLParameter() }, "unmarked".takeIf { view.unmarkedOnly })
         call.respondPage(ThymeleafContent("catch-up", mapOf(

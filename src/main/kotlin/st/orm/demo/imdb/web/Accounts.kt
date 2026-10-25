@@ -37,6 +37,9 @@ private val AccountIdKey = AttributeKey<String>("AccountId")
 private val CurrentUserKey = AttributeKey<User>("CurrentUser")
 
 private const val ACCOUNT_COOKIE = "account"
+
+/** Set once the visitor has been to the catch-up page, so the home page stops pointing them there. */
+const val CATCH_UP_COOKIE = "catch-up"
 private const val ONE_YEAR_SECONDS = 365 * 24 * 60 * 60
 
 fun Application.configureAccounts() {
@@ -129,6 +132,22 @@ fun ApplicationCall.setAccountCookie(accountId: String) {
         Cookie(
             name = ACCOUNT_COOKIE,
             value = accountId,
+            encoding = CookieEncoding.RAW,
+            maxAge = ONE_YEAR_SECONDS,
+            path = "/",
+            secure = isSecure(),
+            httpOnly = true,
+            extensions = mapOf("SameSite" to "Lax")
+        )
+    )
+}
+
+/** Remembers something about this browser for a year, in a cookie that never reaches scripts. */
+fun ApplicationCall.rememberCookie(name: String, value: String) {
+    response.cookies.append(
+        Cookie(
+            name = name,
+            value = value,
             encoding = CookieEncoding.RAW,
             maxAge = ONE_YEAR_SECONDS,
             path = "/",

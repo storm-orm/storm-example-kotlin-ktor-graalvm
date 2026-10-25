@@ -449,6 +449,7 @@ function bringForward(hero, behind, buttons) {
             hero.classList.remove('trailer-fullscreen');
             if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
             player.mute();
+            player.playVideo();
             frame.tabIndex = -1;
             controls.remove();
             document.removeEventListener('keydown', onKey);
@@ -969,6 +970,26 @@ function setupListToggles() {
         checkIn.title = !recent ? 'Check in on a day of the past week'
             : 'Checked in ' + (ago === 0 ? 'today' : ago === 1 ? 'yesterday' : SHORT_DAY.format(new Date(watchedAt)));
     };
+    // The check-ins of the movie: the latest in the pill, which unfolds the rest; a new one joins the top.
+    const checkIns = document.querySelector('[data-check-ins]');
+    const CHECK_IN_DAY = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+    checkIns?.querySelector('[data-check-ins-toggle]').addEventListener('click', event => {
+        const list = checkIns.querySelector('[data-check-in-list]');
+        list.hidden = !list.hidden;
+        event.currentTarget.setAttribute('aria-expanded', String(!list.hidden));
+    });
+    const addCheckIn = day => {
+        if (!checkIns) return;
+        const list = checkIns.querySelector('[data-check-in-list]');
+        const item = document.createElement('li');
+        item.textContent = CHECK_IN_DAY.format(new Date(day + 'T00:00:00Z'));
+        list.prepend(item);
+        checkIns.querySelector('[data-check-in-latest]').textContent = item.textContent;
+        const more = checkIns.querySelector('[data-check-in-more]');
+        more.textContent = '+' + (list.children.length - 1);
+        more.hidden = list.children.length < 2;
+        checkIns.hidden = false;
+    };
     const render = state => {
         buttons.forEach(button => {
             const onList = button.dataset.listToggle === 'watchlist' ? state.onWatchlist : state.seen;
@@ -979,6 +1000,8 @@ function setupListToggles() {
                 : (onList ? seenLabel('Watched', state.seenAt) : 'Mark as watched');
         });
         showCheckIn(state.seenAt);
+        // Unmarked as watched, the check-ins go with it.
+        if (checkIns && !state.seen) { checkIns.hidden = true; checkIns.querySelector('[data-check-in-list]').replaceChildren(); }
         if (voteGroup) voteGroup.hidden = !state.seen;
         voteButtons.forEach(button => button.classList.toggle('active', String(state.liked) === button.dataset.vote));
     };
@@ -996,8 +1019,9 @@ function setupListToggles() {
                 headers: body ? { 'Content-Type': 'application/json' } : {},
                 body: body ? JSON.stringify(body) : undefined,
             });
-            if (!response.ok) return;
+            if (!response.ok) return false;
             render(await response.json());
+            return true;
         } finally {
             all.forEach(button => button.disabled = false);
         }
@@ -1024,7 +1048,7 @@ function setupListToggles() {
             const option = event.target.closest('[data-check-in-day]');
             if (!option) return;
             menu.hidden = true;
-            submit('/api/seen/' + checkIn.dataset.movieId + '/check-in?day=' + option.dataset.checkInDay);
+            submit('/api/seen/' + checkIn.dataset.movieId + '/check-in?day=' + option.dataset.checkInDay).then(ok => { if (ok) addCheckIn(option.dataset.checkInDay); });
         });
         document.addEventListener('click', event => {
             if (!event.target.closest('.check-in')) menu.hidden = true;
@@ -1323,6 +1347,32 @@ async function refreshOpenInvites() {
     const fresh = new DOMParser().parseFromString(await response.text(), 'text/html').querySelector('[data-open-invites]');
     if (fresh) list.replaceWith(fresh);
 }
+
+// The movies in common with a person unfold under them, fetched the first time, as a row of cards.
+document.addEventListener('click', async event => {
+    const button = event.target.closest('[data-in-common-movies]');
+    if (!button) return;
+    const row = button.closest('.in-common-row');
+    let list = row.querySelector('.in-common-movies');
+    if (list) {
+        list.hidden = !list.hidden;
+        button.textContent = list.hidden ? 'Show movies' : 'Hide movies';
+        return;
+    }
+    button.disabled = true;
+    try {
+        const response = await fetch(button.dataset.inCommonMovies);
+        if (!response.ok) return;
+        const { items } = await response.json();
+        list = document.createElement('div');
+        list.className = 'movie-row in-common-movies';
+        items.forEach(item => list.append(renderCard('movie', item)));
+        row.append(list);
+        button.textContent = 'Hide movies';
+    } finally {
+        button.disabled = false;
+    }
+});
 
 document.addEventListener('click', async event => {
     const button = event.target.closest('[data-copy-link]');
