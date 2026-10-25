@@ -968,56 +968,20 @@ function setupListToggles() {
     const checkIn = document.querySelector('[data-check-in]');
     const voteButtons = document.querySelectorAll('[data-vote]');
     const voteGroup = document.querySelector('[data-vote-buttons]');
-    // The button says when the last check-in was, while it is within the past week.
-    const showCheckIn = watchedAt => {
-        if (!checkIn) return;
-        const ago = watchedAt ? daysAgo(new Date(watchedAt)) : null;
-        const recent = ago !== null && ago < 7;
-        checkIn.classList.toggle('active', recent);
-        checkIn.querySelector('span').textContent = recent ? 'Checked in' : 'Check-in';
-        checkIn.title = !recent ? 'Check in on a day of the past week'
-            : 'Checked in ' + (ago === 0 ? 'today' : ago === 1 ? 'yesterday' : SHORT_DAY.format(new Date(watchedAt)));
-    };
-    // The check-ins of the movie: the latest in the pill, which unfolds the rest; a new one joins the top.
-    const checkIns = document.querySelector('[data-check-ins]');
+    // The check-in button carries the check-ins: Check-in with none, the latest day with one or more,
+    // and how many more. The days come with the page, the latest first; a new one joins the top.
     const CHECK_IN_DAY = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
-    // The hero clips what sticks out of it, so the panel is placed on the page itself, under the pill,
-    // while it is open; scrolling closes it, as its place would go stale.
-    const showCheckIns = shown => {
-        const list = checkIns.querySelector('[data-check-in-list]') ?? document.body.querySelector('[data-check-in-list]');
-        const pill = checkIns.querySelector('[data-check-ins-toggle]');
-        if (shown) {
-            const at = pill.getBoundingClientRect();
-            list.style.position = 'fixed';
-            list.style.left = `${Math.round(at.left)}px`;
-            document.body.append(list);
-            list.hidden = false;
-            // Under the pill, or above it where the screen ends too soon below.
-            const below = at.bottom + 8 + list.offsetHeight <= window.innerHeight;
-            list.style.top = `${Math.round(below ? at.bottom + 8 : at.top - 8 - list.offsetHeight)}px`;
-        }
-        list.hidden = !shown;
-        pill.setAttribute('aria-expanded', String(shown));
-    };
-    checkIns?.querySelector('[data-check-ins-toggle]').addEventListener('click', () => showCheckIns((checkIns.querySelector('[data-check-in-list]') ?? document.body.querySelector('[data-check-in-list]')).hidden));
-    // A click elsewhere, or Escape, folds the panel away.
-    if (checkIns) {
-        document.addEventListener('click', event => { if (!event.target.closest('[data-check-ins], [data-check-in-list]')) showCheckIns(false); });
-        document.addEventListener('keydown', event => { if (event.key === 'Escape') showCheckIns(false); });
-        window.addEventListener('scroll', () => showCheckIns(false), { passive: true });
-    }
-    const addCheckIn = day => {
-        if (!checkIns) return;
-        const list = checkIns.querySelector('[data-check-in-list]') ?? document.body.querySelector('[data-check-in-list]');
-        const item = document.createElement('li');
-        item.textContent = CHECK_IN_DAY.format(new Date(day + 'T00:00:00Z'));
-        list.prepend(item);
-        checkIns.querySelector('[data-check-in-latest]').textContent = item.textContent;
-        const more = checkIns.querySelector('[data-check-in-more]');
-        more.textContent = '+' + (list.children.length - 1);
-        more.hidden = list.children.length < 2;
-        checkIns.querySelector('[data-check-ins-toggle]').disabled = list.children.length < 2;
-        checkIns.hidden = false;
+    const checkInDays = (checkIn?.dataset.checkInDays || '').split('|').filter(Boolean);
+    const showCheckIn = () => {
+        if (!checkIn) return;
+        const count = checkInDays.length;
+        checkIn.classList.toggle('active', count > 0);
+        checkIn.querySelector('[data-check-in-label]').textContent = count ? `Checked in ${checkInDays[0]}` : 'Check-in';
+        const more = checkIn.querySelector('[data-check-in-more]');
+        more.hidden = count < 2;
+        more.textContent = `+${count - 1}`;
+        checkIn.title = count === 0 ? 'Check in on a day of the past week'
+            : count === 1 ? 'Checked in once; check in again' : `Checked in ${count} times`;
     };
     const render = state => {
         buttons.forEach(button => {
@@ -1028,9 +992,9 @@ function setupListToggles() {
                 ? (onList ? 'On your watchlist' : 'Add to your watchlist')
                 : (onList ? seenLabel('Watched', state.seenAt) : 'Mark as watched');
         });
-        showCheckIn(state.seenAt);
         // Unmarked as watched, the check-ins go with it.
-        if (checkIns && !state.seen) { checkIns.hidden = true; (checkIns.querySelector('[data-check-in-list]') ?? document.body.querySelector('[data-check-in-list]')).replaceChildren(); }
+        if (!state.seen) checkInDays.length = 0;
+        showCheckIn();
         if (voteGroup) voteGroup.hidden = !state.seen;
         voteButtons.forEach(button => button.classList.toggle('active', String(state.liked) === button.dataset.vote));
     };
@@ -1038,7 +1002,7 @@ function setupListToggles() {
     buttons.forEach(button => {
         if (button.dataset.seenAt) button.title = seenLabel('Watched', button.dataset.seenAt);
     });
-    showCheckIn(checkIn?.dataset.seenAt);
+    showCheckIn();
     const all = [...buttons, ...voteButtons, ...(checkIn ? [checkIn] : [])];
     const submit = async (url, body) => {
         all.forEach(button => button.disabled = true);
@@ -1059,29 +1023,73 @@ function setupListToggles() {
         button.addEventListener('click', () => submit('/api/' + button.dataset.listToggle + '/' + button.dataset.movieId
             + (button.dataset.listToggle === 'seen' ? '?when=earlier' : '')));
     });
-    // Check in opens the days of the past week, in the visitor's own calendar; a day checks the movie in on it.
+    // The button opens its menu: the days of the past week to check in on, in the visitor's own calendar,
+    // or, checked in more than once, the other days first and a way to the days. The menu is placed on
+    // the page itself, under the button, as the hero clips what sticks out of it; a click elsewhere,
+    // Escape or a scroll closes it.
     const menu = document.querySelector('[data-check-in-menu]');
     if (checkIn && menu) {
-        for (let ago = 0; ago < 7; ago++) {
-            const day = new Date();
-            day.setDate(day.getDate() - ago);
-            const option = document.createElement('button');
-            option.type = 'button';
-            option.className = 'share-option';
-            option.dataset.checkInDay = [day.getFullYear(), String(day.getMonth() + 1).padStart(2, '0'), String(day.getDate()).padStart(2, '0')].join('-');
-            option.textContent = ago === 0 ? 'Today' : ago === 1 ? 'Yesterday' : WEEKDAY.format(day);
-            menu.appendChild(option);
-        }
-        checkIn.addEventListener('click', () => menu.hidden = !menu.hidden);
+        const option = (text, attributes = {}) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'share-option';
+            Object.assign(button.dataset, attributes);
+            button.textContent = text;
+            return button;
+        };
+        const days = () => {
+            menu.replaceChildren();
+            for (let ago = 0; ago < 7; ago++) {
+                const day = new Date();
+                day.setDate(day.getDate() - ago);
+                const key = [day.getFullYear(), String(day.getMonth() + 1).padStart(2, '0'), String(day.getDate()).padStart(2, '0')].join('-');
+                menu.append(option(ago === 0 ? 'Today' : ago === 1 ? 'Yesterday' : WEEKDAY.format(day), { checkInDay: key }));
+            }
+        };
+        const others = () => {
+            menu.replaceChildren();
+            checkInDays.slice(1).forEach(day => {
+                const row = document.createElement('div');
+                row.className = 'check-in-day';
+                row.textContent = day;
+                menu.append(row);
+            });
+            menu.append(option('Check in again', { checkInAgain: '' }));
+        };
+        const close = () => { menu.hidden = true; };
+        // Under the button, or above it where the screen ends below; placed again when its content changes.
+        const place = () => {
+            const at = checkIn.getBoundingClientRect();
+            menu.style.position = 'fixed';
+            menu.style.left = `${Math.round(at.left)}px`;
+            const below = at.bottom + 8 + menu.offsetHeight <= window.innerHeight;
+            menu.style.top = `${Math.round(below ? at.bottom + 8 : at.top - 8 - menu.offsetHeight)}px`;
+        };
+        const open = () => {
+            if (checkInDays.length > 1) others(); else days();
+            document.body.append(menu);
+            menu.hidden = false;
+            place();
+        };
+        checkIn.addEventListener('click', () => menu.hidden ? open() : close());
         menu.addEventListener('click', event => {
-            const option = event.target.closest('[data-check-in-day]');
-            if (!option) return;
-            menu.hidden = true;
-            submit('/api/seen/' + checkIn.dataset.movieId + '/check-in?day=' + option.dataset.checkInDay).then(ok => { if (ok) addCheckIn(option.dataset.checkInDay); });
+            if (event.target.closest('[data-check-in-again]')) { days(); place(); return; }
+            const chosen = event.target.closest('[data-check-in-day]');
+            if (!chosen) return;
+            close();
+            submit('/api/seen/' + checkIn.dataset.movieId + '/check-in?day=' + chosen.dataset.checkInDay).then(ok => {
+                if (!ok) return;
+                checkInDays.unshift(CHECK_IN_DAY.format(new Date(chosen.dataset.checkInDay + 'T00:00:00Z')));
+                showCheckIn();
+            });
         });
+        // The path rather than the target: Check in again replaces the menu's content, the clicked option with it.
         document.addEventListener('click', event => {
-            if (!event.target.closest('.check-in')) menu.hidden = true;
+            const path = event.composedPath();
+            if (!path.includes(menu) && !path.includes(checkIn)) close();
         });
+        document.addEventListener('keydown', event => { if (event.key === 'Escape') close(); });
+        window.addEventListener('scroll', close, { passive: true });
     }
     // A thumb pressed again takes the vote back.
     voteButtons.forEach(button => {
