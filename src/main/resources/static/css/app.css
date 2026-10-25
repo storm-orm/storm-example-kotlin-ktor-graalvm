@@ -134,16 +134,17 @@ img { display: block; }
    when the trailer goes back behind the hero. */
 :root:has(.trailer-playing) .navbar { transform: translateY(-100%); }
 
-/* Safari on a phone tints the strip of its status bar from a fixed element along the top of the page,
-   and shows the page through it, blurred, when there is none: this hairline, in the page's color,
-   hidden in the dark top of the navbar, gives it one. */
+/* Safari on a phone tints the strip of its status bar from what a fixed element along the top of the
+   page shows at its edge, and shows the page through it, blurred, when that is not one color: this
+   band, solid in the page's color along the edge and fading out below, in the dark top of the navbar,
+   gives it one. */
 .status-bar-tint {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
-    height: 1px;
-    background: var(--background);
+    height: 24px;
+    background: linear-gradient(var(--background) 8px, rgba(var(--background-rgb), 0));
     pointer-events: none;
 }
 
