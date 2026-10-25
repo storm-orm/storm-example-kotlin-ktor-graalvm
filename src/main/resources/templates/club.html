@@ -140,7 +140,7 @@
         </div>
 
         <!-- What the others see of the visitor in this club: their club defaults, or settings of its own. -->
-        <form class="stat-card" id="club-sharing" th:action="@{/clubs/{id}/sharing(id=${view.club.id})}" method="post">
+        <form class="stat-card" id="club-sharing" data-saves th:action="@{/clubs/{id}/sharing(id=${view.club.id})}" method="post">
             <h2>What you share here</h2>
             <p class="stat-note" th:text="${view.me.followsDefaults} ? 'Your club defaults, from the Clubs page.' : 'Set apart for this club.'">Your club defaults.</p>
             <th:block th:replace="~{fragments/community :: switches(${view.me.sharesSeen}, ${view.me.sharesName}, ${view.me.sharesDates}, 'Members', 'a member\'s')}"></th:block>

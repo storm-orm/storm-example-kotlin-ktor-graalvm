@@ -176,7 +176,7 @@
         </div>
 
         <!-- What friends see of you: each switch on by default. -->
-        <form class="stat-card" id="sharing-card" th:action="@{/friends/sharing}" method="post">
+        <form class="stat-card" id="sharing-card" data-saves th:action="@{/friends/sharing}" method="post">
             <h2>What you share with friends</h2>
             <p class="stat-note">With your friends only; nobody else sees any of it.</p>
             <th:block th:replace="~{fragments/community :: switches(${view.friends.sharing.shareSeen}, ${view.friends.sharing.shareName}, ${view.friends.sharing.shareDates}, 'Your friends', 'a friend\'s')}"></th:block>
@@ -184,7 +184,7 @@
         </form>
 
         <!-- What members see of the visitor in every club not set apart. Dates start off: members are not always friends. -->
-        <form class="stat-card" id="club-sharing-card" th:action="@{/clubs/sharing}" method="post">
+        <form class="stat-card" id="club-sharing-card" data-saves th:action="@{/clubs/sharing}" method="post">
             <h2>What you share in clubs</h2>
             <p class="stat-note">In every club, unless you set one apart on its page. Members see who is in a club either way.</p>
             <th:block th:replace="~{fragments/community :: switches(${view.clubs.defaults.clubShareSeen}, ${view.clubs.defaults.clubShareName}, ${view.clubs.defaults.clubShareDates}, 'Members', 'a member\'s')}"></th:block>

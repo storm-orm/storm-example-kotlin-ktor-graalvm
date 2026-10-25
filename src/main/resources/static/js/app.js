@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSeenTags();
     setupCatchUp();
     setupInvite();
+    setupSaveButtons();
     setupImportDrop();
     setupPanelToggles();
     setupDismissals();
@@ -1344,6 +1345,25 @@ const SIGN_IN_NUDGE_MARKS = 5;
 // The number of movies the visitor has seen, where a page shows it.
 function showSeenCount() {
     document.querySelectorAll('[data-seen-count]').forEach(count => count.textContent = seenMovies.size.toLocaleString('en-GB'));
+}
+
+// A form's Save button lights up once something on it changed, and is grey while there is nothing to
+// save: the page comes back from a save with nothing changed, so it is grey again.
+function setupSaveButtons() {
+    document.querySelectorAll('form[data-saves]').forEach(form => {
+        const button = form.querySelector('button[type="submit"]:not([name])');
+        if (!button) return;
+        const snapshot = () => new URLSearchParams(new FormData(form)).toString();
+        const saved = snapshot();
+        const update = () => {
+            const changed = snapshot() !== saved;
+            button.disabled = !changed;
+            button.classList.toggle('button-primary', changed);
+        };
+        form.addEventListener('input', update);
+        form.addEventListener('change', update);
+        update();
+    });
 }
 
 // The open invites under the invite buttons: fetched again from the page after a new invite, so it shows
