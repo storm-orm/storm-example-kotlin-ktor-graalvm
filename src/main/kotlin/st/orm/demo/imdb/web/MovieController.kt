@@ -20,16 +20,21 @@ import java.time.LocalDate
 private const val VIA_FOR_YOU = "for-you"
 
 /**
- * What a share of the movie carries: the message the share button sends,
- * and the card the shared link unfurls into in a chat or a timeline (the
- * Open Graph tags in the head). The URLs are absolute, as a card asks, and
- * the link is the page's own, without the parameter a recommendation adds.
+ * What a share of a page carries: the message the share button sends, and
+ * the card the shared link unfurls into in a chat or a timeline (the Open
+ * Graph tags in the head). The URLs are absolute, as a card asks; a movie's
+ * link is the page's own, without the parameter a recommendation adds. A
+ * movie's card shows its poster beside the text; an invite's a wide image
+ * above it ([largeImage]).
  */
 data class ShareCard(
     val title: String,
     val description: String,
     val imageUrl: String,
-    val url: String
+    val url: String,
+    /** The Open Graph type: a movie, or a page of the site. */
+    val type: String = "video.movie",
+    val largeImage: Boolean = false
 )
 
 private fun ApplicationCall.shareCard(detail: MovieDetail): ShareCard {
