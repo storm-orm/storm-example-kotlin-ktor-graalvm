@@ -450,7 +450,10 @@ function bringForward(hero, behind, buttons) {
             if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
             player.mute();
             player.playVideo();
+            // The player keeps its controls up while it has the focus: the focus goes back to the page.
             frame.tabIndex = -1;
+            frame.blur();
+            buttons[0]?.focus({ preventScroll: true });
             controls.remove();
             document.removeEventListener('keydown', onKey);
             hero.classList.remove('trailer-settled', 'trailer-playing', 'trailer-full-frame');
