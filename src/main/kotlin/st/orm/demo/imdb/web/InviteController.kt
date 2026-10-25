@@ -56,7 +56,7 @@ private fun ApplicationCall.inviteCard(token: String, state: InviteState): Share
     val origin = publicOrigin()
     val (title, description) = when (state) {
         is InviteState.Befriend ->
-            "${state.inviter.name ?: "A friend"} invites you to be friends" to
+            "${state.inviter.name ?: "A friend"} invites you to MOVIE/DB" to
                 "Friends on Storm Movies see what each other watched lately."
         is InviteState.Join ->
             "Join ${state.club.name}" to
