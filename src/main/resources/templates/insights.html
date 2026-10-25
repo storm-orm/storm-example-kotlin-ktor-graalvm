@@ -154,15 +154,6 @@
             </a>
         </div>
 
-        <!-- With streaming services ticked on the account page: where the watched movies stream, filled in by the script. -->
-        <div class="stat-card insights-services" id="services-card" hidden th:if="${hasServices}"
-             data-service-shares="/api/insights/services">
-            <h2>Your services</h2>
-            <p class="stat-note">Where the movies you watched stream today. A movie on several of your services counts for each; one on none of them is left out.</p>
-            <div class="service-shares" data-service-share-rows></div>
-            <p class="stat-note service-shares-note" data-service-share-note></p>
-        </div>
-
         <div class="stat-card insights-genres" id="seen-genres-card">
             <h2>Your genres</h2>
             <p class="stat-note">A movie of several genres counts for each.</p>
@@ -171,6 +162,15 @@
                 <div class="bar-track"><div class="bar-fill" th:style="|width: ${bar.share}%|"></div></div>
                 <span class="bar-value" th:text="${bar.count}">12</span>
             </div>
+        </div>
+
+        <!-- With streaming services ticked on the account page: where the watched movies stream, filled in by the script. -->
+        <div class="stat-card insights-services" id="services-card" hidden th:if="${hasServices}"
+             data-service-shares="/api/insights/services">
+            <h2>Your services</h2>
+            <p class="stat-note">Where the movies you watched stream today. A movie on several of your services counts for each; one on none of them is left out.</p>
+            <div class="service-shares" data-service-share-rows></div>
+            <p class="stat-note service-shares-note" data-service-share-note></p>
         </div>
     </div>
 </section>
