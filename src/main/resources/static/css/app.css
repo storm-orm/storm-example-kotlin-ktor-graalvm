@@ -1975,7 +1975,7 @@ form[data-saves] .button:disabled::after { opacity: 0.2; }
 .page-switch a:hover { color: var(--text); }
 
 /* The browse page's orders, under its genres. */
-.browse-tabs { margin: 6px 0 22px; }
+.browse-tabs { margin: 22px 0 30px; }
 
 /* What the visitor has in common with each person: the name, the numbers under it, and a bar for the share. */
 .in-common-row { display: grid; grid-template-columns: minmax(0, 1fr) 140px; gap: 6px 18px; align-items: center; }

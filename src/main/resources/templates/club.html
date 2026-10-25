@@ -130,7 +130,7 @@
             </div>
             <p class="stat-note" th:unless="${view.me.admin}">Ask an admin to invite someone.</p>
 
-            <form class="club-create" th:if="${view.me.admin}" th:action="@{/clubs/{id}/rename(id=${view.club.id})}" method="post">
+            <form class="club-create" data-saves th:if="${view.me.admin}" th:action="@{/clubs/{id}/rename(id=${view.club.id})}" method="post">
                 <input type="text" name="name" required maxlength="60" th:value="${view.club.name}" aria-label="Club name">
                 <button type="submit" class="button">Rename</button>
             </form>

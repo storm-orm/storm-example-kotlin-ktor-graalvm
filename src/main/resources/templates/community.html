@@ -169,9 +169,9 @@
                 </span>
             </a>
             <!-- Starting a club makes the visitor its first admin. -->
-            <form class="club-create" th:action="@{/clubs}" method="post">
+            <form class="club-create" data-saves th:action="@{/clubs}" method="post">
                 <input type="text" name="name" required maxlength="60" placeholder="Name, e.g. Office film club" aria-label="Club name">
-                <button type="submit" class="button button-primary">Start a club</button>
+                <button type="submit" class="button">Start a club</button>
             </form>
         </div>
 
