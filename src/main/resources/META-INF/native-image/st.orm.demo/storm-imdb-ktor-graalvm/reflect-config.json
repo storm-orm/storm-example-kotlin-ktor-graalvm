@@ -112,12 +112,6 @@
     "allDeclaredFields": true
   },
   {
-    "name": "st.orm.demo.imdb.repository.PersonCreditCount",
-    "allDeclaredConstructors": true,
-    "allPublicMethods": true,
-    "allDeclaredFields": true
-  },
-  {
     "name": "st.orm.demo.imdb.repository.ProlificActor",
     "allDeclaredConstructors": true,
     "allPublicMethods": true,
@@ -233,24 +227,6 @@
   },
   {
     "name": "st.orm.demo.imdb.repository.SeenDate",
-    "allDeclaredConstructors": true,
-    "allPublicMethods": true,
-    "allDeclaredFields": true
-  },
-  {
-    "name": "st.orm.demo.imdb.repository.SeenWithRating",
-    "allDeclaredConstructors": true,
-    "allPublicMethods": true,
-    "allDeclaredFields": true
-  },
-  {
-    "name": "st.orm.demo.imdb.repository.CategoryCreditCount",
-    "allDeclaredConstructors": true,
-    "allPublicMethods": true,
-    "allDeclaredFields": true
-  },
-  {
-    "name": "st.orm.demo.imdb.repository.LanguageCount",
     "allDeclaredConstructors": true,
     "allPublicMethods": true,
     "allDeclaredFields": true
@@ -400,12 +376,6 @@
     "allDeclaredFields": true
   },
   {
-    "name": "st.orm.demo.imdb.repository.SeenBy",
-    "allDeclaredConstructors": true,
-    "allPublicMethods": true,
-    "allDeclaredFields": true
-  },
-  {
     "name": "st.orm.demo.imdb.web.SeenMarks",
     "allDeclaredConstructors": true,
     "allPublicMethods": true,
@@ -425,12 +395,6 @@
   },
   {
     "name": "st.orm.demo.imdb.service.CheckInsView",
-    "allDeclaredConstructors": true,
-    "allPublicMethods": true,
-    "allDeclaredFields": true
-  },
-  {
-    "name": "st.orm.demo.imdb.repository.LatestCheckIn",
     "allDeclaredConstructors": true,
     "allPublicMethods": true,
     "allDeclaredFields": true
@@ -507,25 +471,7 @@
     "allDeclaredFields": true
   },
   {
-    "name": "st.orm.demo.imdb.repository.MovieViewCount",
-    "allDeclaredConstructors": true,
-    "allPublicMethods": true,
-    "allDeclaredFields": true
-  },
-  {
-    "name": "st.orm.demo.imdb.repository.MovieViewDayCount",
-    "allDeclaredConstructors": true,
-    "allPublicMethods": true,
-    "allDeclaredFields": true
-  },
-  {
     "name": "st.orm.demo.imdb.service.ViewLogProperties",
-    "allDeclaredConstructors": true,
-    "allPublicMethods": true,
-    "allDeclaredFields": true
-  },
-  {
-    "name": "st.orm.demo.imdb.repository.CandidateCredit",
     "allDeclaredConstructors": true,
     "allPublicMethods": true,
     "allDeclaredFields": true
@@ -942,24 +888,6 @@
     "allPublicMethods": true
   },
   {
-    "name": "st.orm.demo.imdb.model.WatchProviders",
-    "allDeclaredConstructors": true,
-    "allPublicMethods": true,
-    "allDeclaredFields": true
-  },
-  {
-    "name": "st.orm.demo.imdb.model.WatchProviders$Companion",
-    "allDeclaredConstructors": true,
-    "allPublicMethods": true,
-    "allDeclaredFields": true
-  },
-  {
-    "name": "st.orm.demo.imdb.model.WatchProviders$serializer",
-    "allDeclaredConstructors": true,
-    "allPublicMethods": true,
-    "allDeclaredFields": true
-  },
-  {
     "name": "st.orm.demo.imdb.web.Platform",
     "allDeclaredConstructors": true,
     "allPublicMethods": true,
@@ -997,30 +925,6 @@
   },
   {
     "name": "st.orm.demo.imdb.model.Photo$Companion",
-    "allDeclaredConstructors": true,
-    "allPublicMethods": true,
-    "allDeclaredFields": true
-  },
-  {
-    "name": "st.orm.demo.imdb.model.MovieFilter",
-    "allDeclaredConstructors": true,
-    "allPublicMethods": true,
-    "allDeclaredFields": true
-  },
-  {
-    "name": "st.orm.demo.imdb.model.MovieFilter$serializer",
-    "allDeclaredConstructors": true,
-    "allPublicMethods": true,
-    "allDeclaredFields": true
-  },
-  {
-    "name": "st.orm.demo.imdb.model.MovieFilter$Companion",
-    "allDeclaredConstructors": true,
-    "allPublicMethods": true,
-    "allDeclaredFields": true
-  },
-  {
-    "name": "st.orm.demo.imdb.model.Tag",
     "allDeclaredConstructors": true,
     "allPublicMethods": true,
     "allDeclaredFields": true

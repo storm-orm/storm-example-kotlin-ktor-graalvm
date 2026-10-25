@@ -1,6 +1,7 @@
 package st.orm.demo.imdb.repository
 
 import kotlinx.serialization.Serializable
+import st.orm.GenerateMetamodel
 import st.orm.demo.imdb.model.RecommendationEvent
 import st.orm.demo.imdb.model.RecommendationEventKind
 import st.orm.demo.imdb.model.RecommendationEvent_
@@ -13,6 +14,7 @@ import st.orm.repository.select
  * so it is a plain data class — deliberately not a Data type.
  */
 @Serializable
+@GenerateMetamodel
 data class RecommendationEventCount(
     val kind: RecommendationEventKind,
     val count: Long

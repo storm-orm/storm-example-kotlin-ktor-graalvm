@@ -1,6 +1,7 @@
 package st.orm.demo.imdb.repository
 
 import kotlinx.serialization.Serializable
+import st.orm.GenerateMetamodel
 import st.orm.demo.imdb.model.Genre
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieGenre
@@ -24,6 +25,7 @@ import java.math.BigDecimal
  * deliberately not a Data type.
  */
 @Serializable
+@GenerateMetamodel
 data class GenreRatingStatistics(
     val genre: Genre,
     @Serializable(with = BigDecimalAsStringSerializer::class)
@@ -36,6 +38,7 @@ data class GenreRatingStatistics(
  * genre. Not backed by a database table or view, so it is a plain data
  * class — deliberately not a Data type.
  */
+@GenerateMetamodel
 data class GenreSeenCount(
     val genre: Genre,
     val movieCount: Long

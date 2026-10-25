@@ -1,5 +1,6 @@
 package st.orm.demo.imdb.repository
 
+import st.orm.GenerateMetamodel
 import st.orm.Scrollable
 import st.orm.Window
 import st.orm.Ref
@@ -24,6 +25,7 @@ import java.time.Instant
  * database table or view, so it is a plain data class — deliberately not a
  * Data type.
  */
+@GenerateMetamodel
 data class SeenWithRating(
     val seen: MovieSeen,
     val averageRating: BigDecimal?,
@@ -39,6 +41,7 @@ data class SeenWithRating(
  * ids. Not backed by a database table or view, so it is a plain data class —
  * deliberately not a Data type.
  */
+@GenerateMetamodel
 data class SeenBy(
     val movie: Ref<Movie>,
     val user: Ref<User>
@@ -49,6 +52,7 @@ data class SeenBy(
  * Not backed by a database table or view, so it is a plain data class —
  * deliberately not a Data type.
  */
+@GenerateMetamodel
 data class MovieSeenCount(
     val movie: Movie,
     val seenCount: Long

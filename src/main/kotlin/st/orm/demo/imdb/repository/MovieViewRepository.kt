@@ -1,5 +1,6 @@
 package st.orm.demo.imdb.repository
 
+import st.orm.GenerateMetamodel
 import st.orm.Ref
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieView
@@ -20,6 +21,7 @@ import java.time.LocalDate
  * backed by a database table or view, so it is a plain data class —
  * deliberately not a Data type.
  */
+@GenerateMetamodel
 data class MovieViewCount(
     val movie: Ref<Movie>,
     val viewCount: Long
@@ -30,6 +32,7 @@ data class MovieViewCount(
  * view log counts them. Not backed by a database table or view, so it is
  * a plain data class — deliberately not a Data type.
  */
+@GenerateMetamodel
 data class MovieViewDayCount(
     val movie: Ref<Movie>,
     val day: LocalDate,

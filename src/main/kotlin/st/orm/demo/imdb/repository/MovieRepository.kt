@@ -2,6 +2,7 @@ package st.orm.demo.imdb.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
+import st.orm.GenerateMetamodel
 import st.orm.Ref
 import st.orm.Scrollable
 import st.orm.Window
@@ -39,6 +40,7 @@ import java.time.Instant
  * plain data class — deliberately not a Data type.
  */
 @Serializable
+@GenerateMetamodel
 data class DecadeMovieCount(
     val decade: Int,
     val movieCount: Long

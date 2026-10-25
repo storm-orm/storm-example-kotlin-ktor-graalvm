@@ -1,6 +1,7 @@
 package st.orm.demo.imdb.repository
 
 import kotlinx.serialization.Serializable
+import st.orm.GenerateMetamodel
 import st.orm.demo.imdb.model.Genre
 import st.orm.demo.imdb.model.Genre_
 import st.orm.demo.imdb.model.MovieGenre
@@ -14,6 +15,7 @@ import st.orm.repository.select
  * Serializable, as it is cached with the catalogue statistics.
  */
 @Serializable
+@GenerateMetamodel
 data class GenreMovieCount(
     val genre: Genre,
     val movieCount: Long

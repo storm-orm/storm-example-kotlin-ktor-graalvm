@@ -1,5 +1,6 @@
 package st.orm.demo.imdb.repository
 
+import st.orm.GenerateMetamodel
 import st.orm.Ref
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieLanguage
@@ -11,6 +12,7 @@ import st.orm.template.eq
 import st.orm.template.inRefs
 
 /** Query result shape: how many movies of the catalogue were made in a language. */
+@GenerateMetamodel
 data class LanguageCount(val language: String, val movies: Long)
 
 interface MovieLanguageRepository : EntityRepository<MovieLanguage, MovieLanguagePk> {

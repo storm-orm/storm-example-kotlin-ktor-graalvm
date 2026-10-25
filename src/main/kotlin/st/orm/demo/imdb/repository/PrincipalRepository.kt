@@ -1,6 +1,7 @@
 package st.orm.demo.imdb.repository
 
 import kotlinx.serialization.Serializable
+import st.orm.GenerateMetamodel
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieSeen
 import st.orm.demo.imdb.model.MovieSeen_
@@ -37,6 +38,7 @@ const val DIRECTOR = "director"
  * sorting and display. Not backed by a database table or view, so it is a
  * plain data class — deliberately not a Data type.
  */
+@GenerateMetamodel
 data class FilmographyEntry(
     val principal: Principal,
     val movie: Movie,
@@ -49,6 +51,7 @@ data class FilmographyEntry(
  * rated movies. Not backed by a database table or view, so it is a plain
  * data class — deliberately not a Data type.
  */
+@GenerateMetamodel
 data class PersonStatistics(
     val movieCount: Long,
     val averageRating: BigDecimal?
@@ -60,6 +63,7 @@ data class PersonStatistics(
  * Not backed by a database table or view, so it is a plain data class —
  * deliberately not a Data type.
  */
+@GenerateMetamodel
 data class RelatedMovie(
     val movie: Movie,
     val sharedCastCount: Long
@@ -80,6 +84,7 @@ data class ProlificActor(
  * Query result shape: the number of credits per person, keyed by the
  * credit's foreign key, so the count needs no join to the person table.
  */
+@GenerateMetamodel
 data class PersonCreditCount(
     val person: Ref<Person>,
     val creditCount: Long
@@ -100,6 +105,7 @@ data class PersonSeenCount(
  * by the credit's foreign key. Not backed by a database table or view, so
  * it is a plain data class — deliberately not a Data type.
  */
+@GenerateMetamodel
 data class CategoryCreditCount(
     val person: Ref<Person>,
     val category: String,
@@ -118,6 +124,7 @@ data class SeenFavourites(
  * draw candidates from. Not backed by a database table or view, so it is a
  * plain data class — deliberately not a Data type.
  */
+@GenerateMetamodel
 data class CandidateCredit(
     val person: Person,
     val category: String,

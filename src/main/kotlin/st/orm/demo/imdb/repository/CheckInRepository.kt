@@ -1,5 +1,6 @@
 package st.orm.demo.imdb.repository
 
+import st.orm.GenerateMetamodel
 import st.orm.Ref
 import st.orm.Scrollable
 import st.orm.Window
@@ -20,6 +21,7 @@ import java.time.Instant
  * by a database table or view, so it is a plain data class — deliberately
  * not a Data type.
  */
+@GenerateMetamodel
 data class LatestCheckIn(
     val movie: Ref<Movie>,
     val watchedAt: Instant
