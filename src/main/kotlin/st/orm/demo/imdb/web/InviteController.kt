@@ -57,11 +57,11 @@ private fun ApplicationCall.inviteCard(token: String, state: InviteState): Share
     val (title, description) = when (state) {
         is InviteState.Befriend ->
             "${state.inviter.name ?: "A friend"} invites you to MOVIE/DB" to
-                "Friends on Storm Movies see what each other watched lately."
+                "Friends on MOVIE/DB see what each other watched lately."
         is InviteState.Join ->
-            "Join ${state.club.name}" to
-                "${state.inviter.name ?: "A member"} invites you to ${state.club.name}, a film club of ${members(state.memberCount)} on Storm Movies."
-        else -> "An invite to Storm Movies" to "Find what to watch next, together."
+            "Join ${state.club.name} on MOVIE/DB" to
+                "${state.inviter.name ?: "A member"} invites you to ${state.club.name}, a film club of ${members(state.memberCount)}."
+        else -> "An invite to MOVIE/DB" to "Find what to watch next, together."
     }
     return ShareCard(title, description, "$origin/img/invite-card.jpg", "$origin/invite/$token", type = "website", largeImage = true)
 }
