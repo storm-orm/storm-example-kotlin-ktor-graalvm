@@ -1614,8 +1614,9 @@ img { display: block; }
 
 .trailer-button::before { content: "▶"; font-size: 11px; }
 
-/* The visitor's check-ins of the movie: the latest as a glass pill, the rest unfolding under it on a tap. */
-.check-ins { margin-top: 14px; }
+/* The visitor's check-ins of the movie: the latest as a glass pill, the rest in a panel that floats
+   over what follows on a tap, so the page does not move. */
+.check-ins { position: relative; display: inline-block; margin-top: 14px; }
 
 .check-in-pill {
     display: inline-flex;
@@ -1640,7 +1641,28 @@ img { display: block; }
 
 .check-in-more { padding: 1px 7px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); color: var(--text-muted); font-size: 12px; }
 
-.check-in-list { margin: 10px 0 0; padding: 0 0 0 12px; list-style: none; color: var(--text-muted); font-size: 13.5px; line-height: 1.8; border-left: 2px solid rgba(var(--green-rgb), 0.35); }
+.check-in-list {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 60;
+    min-width: 160px;
+    margin: 0;
+    padding: 8px 14px;
+    list-style: none;
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    color: var(--text-muted);
+    font-size: 13.5px;
+    line-height: 1.9;
+    white-space: nowrap;
+}
+
+.check-in-list li::before { content: "✓"; margin-right: 8px; color: var(--green); font-weight: 700; }
+
+.check-in-list[hidden] { display: none; }
 
 /* Shown once the movie turns out to have a trailer; the button style would show it before. */
 .trailer-button[hidden] { display: none; }

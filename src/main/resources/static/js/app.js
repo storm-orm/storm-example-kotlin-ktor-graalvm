@@ -973,11 +973,16 @@ function setupListToggles() {
     // The check-ins of the movie: the latest in the pill, which unfolds the rest; a new one joins the top.
     const checkIns = document.querySelector('[data-check-ins]');
     const CHECK_IN_DAY = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
-    checkIns?.querySelector('[data-check-ins-toggle]').addEventListener('click', event => {
-        const list = checkIns.querySelector('[data-check-in-list]');
-        list.hidden = !list.hidden;
-        event.currentTarget.setAttribute('aria-expanded', String(!list.hidden));
-    });
+    const showCheckIns = shown => {
+        checkIns.querySelector('[data-check-in-list]').hidden = !shown;
+        checkIns.querySelector('[data-check-ins-toggle]').setAttribute('aria-expanded', String(shown));
+    };
+    checkIns?.querySelector('[data-check-ins-toggle]').addEventListener('click', () => showCheckIns(checkIns.querySelector('[data-check-in-list]').hidden));
+    // A click elsewhere, or Escape, folds the panel away.
+    if (checkIns) {
+        document.addEventListener('click', event => { if (!event.target.closest('[data-check-ins]')) showCheckIns(false); });
+        document.addEventListener('keydown', event => { if (event.key === 'Escape') showCheckIns(false); });
+    }
     const addCheckIn = day => {
         if (!checkIns) return;
         const list = checkIns.querySelector('[data-check-in-list]');
