@@ -13,7 +13,8 @@ import java.time.Instant
 /** The sources a movie is known by. Each has a [MovieSource] subtype of its own. */
 enum class Source {
     IMDB,
-    TMDB
+    TMDB,
+    WIKIDATA
 }
 
 /**
@@ -59,6 +60,21 @@ data class TmdbSource(
 ) : MovieSource
 
 /**
+ * Wikidata, asked about every movie in the background, by its IMDb id: the
+ * item's id ("Q83495"), null where Wikidata has no item for the movie, and
+ * when it was asked. What it answers becomes the languages the movie was
+ * made in ([MovieLanguage]) and its tags ([MovieTag]); its data is free to
+ * keep, and asked again now and then as Wikidata grows.
+ */
+@Discriminator("wikidata")
+data class WikidataSource(
+    @PK val id: Long = 0,
+    @FK override val movie: Ref<Movie>,
+    override val externalId: String?,
+    val fetchedAt: Instant
+) : MovieSource
+
+/**
  * Where a movie plays: per country (ISO 3166-1 alpha-2), the ids of the
  * platforms ([WatchProvider]) that stream it or show it free, in TMDB's
  * order. A country where it plays nowhere is left out.
@@ -71,4 +87,5 @@ val MovieSource.source: Source
     get() = when (this) {
         is ImdbSource -> Source.IMDB
         is TmdbSource -> Source.TMDB
+        is WikidataSource -> Source.WIKIDATA
     }

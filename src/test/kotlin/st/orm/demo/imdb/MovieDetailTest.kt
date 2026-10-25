@@ -19,6 +19,8 @@ class MovieDetailTest {
             movie = matrix,
             rating = Rating(matrix, BigDecimal("8.7"), 2_000_000),
             genres = listOf(Genre(1, "Action"), Genre(3, "Sci-Fi")),
+            directors = emptyList(),
+            languages = emptyList(),
             cast = emptyList(),
             relatedMovies = emptyList(),
             lists = MovieListState(onWatchlist = false, seen = false)

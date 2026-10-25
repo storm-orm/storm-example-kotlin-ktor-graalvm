@@ -54,7 +54,7 @@ class RecommendationQueriesTest {
         val ratingRepository = orm.repository<RatingRepository>()
         val drama = orm.repository<GenreRepository>().findByName("Drama")!!
 
-        val ratings = capture.execute { ratingRepository.findTopRatedInGenre(drama.ref(), minimumVoteCount = 2_100_000, limit = 10) }
+        val ratings = capture.execute { ratingRepository.findTopRatedInGenre(drama.ref(), minimumVoteCount = 2_100_000, filter = null, limit = 10) }
 
         capture.printStatements("findTopRatedInGenre")
         // Pulp Fiction has 2.2M votes, Shawshank 2.9M; The Godfather's 2.0M fall under the floor.

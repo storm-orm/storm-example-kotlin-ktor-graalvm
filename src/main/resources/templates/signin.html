@@ -71,11 +71,32 @@
         <form class="stat-card services-card" id="services-card" th:unless="${services.isEmpty()}" th:action="@{/account/services}" method="post">
             <h2>Your services</h2>
             <p class="stat-note" th:text="|The streaming services you have in ${country.name}. For You shows their logos on the picks they stream, and can keep to them.|">The streaming services you have.</p>
-            <div class="service-grid">
-                <label class="service-choice" th:each="service : ${services}">
+            <div class="choice-grid">
+                <label class="choice-tile" th:each="service : ${services}">
                     <input type="checkbox" name="service" th:value="${service.id}" th:checked="${service.chosen}">
                     <img th:if="${service.logoUrl != null}" th:src="${service.logoUrl}" alt="" loading="lazy">
                     <span th:text="${service.name}">Netflix</span>
+                </label>
+            </div>
+            <button type="submit" class="button">Save</button>
+        </form>
+        <!-- Signed in: the kinds of cinema and the languages the site keeps its picks to. -->
+        <form class="stat-card movies-card" id="movies-card" th:if="${account.name != null}" th:action="@{/account/movies}" method="post">
+            <h2>Your movies</h2>
+            <p class="stat-note">For You, the home page, Top Movies, Recently Added, the genres and Catch up keep to these. Search still finds every movie.</p>
+            <h3 class="choice-heading">Kinds of cinema</h3>
+            <div class="choice-grid">
+                <label class="choice-tile" th:each="tag : ${tags}">
+                    <input type="checkbox" name="show" th:value="${tag.key}" th:checked="${tag.chosen}">
+                    <span th:text="${tag.label}">Hollywood</span>
+                </label>
+            </div>
+            <h3 class="choice-heading" th:unless="${languages.isEmpty()}">Languages <span class="choice-hint">none ticked: every language</span></h3>
+            <div class="choice-grid language-grid" th:unless="${languages.isEmpty()}">
+                <label class="choice-tile" th:each="language : ${languages}">
+                    <input type="checkbox" name="language" th:value="${language.code}" th:checked="${language.chosen}">
+                    <span th:text="${language.name}">English</span>
+                    <span class="choice-count" th:text="${#numbers.formatInteger(language.movies, 1, 'COMMA')}">31,000</span>
                 </label>
             </div>
             <button type="submit" class="button">Save</button>

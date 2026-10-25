@@ -2,6 +2,7 @@ package st.orm.demo.imdb.service
 
 import st.orm.demo.imdb.model.Source
 import st.orm.demo.imdb.repository.ImdbSourceRepository
+import st.orm.demo.imdb.repository.WikidataSourceRepository
 import st.orm.template.entityId
 import st.orm.template.transaction
 
@@ -13,6 +14,7 @@ import st.orm.template.transaction
  */
 class MovieSourceService(
     private val imdbSourceRepository: ImdbSourceRepository,
+    private val wikidataSourceRepository: WikidataSourceRepository,
     private val tmdbService: TmdbService
 ) {
     /**
@@ -24,5 +26,8 @@ class MovieSourceService(
             imdbSourceRepository.findByExternalIds(externalIds).associate { it.externalId to it.movie.entityId() }
         }
         Source.TMDB -> tmdbService.movieIds(externalIds, askTmdb)
+        Source.WIKIDATA -> transaction(readOnly = true) {
+            wikidataSourceRepository.findByExternalIds(externalIds).associate { it.externalId!! to it.movie.entityId() }
+        }
     }
 }

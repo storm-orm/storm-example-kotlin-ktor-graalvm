@@ -28,13 +28,13 @@ class RecentlyAddedServiceTest {
         val service = RecentlyAddedService(orm.repository<MovieAdditionRepository>())
 
         // Seen from 2003, Reloaded is the one recent release among the four additions.
-        val page = runBlocking { service.recentlyAdded(now = Instant.parse("2003-06-01T00:00:00Z")) }
+        val page = runBlocking { service.recentlyAdded(filter = null, now = Instant.parse("2003-06-01T00:00:00Z")) }
         assertEquals(listOf("3 July 2026"), page.days.map { it.label })
         assertEquals(listOf("The Matrix Reloaded"), page.days.single().movies.map { it.primaryTitle })
         assertNull(page.nextCursor)
 
         // Seen from January 1999, the releases of 1998 on count: The Matrix and Reloaded, not the two of 1994.
         assertEquals(listOf("The Matrix", "The Matrix Reloaded"),
-            runBlocking { service.recentlyAdded(now = Instant.parse("1999-01-05T00:00:00Z")) }.days.flatMap { it.movies }.map { it.primaryTitle })
+            runBlocking { service.recentlyAdded(filter = null, now = Instant.parse("1999-01-05T00:00:00Z")) }.days.flatMap { it.movies }.map { it.primaryTitle })
     }
 }

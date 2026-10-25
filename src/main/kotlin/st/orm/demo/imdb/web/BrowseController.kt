@@ -11,7 +11,7 @@ import st.orm.demo.imdb.service.BrowseService
 fun Route.browseRoutes(browseService: BrowseService) {
     get("/browse/{genreName}") {
         val genreName = call.parameters.getOrFail("genreName")
-        val view = browseService.browseGenre(genreName)
+        val view = browseService.browseGenre(genreName, call.currentUser().movieFilter)
             ?: return@get call.respond(HttpStatusCode.NotFound, "Unknown genre: $genreName")
         call.respondPage(
             ThymeleafContent(
@@ -28,7 +28,7 @@ fun Route.browseRoutes(browseService: BrowseService) {
     get("/api/browse/{genreName}") {
         val genreName = call.parameters.getOrFail("genreName")
         val cursor = call.request.queryParameters["cursor"]
-        val window = browseService.scrollGenre(genreName, cursor)
+        val window = browseService.scrollGenre(genreName, call.currentUser().movieFilter, cursor)
             ?: return@get call.respond(HttpStatusCode.NotFound)
         call.respond(SearchWindow(window.content().map { it.toSearchItem() }, window.nextCursor()))
     }

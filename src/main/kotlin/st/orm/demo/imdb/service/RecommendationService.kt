@@ -10,6 +10,7 @@ import st.orm.Ref
 import st.orm.TransactionPropagation
 import st.orm.Window
 import st.orm.demo.imdb.model.Movie
+import st.orm.demo.imdb.model.MovieFilter
 import st.orm.demo.imdb.model.MovieSeen
 import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.model.Reason
@@ -152,7 +153,7 @@ class RecommendationService(
         val recommendations = recommendationRepository.findAll(user)
         if (recommendations.isEmpty()) {
             refreshIfSeeded(user)
-            val picks = coldStartPicks()
+            val picks = coldStartPicks(user.movieFilter)
             val featured = picks.take(PAGE_SIZE).randomOrNull()
             HomeRecommendations(
                 personal = false,
@@ -199,7 +200,7 @@ class RecommendationService(
         val window = recommendationRepository.scroll(user, bestFirst(PAGE_SIZE))
         if (window.content().isEmpty()) {
             refreshIfSeeded(user)
-            val picks = coldStartPicks()
+            val picks = coldStartPicks(user.movieFilter)
             ForYouView(
                 personal = false,
                 newArrivals = picks.filter { pick -> pick.reasons.any { it.kind == ReasonKind.NEW } }.take(NEW_ARRIVALS_LIMIT),
@@ -251,7 +252,7 @@ class RecommendationService(
      * streaming services, which needs all of them at once.
      */
     suspend fun allPicks(user: User): List<RecommendedMovie> = transaction(readOnly = true) {
-        recommendationRepository.findAll(user).map { it.toRecommendedMovie() }.ifEmpty { coldStartPicks() }
+        recommendationRepository.findAll(user).map { it.toRecommendedMovie() }.ifEmpty { coldStartPicks(user.movieFilter) }
     }
 
     /** The next window of the visitor's picks, for the infinite scroll. */
@@ -367,7 +368,7 @@ class RecommendationService(
         val now = Instant.now()
         val previous = recommendationRepository.findAll(user).associateBy { it.movie.ref() }
         val profile = profileOf(user, now)
-        val candidates = candidatesFor(profile).map { candidate ->
+        val candidates = candidatesFor(profile, user.movieFilter).map { candidate ->
             candidate.copy(shownCount = previous[candidate.movie.ref()]?.shownCount ?: 0)
         }
         val picks = RecommendationRanker.rank(profile, candidates, now)
@@ -447,9 +448,11 @@ class RecommendationService(
      * the catalogue, the most viewed of the week, and the recent releases
      * that joined the catalogue lately, each a bounded query by index, minus
      * the seeds, dismissed picks among them. One query more brings the
-     * candidates' genres.
+     * candidates' genres. With a [filter], the best-rated queries keep to the
+     * movies it lets through, so they still bring their full share, and one
+     * query more keeps the rest of the candidates to them.
      */
-    private fun candidatesFor(profile: TasteProfile): List<Candidate> {
+    private fun candidatesFor(profile: TasteProfile, filter: MovieFilter?): List<Candidate> {
         val now = Instant.now()
         val favouritePeople = profile.people.filterValues { it > 0 }.entries.sortedByDescending { it.value }.take(FAVOURITE_PEOPLE).map { it.key }
         val favouriteGenres = profile.genreWeights.filterValues { it > 0 }.entries.sortedByDescending { it.value }.take(FAVOURITE_GENRES).map { it.key }
@@ -461,11 +464,12 @@ class RecommendationService(
         val ratings = LinkedHashMap<Ref<Movie>, Rating>()
         fun consider(rating: Rating) = ratings.putIfAbsent(rating.movie.ref(), rating)
         credits.forEach { consider(it.rating) }
-        favouriteGenres.forEach { genre -> ratingRepository.findTopRatedInGenre(genre, TOP_RATED_MINIMUM_VOTES, TOP_RATED_PER_GENRE).forEach(::consider) }
-        ratingRepository.findTopRated(TOP_RATED_MINIMUM_VOTES, TOP_RATED_LIMIT).forEach(::consider)
+        favouriteGenres.forEach { genre -> ratingRepository.findTopRatedInGenre(genre, TOP_RATED_MINIMUM_VOTES, filter, TOP_RATED_PER_GENRE).forEach(::consider) }
+        ratingRepository.findTopRated(TOP_RATED_MINIMUM_VOTES, filter, TOP_RATED_LIMIT).forEach(::consider)
         val lookedUp = viewCounts.map { it.movie } + additions.map { it.movie.ref() }
         if (lookedUp.isNotEmpty()) ratingRepository.findByMovies(lookedUp.distinct()).forEach(::consider)
         profile.seeds.forEach { ratings.remove(it.movie.ref()) }
+        if (filter != null) ratings.keys.retainAll(movieRepository.findMatching(ratings.keys, filter))
 
         val genresByMovie = movieGenreRepository.findByMovies(ratings.values.map { it.movie }).groupBy({ it.movie.ref() }, { it.genre })
         val creditsByMovie = credits.groupBy { it.rating.movie.ref() }
@@ -487,9 +491,13 @@ class RecommendationService(
     /**
      * The catalogue's picks for a visitor without lists: the ranking with an
      * empty profile, so quality, recency and what is trending decide.
-     * Shared by every such visitor and recomputed after an hour.
+     * Shared by every such visitor and recomputed after an hour. A visitor
+     * who filters the movies ([MovieFilter]) gets picks of their own, among
+     * the movies the filter lets through, computed on the spot: few visitors
+     * set a filter before they have lists.
      */
-    private suspend fun coldStartPicks(): List<RecommendedMovie> {
+    private suspend fun coldStartPicks(filter: MovieFilter?): List<RecommendedMovie> {
+        if (filter != null) return computeColdStart(filter).picks
         val current = coldStart
         if (current != null && current.isFresh()) return current.picks
         return coldStartLock.withLock {
@@ -497,14 +505,14 @@ class RecommendationService(
             if (latest != null && latest.isFresh()) {
                 latest.picks
             } else {
-                computeColdStart().also { coldStart = it }.picks
+                computeColdStart(null).also { coldStart = it }.picks
             }
         }
     }
 
-    private suspend fun computeColdStart(): ColdStart = transaction(readOnly = true) {
+    private suspend fun computeColdStart(filter: MovieFilter?): ColdStart = transaction(readOnly = true) {
         val now = Instant.now()
-        val picks = RecommendationRanker.rank(TasteProfile.EMPTY, candidatesFor(TasteProfile.EMPTY), now, COLD_START_LIMIT)
+        val picks = RecommendationRanker.rank(TasteProfile.EMPTY, candidatesFor(TasteProfile.EMPTY, filter), now, COLD_START_LIMIT)
         ColdStart(now, picks.map { RecommendedMovie(it.movie, it.reasons) })
     }
 

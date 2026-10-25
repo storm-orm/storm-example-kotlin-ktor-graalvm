@@ -71,7 +71,8 @@ fun Route.movieSeenRoutes(movieSeenService: MovieSeenService, catchUpService: Ca
     // with ?unmarked, only the ones the visitor has not marked yet.
     get("/seen/catch-up") {
         val parameters = call.request.queryParameters
-        val view = catchUpService.catchUp(parameters["genre"], call.currentUser().takeIf { "unmarked" in parameters })
+        val user = call.currentUser()
+        val view = catchUpService.catchUp(parameters["genre"], user.takeIf { "unmarked" in parameters }, user.movieFilter)
         // The scroll asks for the next windows with the same filters.
         val filters = listOfNotNull(view.genre?.let { "genre=" + it.name.encodeURLParameter() }, "unmarked".takeIf { view.unmarkedOnly })
         call.respondPage(ThymeleafContent("catch-up", mapOf(
@@ -85,7 +86,8 @@ fun Route.movieSeenRoutes(movieSeenService: MovieSeenService, catchUpService: Ca
     }
     get("/api/seen/catch-up") {
         val parameters = call.request.queryParameters
-        val window = catchUpService.scroll(parameters["genre"], call.currentUser().takeIf { "unmarked" in parameters }, parameters["cursor"].orEmpty())
+        val user = call.currentUser()
+        val window = catchUpService.scroll(parameters["genre"], user.takeIf { "unmarked" in parameters }, user.movieFilter, parameters["cursor"].orEmpty())
         call.respond(SearchWindow(window.content().map { it.movie.toSearchItem() }, window.nextCursor()))
     }
 

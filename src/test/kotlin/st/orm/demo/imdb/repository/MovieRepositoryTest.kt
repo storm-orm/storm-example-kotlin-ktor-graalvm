@@ -160,7 +160,7 @@ class MovieRepositoryTest {
 
         capture.clear()
         val firstWindow = capture.execute {
-            movieRepository.scrollByGenre(drama, MovieRepository.mostVotedFirst(2))
+            movieRepository.scrollByGenre(drama, null, MovieRepository.mostVotedFirst(2))
         }
         capture.printStatements("scrollByGenre")
         assertEquals(1, capture.count(Operation.SELECT))
@@ -172,6 +172,7 @@ class MovieRepositoryTest {
 
         val secondWindow = movieRepository.scrollByGenre(
             drama,
+            null,
             MovieRepository.mostVotedFirst(2).from(firstWindow.nextCursor()!!)
         )
         assertEquals(listOf("The Godfather"), secondWindow.content().map { it.primaryTitle })

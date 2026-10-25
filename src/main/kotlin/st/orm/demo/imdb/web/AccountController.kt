@@ -12,8 +12,11 @@ import io.ktor.server.routing.post
 import io.ktor.server.thymeleaf.ThymeleafContent
 import io.ktor.server.util.getOrFail
 import io.ktor.server.request.receiveParameters
+import st.orm.demo.imdb.model.MovieFilter
+import st.orm.demo.imdb.model.Tag
 import st.orm.demo.imdb.service.AccountService
 import st.orm.demo.imdb.service.Countries
+import st.orm.demo.imdb.service.MovieFilterService
 import st.orm.demo.imdb.service.StreamingService
 import st.orm.demo.imdb.service.FreepodSignIn
 import st.orm.demo.imdb.service.GitProvider
@@ -30,6 +33,18 @@ data class AccountLogin(val provider: String, val label: String, val username: S
 /** A streaming service of the visitor's country, as the account page offers it, ticked or not. */
 data class ServiceChoice(val id: Int, val name: String, val logoUrl: String?, val chosen: Boolean)
 
+/** A kind of cinema as the account page offers it: a tag, or [OTHER_MOVIES] for the movies without one, ticked or not. */
+data class TagChoice(val key: String, val label: String, val chosen: Boolean)
+
+/** A language as the account page offers it, with its movies, ticked or not. */
+data class LanguageChoice(val code: String, val name: String, val movies: Long, val chosen: Boolean)
+
+/** The key of the choice for the movies without a tag: everything else. */
+private const val OTHER_MOVIES = "OTHER"
+
+/** The most languages a filter keeps to; the page offers fewer. */
+private const val MAX_LANGUAGES = 50
+
 /**
  * Signing in with a git provider, in the OAuth 2 authorization code flow:
  * the sign-in page lists the configured providers, choosing one sends the
@@ -41,9 +56,16 @@ data class ServiceChoice(val id: Int, val name: String, val logoUrl: String?, va
  * Signed in, the same page is the account page: it lists the account's
  * logins and offers the providers not linked yet, and signing in with one
  * of them links it (AccountService.signIn). It also holds the country the
- * user is from, for where movies play, and the streaming services they have.
+ * user is from, for where movies play, the streaming services they have,
+ * and the movies they want picked for them ([MovieFilter]).
  */
-fun Route.accountRoutes(accountService: AccountService, streamingService: StreamingService, gitSignIn: GitSignIn, freepodSignIn: FreepodSignIn) {
+fun Route.accountRoutes(
+    accountService: AccountService,
+    streamingService: StreamingService,
+    movieFilterService: MovieFilterService,
+    gitSignIn: GitSignIn,
+    freepodSignIn: FreepodSignIn
+) {
     val random = SecureRandom()
     val labels = (GitProvider.ALL + freepodSignIn).associate { it.key to it.label }
 
@@ -56,6 +78,12 @@ fun Route.accountRoutes(accountService: AccountService, streamingService: Stream
         val country = call.country().takeIf { user.name != null }
         val services = country?.let { streamingService.servicesIn(it) }.orEmpty()
         val myServices = if (services.isEmpty()) emptySet() else streamingService.servicesOf(user).map { it.id }.toSet()
+        // Signed in, the kinds of cinema and the languages to keep the picks to.
+        val filter = user.movieFilter ?: MovieFilter.NONE
+        val tags = Tag.entries.map { TagChoice(it.name, it.label, it !in filter.hiddenTags) } +
+            TagChoice(OTHER_MOVIES, "Everything else", filter.showsUntagged)
+        val languages = if (user.name == null) emptyList() else movieFilterService.languages(filter.languages)
+            .map { LanguageChoice(it.code, it.name, it.movies, it.code in filter.languages) }
         call.respondPage(
             ThymeleafContent(
                 "signin",
@@ -69,7 +97,9 @@ fun Route.accountRoutes(accountService: AccountService, streamingService: Stream
                     "countries" to Countries.all,
                     "browserCountry" to call.browserCountry(),
                     "country" to country,
-                    "services" to services.map { ServiceChoice(it.id, it.name, it.logoPath?.let(::tmdbLogoUrl), it.id in myServices) }
+                    "services" to services.map { ServiceChoice(it.id, it.name, it.logoPath?.let(::tmdbLogoUrl), it.id in myServices) },
+                    "tags" to tags,
+                    "languages" to languages
                 )
             )
         )
@@ -146,6 +176,21 @@ fun Route.accountRoutes(accountService: AccountService, streamingService: Stream
         call.respondRedirect("/signin#services-card")
     }
 
+    // The movies a signed-in user wants picked for them: the kinds of cinema ticked, and the
+    // languages ticked, none meaning every language. Nothing ticked at all lets everything through.
+    post("/account/movies") {
+        val user = call.currentUser().takeIf { it.name != null } ?: return@post call.respondRedirect("/signin")
+        val parameters = call.receiveParameters()
+        val shown = parameters.getAll("show").orEmpty().toSet().ifEmpty { Tag.entries.map { it.name }.toSet() + OTHER_MOVIES }
+        val filter = MovieFilter(
+            hiddenTags = Tag.entries.filterNot { it.name in shown }.toSet(),
+            showsUntagged = OTHER_MOVIES in shown,
+            languages = parameters.getAll("language").orEmpty().filter { LANGUAGE_CODE.matches(it) }.take(MAX_LANGUAGES).toSet()
+        )
+        movieFilterService.updateFilter(user, filter)
+        call.respondRedirect("/signin#movies-card")
+    }
+
     // Signing out forgets the account cookie; the next page starts a new,
     // anonymous account. The signed-in account and its lists stay, behind
     // the provider login.
@@ -154,6 +199,9 @@ fun Route.accountRoutes(accountService: AccountService, streamingService: Stream
         call.respondRedirect("/")
     }
 }
+
+/** An ISO 639 code, two or three letters. */
+private val LANGUAGE_CODE = Regex("[a-z]{2,3}")
 
 private const val SIGN_IN_COOKIE = "signin"
 private const val SIGN_IN_COOKIE_SECONDS = 10 * 60

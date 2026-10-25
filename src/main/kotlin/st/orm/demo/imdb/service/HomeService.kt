@@ -55,7 +55,7 @@ class HomeService(
         HomeView(
             featured = recommendations.featured?.let { featured(it) },
             recentlyViewed = recentlyViewed(user),
-            topRated = ratingRepository.findTopRated(TOP_RATED_MINIMUM_VOTES, TOP_RATED_LIMIT),
+            topRated = ratingRepository.findTopRated(TOP_RATED_MINIMUM_VOTES, user.movieFilter, TOP_RATED_LIMIT),
             genreCounts = statisticsService.genreCounts(),
             watchlistEntries = watchlistRepository.findMostRecent(user, LIST_PREVIEW_LIMIT),
             seenEntries = movieSeenRepository.findMostRecent(user, LIST_PREVIEW_LIMIT),

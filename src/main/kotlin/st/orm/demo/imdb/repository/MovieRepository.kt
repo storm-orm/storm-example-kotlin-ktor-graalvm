@@ -1,27 +1,37 @@
 package st.orm.demo.imdb.repository
 
+import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
+import st.orm.Ref
 import st.orm.Scrollable
 import st.orm.Window
 import st.orm.demo.imdb.model.Genre
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieGenre
+import st.orm.demo.imdb.model.MovieFilter
 import st.orm.demo.imdb.model.MovieGenre_
 import st.orm.demo.imdb.model.Movie_
 import st.orm.demo.imdb.model.Principal
 import st.orm.demo.imdb.model.Principal_
 import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.model.Rating_
+import st.orm.demo.imdb.model.WikidataSource
+import st.orm.demo.imdb.model.WikidataSource_
 import st.orm.repository.EntityRepository
 import st.orm.repository.select
 import st.orm.template.eq
+import st.orm.template.entityId
 import st.orm.template.eqIgnoreCase
+import st.orm.template.greaterEq
+import st.orm.template.inList
 import st.orm.template.isNotNull
 import st.orm.template.lessEq
 import st.orm.template.or
+import st.orm.template.ref
 import st.orm.template.search
 import st.orm.template.startsWithIgnoreCase
 import st.orm.template.suggest
+import java.time.Instant
 
 /**
  * Query result shape: the number of movies released in one decade,
@@ -112,21 +122,55 @@ interface MovieRepository : EntityRepository<Movie, String> {
             .resultList
 
     /**
-     * All movies in a genre with keyset scrolling. The junction table has a
-     * composite key and cannot be scrolled directly, so the scroll runs on
+     * The movies in a genre that [filter] lets through, with keyset
+     * scrolling. The junction table has a composite key and cannot be
+     * scrolled directly, so the scroll runs on
      * the movie's simple primary key with a JOIN through the junction table.
      * The scroll key has to identify one movie, which a key on the junction
      * table would not. The rating is joined so the [scrollable] can order the
      * genre by its vote count, as the browse page does ([mostVotedFirst]);
      * every imported movie has one, so the inner join drops none.
      */
-    fun scrollByGenre(genre: Genre, scrollable: Scrollable<Movie>): Window<Movie> =
-        select()
-            .innerJoin<MovieGenre>().on<Movie>()
+    fun scrollByGenre(genre: Genre, filter: MovieFilter?, scrollable: Scrollable<Movie>): Window<Movie> =
+        inGenre(genre, filter)
             .innerJoin<Rating>().on<Movie>()
-            .where(MovieGenre_.genre eq genre)
             .narrow<Movie>()
             .scroll(scrollable)
+
+    /** How many movies of a genre [filter] lets through: the count the browse page shows. */
+    fun countByGenre(genre: Genre, filter: MovieFilter?): Long =
+        inGenre(genre, filter).resultCount
+
+    /** The movies of a genre that [filter] lets through. */
+    private fun inGenre(genre: Genre, filter: MovieFilter?) =
+        select {
+            innerJoin<MovieGenre, Movie>()
+            where(MovieGenre_.genre eq genre)
+            keepTo(filter)
+        }
+
+    /**
+     * Which of these movies [filter] lets through: for the candidates of the
+     * recommendations that come from more than one query.
+     */
+    fun findMatching(movies: Collection<Ref<Movie>>, filter: MovieFilter): Set<Ref<Movie>> =
+        if (movies.isEmpty()) emptySet() else select {
+            where(Movie_.id inList movies.map { it.entityId() })
+            keepTo(filter)
+        }.resultList.mapTo(HashSet()) { it.ref() }
+
+    /**
+     * The movies Wikidata was not asked about since [askedSince], in windows
+     * of [windowSize] over the key: the anti-join leaves out the movies with
+     * an answer that recent. Each window is one statement that has closed
+     * before the loop sees it, so the loop can call Wikidata and write the
+     * answers between windows.
+     */
+    fun findNotAskedOfWikidataSince(askedSince: Instant, windowSize: Int): Flow<Window<Movie>> =
+        select()
+            .antiJoin<WikidataSource>().on<Movie> { WikidataSource_.fetchedAt greaterEq askedSince }
+            .narrow<Movie>()
+            .windows(windowSize)
 
     companion object {
         /**

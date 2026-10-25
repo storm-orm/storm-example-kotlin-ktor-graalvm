@@ -1,6 +1,7 @@
 package st.orm.demo.imdb.service
 
 import st.orm.demo.imdb.model.Genre
+import st.orm.demo.imdb.model.MovieFilter
 import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.repository.GenreRepository
 import st.orm.demo.imdb.repository.RatingRepository
@@ -19,15 +20,15 @@ class TopMoviesService(
     private val ratingRepository: RatingRepository
 ) {
 
-    /** The top movies page: filter options and entries in one read-only transaction. */
-    suspend fun findTopMovies(genreName: String?, sortBy: TopMoviesSort): TopMoviesView =
+    /** The top movies page: filter options and entries in one read-only transaction, among the movies [filter] lets through. */
+    suspend fun findTopMovies(genreName: String?, sortBy: TopMoviesSort, filter: MovieFilter?): TopMoviesView =
         transaction(readOnly = true) {
             val selectedGenre = genreName?.let { genreRepository.findByName(it) }
             TopMoviesView(
                 genres = genreRepository.findAllOrderedByName(),
                 selectedGenre = selectedGenre,
                 entries = ratingRepository.findTopMovies(
-                    selectedGenre, sortBy, MINIMUM_VOTE_COUNT, TOP_MOVIES_LIMIT)
+                    selectedGenre, sortBy, filter, MINIMUM_VOTE_COUNT, TOP_MOVIES_LIMIT)
             )
         }
 

@@ -35,6 +35,7 @@ import st.orm.demo.imdb.service.PersonGalleryService
 import st.orm.demo.imdb.service.RecommendationService
 import st.orm.demo.imdb.service.ViewLogProperties
 import st.orm.demo.imdb.service.ViewLogService
+import st.orm.demo.imdb.service.WikidataService
 import st.orm.demo.imdb.web.configureAccounts
 import st.orm.demo.imdb.web.configureRouting
 import st.orm.ktor.Storm
@@ -67,6 +68,7 @@ fun Application.module() {
 
     configureGalleryRefresh()
     configureTmdbExpiry()
+    configureWikidata()
 
     configureRecommendationRefresh()
 
@@ -209,6 +211,33 @@ private fun Application.configureTmdbExpiry() {
 }
 
 /**
+ * Wikidata tells where each movie was made and in what language, which
+ * become its languages and tags (WikidataService): it is asked about the
+ * movies it was not asked about lately at startup, which on the first start
+ * is the whole catalogue, then once a day for the movies the IMDB sync
+ * added. A failed run is logged; the next one asks what it left.
+ */
+private fun Application.configureWikidata() {
+    if (environment.config.propertyOrNull("wikidata.enabled")?.getString()?.toBoolean() == false) {
+        environment.log.info("Wikidata disabled.")
+        return
+    }
+    val wikidataService: WikidataService by dependencies
+    launch {
+        while (isActive) {
+            try {
+                wikidataService.askAboutMovies()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                environment.log.warn("Could not ask Wikidata about the movies.", e)
+            }
+            delay(Duration.ofDays(1).toMillis())
+        }
+    }
+}
+
+/**
  * Storm reports every query (storm.query) and every transaction (storm.transaction)
  * as a Micrometer Observation once an ObservationRegistry is available in the
  * dependency container; the registry is wired in configureDependencies(). The
@@ -289,7 +318,8 @@ private fun Application.configureStorm() {
                     "db/migration/V16__movie_sources.sql",
                     "db/migration/V17__watch_providers.sql",
                     "db/migration/V18__refetch_watch_providers.sql",
-                    "db/migration/V19__user_watch_providers.sql"
+                    "db/migration/V19__user_watch_providers.sql",
+                    "db/migration/V20__movie_tags.sql"
                 )))
                 .load()
                 .migrate()

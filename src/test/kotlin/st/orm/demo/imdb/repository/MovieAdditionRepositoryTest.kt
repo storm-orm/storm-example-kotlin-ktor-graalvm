@@ -20,7 +20,7 @@ class MovieAdditionRepositoryTest {
         val movieAdditionRepository = orm.repository<MovieAdditionRepository>()
 
         val firstWindow = capture.execute {
-            movieAdditionRepository.scrollAdditions(fromYear = 1994, MovieAdditionRepository.newestFirst(3))
+            movieAdditionRepository.scrollAdditions(fromYear = 1994, filter = null, scrollable = MovieAdditionRepository.newestFirst(3))
         }
         capture.printStatements("scrollAdditions")
         assertEquals(1, capture.count(Operation.SELECT))
@@ -40,7 +40,8 @@ class MovieAdditionRepositoryTest {
         // The cursor resumes inside 2 July: the keyset holds the moment, the votes and the movie.
         val secondWindow = movieAdditionRepository.scrollAdditions(
             fromYear = 1994,
-            MovieAdditionRepository.newestFirst(3).from(firstWindow.nextCursor()!!)
+            filter = null,
+            scrollable = MovieAdditionRepository.newestFirst(3).from(firstWindow.nextCursor()!!)
         )
         // The Godfather and Amélie were there from the start: no addition.
         assertEquals(listOf("Pulp Fiction"), secondWindow.content().map { it.movie.primaryTitle })
@@ -52,7 +53,7 @@ class MovieAdditionRepositoryTest {
         val movieAdditionRepository = orm.repository<MovieAdditionRepository>()
 
         // Shawshank and Pulp Fiction (1994) joined the catalogue, but they are no recent releases.
-        val window = movieAdditionRepository.scrollAdditions(fromYear = 1999, MovieAdditionRepository.newestFirst(3))
+        val window = movieAdditionRepository.scrollAdditions(fromYear = 1999, filter = null, scrollable = MovieAdditionRepository.newestFirst(3))
         assertEquals(listOf("The Matrix", "The Matrix Reloaded"), window.content().map { it.movie.primaryTitle })
         assertFalse(window.hasNext())
 

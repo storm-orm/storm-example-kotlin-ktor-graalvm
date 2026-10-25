@@ -3,6 +3,7 @@ package st.orm.demo.imdb.service
 import st.orm.Window
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieAddition
+import st.orm.demo.imdb.model.MovieFilter
 import st.orm.demo.imdb.repository.MovieAdditionRepository
 import st.orm.template.transaction
 import java.time.Instant
@@ -32,11 +33,11 @@ class RecentlyAddedService(private val movieAdditionRepository: MovieAdditionRep
     /**
      * The recently added page: the first window of the recent additions,
      * newest first and the most voted first within a sync run's additions,
-     * grouped by the day. A day may continue in the next window; the client
-     * appends to it.
+     * grouped by the day, among the movies [filter] lets through. A day may
+     * continue in the next window; the client appends to it.
      */
-    suspend fun recentlyAdded(now: Instant = Instant.now()): RecentlyAddedView = transaction(readOnly = true) {
-        val window = movieAdditionRepository.scrollAdditions(recentYear(now), MovieAdditionRepository.newestFirst(PAGE_SIZE))
+    suspend fun recentlyAdded(filter: MovieFilter?, now: Instant = Instant.now()): RecentlyAddedView = transaction(readOnly = true) {
+        val window = movieAdditionRepository.scrollAdditions(recentYear(now), filter, MovieAdditionRepository.newestFirst(PAGE_SIZE))
         RecentlyAddedView(
             days = window.content().groupedBy(label = { dayLabel(it.addedAt) }, movie = { it.movie }),
             nextCursor = window.nextCursor()
@@ -48,13 +49,13 @@ class RecentlyAddedService(private val movieAdditionRepository: MovieAdditionRep
      * scrolls: null requests the first window, any other value resumes
      * where the client left off.
      */
-    suspend fun scroll(cursor: String?, now: Instant = Instant.now()): Window<MovieAddition> = transaction(readOnly = true) {
+    suspend fun scroll(filter: MovieFilter?, cursor: String?, now: Instant = Instant.now()): Window<MovieAddition> = transaction(readOnly = true) {
         val scrollable = if (cursor != null) {
             MovieAdditionRepository.newestFirst(PAGE_SIZE).from(cursor)
         } else {
             MovieAdditionRepository.newestFirst(PAGE_SIZE)
         }
-        movieAdditionRepository.scrollAdditions(recentYear(now), scrollable)
+        movieAdditionRepository.scrollAdditions(recentYear(now), filter, scrollable)
     }
 
     companion object {

@@ -17,6 +17,10 @@
             <!-- On a phone the head lies on the backdrop, or the trailer behind it, and the body follows below. -->
             <div class="hero-head">
                 <h1 class="movie-title" th:text="${detail.movie.primaryTitle}">Title</h1>
+                <p class="movie-directors" th:unless="${detail.directors.isEmpty()}">Directed by
+                    <th:block th:each="director, status : ${detail.directors}"><a
+                        th:href="@{/person/{id}(id=${director.id})}" th:text="${director.primaryName}">Name</a><th:block
+                        th:unless="${status.last}">, </th:block></th:block></p>
                 <div class="movie-meta">
                     <th:block th:if="${detail.rating != null}">
                         <span class="rating-badge meta-rating">
@@ -28,6 +32,8 @@
                     </th:block>
                     <span th:if="${detail.movie.startYear != null}" th:text="${detail.movie.startYear}">1999</span>
                     <span th:if="${detail.movie.runtimeMinutes != null}" th:text="|${detail.movie.runtimeMinutes} min|">136 min</span>
+                    <span class="meta-language" th:unless="${detail.languages.isEmpty()}"
+                          th:text="${#strings.listJoin(detail.languages, ', ')}">English</span>
                     <span class="meta-original" th:if="${detail.movie.originalTitle != detail.movie.primaryTitle}"
                           th:text="|Original title: ${detail.movie.originalTitle}|">Original title</span>
                 </div>

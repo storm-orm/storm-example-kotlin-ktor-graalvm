@@ -78,20 +78,20 @@ class InsightQueriesTest {
     @Test
     fun `the catch-up page scrolls the most voted movies first`(orm: ORMTemplate) {
         val ratings = orm.repository<RatingRepository>()
-        val first = ratings.scrollMostVoted(null, null, RatingRepository.mostVotedFirst(2))
+        val first = ratings.scrollMostVoted(null, null, null, RatingRepository.mostVotedFirst(2))
         assertEquals(listOf("The Shawshank Redemption", "Pulp Fiction"), first.content().map { it.movie.primaryTitle })
-        val next = ratings.scrollMostVoted(null, null, RatingRepository.mostVotedFirst(2).from(first.nextCursor()!!))
+        val next = ratings.scrollMostVoted(null, null, null, RatingRepository.mostVotedFirst(2).from(first.nextCursor()!!))
         // The Matrix and The Godfather tie at two million votes: the movie's id decides.
         assertEquals(listOf("The Godfather", "The Matrix"), next.content().map { it.movie.primaryTitle })
         // Of one genre: the Sci-Fi movies only.
         val sciFi = orm.repository<GenreRepository>().findByName("Sci-Fi")
-        assertEquals(listOf("The Matrix", "The Matrix Reloaded"), ratings.scrollMostVoted(sciFi, null, RatingRepository.mostVotedFirst(10)).content().map { it.movie.primaryTitle })
+        assertEquals(listOf("The Matrix", "The Matrix Reloaded"), ratings.scrollMostVoted(sciFi, null, null, RatingRepository.mostVotedFirst(10)).content().map { it.movie.primaryTitle })
     }
 
     @Test
     fun `the catch-up page can leave out the movies a user marked, by an anti-join`(orm: ORMTemplate, capture: SqlCapture) {
         val user = seenFixture(orm)
-        val unmarked = capture.execute { orm.repository<RatingRepository>().scrollMostVoted(null, user, RatingRepository.mostVotedFirst(10)) }
+        val unmarked = capture.execute { orm.repository<RatingRepository>().scrollMostVoted(null, user, null, RatingRepository.mostVotedFirst(10)) }
         capture.printStatements("scrollMostVoted(unseenBy)")
         // The visitor saw both Matrix movies and Shawshank; another visitor's Godfather still counts as unmarked here.
         assertEquals(listOf("Pulp Fiction", "The Godfather", "Amélie"), unmarked.content().map { it.movie.primaryTitle })

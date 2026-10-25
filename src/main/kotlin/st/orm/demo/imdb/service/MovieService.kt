@@ -10,7 +10,9 @@ import st.orm.demo.imdb.model.Principal
 import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.repository.CheckInRepository
+import st.orm.demo.imdb.repository.DIRECTOR
 import st.orm.demo.imdb.repository.MovieGenreRepository
+import st.orm.demo.imdb.repository.MovieLanguageRepository
 import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.MovieViewRepository
@@ -42,6 +44,10 @@ data class MovieDetail(
     val movie: Movie,
     val rating: Rating?,
     val genres: List<Genre>,
+    /** Who directed it, from the credits, in billing order. */
+    val directors: List<Person>,
+    /** The languages it was made in, by name, as far as Wikidata knows them. */
+    val languages: List<String>,
     val cast: List<CastCredit>,
     val relatedMovies: List<RelatedMovie>,
     /** The state of the visitor's two lists for this movie. */
@@ -67,6 +73,7 @@ class MovieService(
     private val movieRepository: MovieRepository,
     private val ratingRepository: RatingRepository,
     private val movieGenreRepository: MovieGenreRepository,
+    private val movieLanguageRepository: MovieLanguageRepository,
     private val principalRepository: PrincipalRepository,
     private val movieViewRepository: MovieViewRepository,
     private val watchlistRepository: WatchlistRepository,
@@ -103,6 +110,8 @@ class MovieService(
             movie = movie,
             rating = ratingRepository.findById(movie),
             genres = movieGenreRepository.findGenres(movie),
+            directors = credits.filter { it.category == DIRECTOR }.map { it.person }.distinct(),
+            languages = movieLanguageRepository.findLanguages(movie).map(Languages::nameOf),
             cast = cast,
             relatedMovies = relatedMovies,
             lists = MovieListState.of(

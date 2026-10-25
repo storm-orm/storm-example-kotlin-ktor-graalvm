@@ -5,6 +5,7 @@ import st.orm.Window
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieAddition
 import st.orm.demo.imdb.model.MovieAddition_
+import st.orm.demo.imdb.model.MovieFilter
 import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.model.Rating_
 import st.orm.repository.EntityRepository
@@ -26,14 +27,14 @@ interface MovieAdditionRepository : EntityRepository<MovieAddition, Movie> {
      * among the movies one sync run added, the most voted first
      * ([newestFirst]). The movie comes with the addition; the rating is
      * joined for the vote count, and every synced movie has one, so the
-     * inner join drops none.
+     * inner join drops none. [filter] keeps it to the movies it lets through.
      */
-    fun scrollAdditions(fromYear: Int, scrollable: Scrollable<MovieAddition>): Window<MovieAddition> =
-        select()
-            .innerJoin<Rating>().on<Movie>()
-            .where(MovieAddition_.movie.startYear greaterEq fromYear)
-            .narrow<MovieAddition>()
-            .scroll(scrollable)
+    fun scrollAdditions(fromYear: Int, filter: MovieFilter?, scrollable: Scrollable<MovieAddition>): Window<MovieAddition> =
+        select {
+            innerJoin<Rating, Movie>()
+            where(MovieAddition_.movie.startYear greaterEq fromYear)
+            keepTo(filter)
+        }.narrow<MovieAddition>().scroll(scrollable)
 
     /**
      * The movies released in or after [fromYear] that joined the catalogue

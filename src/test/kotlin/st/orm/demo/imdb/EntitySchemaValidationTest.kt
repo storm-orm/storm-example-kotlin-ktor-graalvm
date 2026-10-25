@@ -13,6 +13,8 @@ import st.orm.demo.imdb.model.Genre
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieAddition
 import st.orm.demo.imdb.model.MovieGenre
+import st.orm.demo.imdb.model.MovieLanguage
+import st.orm.demo.imdb.model.MovieTag
 import st.orm.demo.imdb.model.MovieSeen
 import st.orm.demo.imdb.model.MovieView
 import st.orm.demo.imdb.model.MovieViewDay
@@ -40,7 +42,7 @@ import st.orm.test.TestDatabase
  * container starts once per test run; the class receives a database of its
  * own inside it.
  */
-@StormTest(database = TestDatabase.POSTGRESQL, scripts = ["/db/migration/V1__create_schema.sql", "/db/migration/V2__store_folded_titles.sql", "/db/migration/V3__record_movie_additions.sql", "/db/migration/V4__personal_accounts.sql", "/db/migration/V5__recommendations.sql", "/db/migration/V6__recommendation_fatigue.sql", "/db/migration/V7__fold_old_views.sql", "/db/migration/V8__movie_view_day_natural_key.sql", "/db/migration/V9__personal_recently_viewed.sql", "/db/migration/V10__friends.sql", "/db/migration/V11__public_friend_invites.sql", "/db/migration/V12__seen_history.sql", "/db/migration/V13__check_ins.sql", "/db/migration/V14__clubs.sql", "/db/migration/V15__friend_requests.sql", "/db/migration/V16__movie_sources.sql", "/db/migration/V17__watch_providers.sql", "/db/migration/V18__refetch_watch_providers.sql", "/db/migration/V19__user_watch_providers.sql"])
+@StormTest(database = TestDatabase.POSTGRESQL, scripts = ["/db/migration/V1__create_schema.sql", "/db/migration/V2__store_folded_titles.sql", "/db/migration/V3__record_movie_additions.sql", "/db/migration/V4__personal_accounts.sql", "/db/migration/V5__recommendations.sql", "/db/migration/V6__recommendation_fatigue.sql", "/db/migration/V7__fold_old_views.sql", "/db/migration/V8__movie_view_day_natural_key.sql", "/db/migration/V9__personal_recently_viewed.sql", "/db/migration/V10__friends.sql", "/db/migration/V11__public_friend_invites.sql", "/db/migration/V12__seen_history.sql", "/db/migration/V13__check_ins.sql", "/db/migration/V14__clubs.sql", "/db/migration/V15__friend_requests.sql", "/db/migration/V16__movie_sources.sql", "/db/migration/V17__watch_providers.sql", "/db/migration/V18__refetch_watch_providers.sql", "/db/migration/V19__user_watch_providers.sql", "/db/migration/V20__movie_tags.sql"])
 class EntitySchemaValidationTest {
 
     @Test
@@ -67,7 +69,9 @@ class EntitySchemaValidationTest {
             CheckIn::class,
             Club::class,
             ClubMember::class,
-            FriendRequest::class
+            FriendRequest::class,
+            MovieTag::class,
+            MovieLanguage::class
         )
         assertTrue(errors.isEmpty()) { "Schema validation errors: $errors" }
     }

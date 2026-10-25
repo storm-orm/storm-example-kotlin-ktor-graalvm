@@ -16,6 +16,7 @@ import st.orm.demo.imdb.service.CachedImdbDatasets
 import st.orm.demo.imdb.service.ImdbDataSync
 import st.orm.demo.imdb.service.ImdbDatasets
 import st.orm.demo.imdb.service.ImdbSyncProperties
+import st.orm.demo.imdb.service.MovieFilterService
 import st.orm.demo.imdb.service.MovieSeenService
 import st.orm.demo.imdb.service.MovieService
 import st.orm.demo.imdb.service.PersonGalleryService
@@ -35,6 +36,8 @@ import st.orm.demo.imdb.service.MovieSourceService
 import st.orm.demo.imdb.service.StreamingService
 import st.orm.demo.imdb.service.TmdbClient
 import st.orm.demo.imdb.service.TmdbService
+import st.orm.demo.imdb.service.WikidataClient
+import st.orm.demo.imdb.service.WikidataService
 import st.orm.demo.imdb.service.WikipediaSummaryService
 import st.orm.demo.imdb.service.configuredProviders
 import st.orm.demo.imdb.service.freepodSignIn
@@ -94,15 +97,19 @@ fun Application.configureDependencies() {
         provide { StatisticsService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { InsightsService(resolve(), resolve(), resolve(), resolve()) }
         provide { SearchService(resolve(), resolve()) }
-        provide { BrowseService(resolve(), resolve(), resolve()) }
+        provide { BrowseService(resolve(), resolve()) }
         provide { RecentlyAddedService(resolve()) }
-        provide { MovieService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { MovieService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PersonService(resolve(), resolve()) }
         provide { WikipediaSummaryService(resolve(), resolve(), resolve()) }
         // TMDB, for the trailers and for imports of TMDB exports, with the key from application.conf (tmdb).
         provide { TmdbClient(tmdbApiKey, resolve()) }
         provide { TmdbService(resolve(), resolve(), resolve(), resolve()) }
-        provide { MovieSourceService(resolve(), resolve()) }
+        provide { MovieSourceService(resolve(), resolve(), resolve()) }
+        // Wikidata, for where each movie was made and in what language: its languages and tags.
+        provide { WikidataClient(resolve()) }
+        provide { WikidataService(resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { MovieFilterService(resolve(), resolve(), resolve()) }
         provide { StreamingService(resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PersonGalleryService(resolve(), resolve(), resolve(), resolve(), resolve<GalleryRefreshProperties>().maxAge) }
         provide { PosterController(resolve()) }

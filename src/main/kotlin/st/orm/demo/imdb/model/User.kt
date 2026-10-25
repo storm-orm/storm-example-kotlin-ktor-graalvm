@@ -4,6 +4,7 @@ import st.orm.DbTable
 import kotlinx.serialization.Serializable
 import st.orm.Entity
 import st.orm.GenerationStrategy.NONE
+import st.orm.Json
 import st.orm.PK
 import st.orm.demo.imdb.serialization.InstantAsStringSerializer
 import java.time.Instant
@@ -41,5 +42,7 @@ data class User(
     /** and the days, off by default, as members of a club are not always friends. */
     val clubShareDates: Boolean = false,
     /** The country the user is from (ISO 3166-1 alpha-2), for where movies play; null leaves it to the browser. */
-    val country: String? = null
+    val country: String? = null,
+    /** The movies the user wants picked for them; null lets every movie through. */
+    @Json val movieFilter: MovieFilter? = null
 ) : Entity<String>
