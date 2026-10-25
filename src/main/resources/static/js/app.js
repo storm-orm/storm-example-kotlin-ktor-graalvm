@@ -436,7 +436,8 @@ function bringForward(hero, behind, buttons) {
             frameToggle.title = fullFrame ? 'Fill the screen' : 'Show the whole frame';
             frameToggle.setAttribute('aria-label', frameToggle.title);
         });
-        const landscape = matchMedia('(orientation: landscape) and (pointer: coarse)');
+        // A phone turned sideways: touch, landscape, and low, which a tablet in landscape is not.
+        const landscape = matchMedia('(orientation: landscape) and (pointer: coarse) and (max-height: 500px)');
         const fitScreen = () => {
             hero.classList.toggle('trailer-fullscreen', landscape.matches);
             if (landscape.matches) frame.requestFullscreen?.().catch(() => {});
