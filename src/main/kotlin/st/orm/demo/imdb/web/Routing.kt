@@ -84,6 +84,6 @@ fun Application.configureRouting() {
         galleryRoutes(personGalleryService)
         summaryRoutes(wikipediaSummaryService)
         trailerRoutes(tmdbService)
-        watchProviderRoutes(tmdbService)
+        watchProviderRoutes(tmdbService, streamingService)
     }
 }

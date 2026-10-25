@@ -20,7 +20,8 @@
         <p class="account-hint" th:if="${account.name == null}">
             Your lists live in this browser. <a th:href="@{/signin(rd='/watchlist')}">Sign in</a> with a git account to keep them on every device.
         </p>
-        <div class="movie-grid" id="watchlist-results">
+        <!-- The logos of the visitor's services go on the posters of the movies they stream, once the page asks. -->
+        <div class="movie-grid" id="watchlist-results" th:data-service-logos="${hasServices} ? '/api/my-services'">
             <th:block th:each="entry : ${watchlistPage.content()}">
                 <a th:replace="~{fragments/cards :: movie(${entry.movie.id}, ${entry.movie.primaryTitle}, ${entry.movie.startYear})}"></a>
             </th:block>

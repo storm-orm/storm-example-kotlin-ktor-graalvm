@@ -169,24 +169,26 @@ function setupWatchProviders() {
     });
 }
 
-/* ── Your services on the posters of For You ─────────────────────── */
+/* ── Your services on the posters ──────────────────────────────────── */
 
-// The logos of the visitor's streaming services on the posters of the picks they stream: asked for the
-// cards on the page in one request, and again for the cards the scroll adds. A pick on none of them,
-// or a page without services, keeps its poster as it is.
+// The logos of the visitor's streaming services on the posters of the movies they stream, in the rows
+// and grids that ask for them (For You, What to watch next, the watchlist): asked for the cards in one
+// request, and again for the cards a scroll adds. A movie on none of them, or a page without
+// services, keeps its poster as it is.
 function setupServiceLogos() {
+    const movieIdOf = card => (card.getAttribute('href').match(/^\/movie\/(tt\d+)/) || [])[1];
     document.querySelectorAll('[data-service-logos]').forEach(container => {
         const show = async () => {
-            const cards = [...container.querySelectorAll('.recommended[data-movie-id]:not([data-services-asked])')];
+            const cards = [...container.querySelectorAll('a.movie-card:not([data-services-asked])')].filter(movieIdOf);
             if (cards.length === 0) return;
             cards.forEach(card => { card.dataset.servicesAsked = ''; });
             try {
-                const ids = cards.map(card => card.dataset.movieId).join(',');
+                const ids = cards.map(movieIdOf).join(',');
                 const response = await fetch(container.dataset.serviceLogos + '?movies=' + encodeURIComponent(ids));
                 if (!response.ok) return;
                 const services = await response.json();
                 cards.forEach(card => {
-                    const platforms = (services[card.dataset.movieId] || []).filter(platform => platform.logoUrl);
+                    const platforms = (services[movieIdOf(card)] || []).filter(platform => platform.logoUrl);
                     if (platforms.length === 0) return;
                     const strip = document.createElement('div');
                     strip.className = 'poster-services';

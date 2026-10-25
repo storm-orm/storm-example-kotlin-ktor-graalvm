@@ -26,7 +26,7 @@
             <h2 class="section-title" th:text="${personal} ? 'New since your last visit' : 'New this month'">New since your last visit</h2>
             <span class="section-note-inline" th:if="${personal}" th:text="|Joined the catalogue in the past ${newSinceDays} days|">Joined the catalogue in the past 7 days</span>
         </div>
-        <div class="movie-row" th:data-service-logos="${hasServices} ? '/api/for-you/services'">
+        <div class="movie-row" th:data-service-logos="${hasServices} ? '/api/my-services'">
             <th:block th:each="pick : ${newArrivals}">
                 <a th:replace="~{fragments/cards :: recommended(${pick.movie.id}, ${pick.movie.primaryTitle}, ${pick.movie.startYear}, ${pick.reasons})}"></a>
             </th:block>
@@ -39,7 +39,7 @@
         <div class="empty-state" th:if="${movies.isEmpty() and !onServices}">Nothing to recommend yet. Try again in a moment.</div>
         <div class="empty-state" th:if="${movies.isEmpty() and onServices}">None of your picks streams on your services right now.</div>
         <!-- The logos of the visitor's services go on the posters of the picks they stream, once the page asks. -->
-        <div class="movie-grid" id="for-you-results" th:data-service-logos="${hasServices} ? '/api/for-you/services'">
+        <div class="movie-grid" id="for-you-results" th:data-service-logos="${hasServices} ? '/api/my-services'">
             <th:block th:each="pick : ${movies}">
                 <a th:replace="~{fragments/cards :: recommended(${pick.movie.id}, ${pick.movie.primaryTitle}, ${pick.movie.startYear}, ${pick.reasons})}"></a>
             </th:block>

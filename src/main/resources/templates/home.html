@@ -114,7 +114,7 @@
         <p class="section-note" th:unless="${view.recommendations.personal}">
             Picks from the whole catalogue. Mark movies as watched, or save them, and these become yours.
         </p>
-        <div class="movie-row">
+        <div class="movie-row" th:data-service-logos="${hasServices} ? '/api/my-services'">
             <th:block th:each="pick : ${view.recommendations.watchNext}">
                 <a th:replace="~{fragments/cards :: recommended(${pick.movie.id}, ${pick.movie.primaryTitle}, ${pick.movie.startYear}, ${pick.reasons})}"></a>
             </th:block>
@@ -145,7 +145,7 @@
             <h2 class="section-title">My Watchlist</h2>
             <a class="section-link" th:href="@{/watchlist}">View all →</a>
         </div>
-        <div class="movie-row">
+        <div class="movie-row" th:data-service-logos="${hasServices} ? '/api/my-services'">
             <th:block th:each="entry : ${view.watchlistEntries}">
                 <a th:replace="~{fragments/cards :: movie(${entry.movie.id}, ${entry.movie.primaryTitle}, ${entry.movie.startYear})}"></a>
             </th:block>

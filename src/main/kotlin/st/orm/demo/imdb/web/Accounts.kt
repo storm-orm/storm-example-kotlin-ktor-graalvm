@@ -17,6 +17,7 @@ import st.orm.demo.imdb.service.Countries
 import st.orm.demo.imdb.service.Country
 import st.orm.demo.imdb.service.FreepodSignIn
 import st.orm.demo.imdb.service.FriendService
+import st.orm.demo.imdb.service.StreamingService
 import st.orm.demo.imdb.service.TmdbService
 import java.util.Locale
 
@@ -31,6 +32,7 @@ private val AccountServiceKey = AttributeKey<AccountService>("AccountService")
 private val FreepodSignInKey = AttributeKey<FreepodSignIn>("FreepodSignIn")
 private val FriendServiceKey = AttributeKey<FriendService>("FriendService")
 private val TmdbServiceKey = AttributeKey<TmdbService>("TmdbService")
+private val StreamingServiceKey = AttributeKey<StreamingService>("StreamingService")
 private val AccountIdKey = AttributeKey<String>("AccountId")
 private val CurrentUserKey = AttributeKey<User>("CurrentUser")
 
@@ -42,10 +44,12 @@ fun Application.configureAccounts() {
     val freepodSignIn: FreepodSignIn by dependencies
     val friendService: FriendService by dependencies
     val tmdbService: TmdbService by dependencies
+    val streamingService: StreamingService by dependencies
     attributes.put(AccountServiceKey, accountService)
     attributes.put(FreepodSignInKey, freepodSignIn)
     attributes.put(FriendServiceKey, friendService)
     attributes.put(TmdbServiceKey, tmdbService)
+    attributes.put(StreamingServiceKey, streamingService)
 }
 
 /**
@@ -53,18 +57,22 @@ fun Application.configureAccounts() {
  * visitor's account under `account`, for the navbar, under `requestCount`
  * the friend requests a signed-in visitor has to answer, for the badge on
  * the Community tab, under `hostedOnFreepod` whether the application runs
- * on Freepod with its sign-in on, and under `tmdb` whether TMDB is on, for
- * the Trailer buttons and the footer's credit. Every page responds through
- * here, so no controller passes them itself.
+ * on Freepod with its sign-in on, under `tmdb` whether TMDB is on, for
+ * the Trailer buttons and the footer's credit, and under `hasServices`
+ * whether a signed-in visitor has streaming services, for their logos on
+ * the posters. Every page responds through here, so no controller passes
+ * them itself.
  */
 suspend fun ApplicationCall.respondPage(content: ThymeleafContent) {
     val user = currentUser()
     val requestCount = if (user.name != null) application.attributes[FriendServiceKey].countRequests(user) else 0L
+    val hasServices = isSignedIn() && country() != null && application.attributes[StreamingServiceKey].servicesOf(user).isNotEmpty()
     val layout = mapOf(
         "account" to user,
         "requestCount" to requestCount,
         "hostedOnFreepod" to application.attributes[FreepodSignInKey].enabled,
-        "tmdb" to application.attributes[TmdbServiceKey].enabled
+        "tmdb" to application.attributes[TmdbServiceKey].enabled,
+        "hasServices" to hasServices
     )
     respond(ThymeleafContent(content.template, content.model + layout))
 }

@@ -14,9 +14,6 @@ import st.orm.ktor.transactional
 /** The query parameter that keeps For You to the picks on the visitor's streaming services. */
 private const val ON_SERVICES = "services"
 
-/** The most posters one request asks the services of: all the picks, kept to the services, are a hundred at most. */
-private const val MAX_SERVICE_MOVIES = 100
-
 fun Route.forYouRoutes(recommendationService: RecommendationService, streamingService: StreamingService) {
     get("/for-you") {
         val user = call.currentUser()
@@ -37,22 +34,13 @@ fun Route.forYouRoutes(recommendationService: RecommendationService, streamingSe
                 "nextCursor" to view.nextCursor
             )
         }
-        call.respondPage(ThymeleafContent("for-you", model + mapOf("hasServices" to hasServices, "onServices" to onServices)))
+        call.respondPage(ThymeleafContent("for-you", model + mapOf("onServices" to onServices)))
     }
 
     // The next window of the visitor's picks, same cursor contract as the other scrolls.
     get("/api/for-you") {
         val window = recommendationService.scroll(call.currentUser(), call.request.queryParameters.getOrFail("cursor"))
         call.respond(SearchWindow(window.content().map { it.toRecommendedItem() }, window.nextCursor()))
-    }
-
-    // The visitor's services each of these picks streams on, by movie id, for the logos on the posters;
-    // the page asks after it loads, and again for the cards the scroll adds.
-    get("/api/for-you/services") {
-        val country = call.country()?.takeIf { call.isSignedIn() } ?: return@get call.respond(emptyMap<String, List<Platform>>())
-        val movieIds = call.request.queryParameters["movies"].orEmpty().split(',').filter { it.isNotBlank() }.take(MAX_SERVICE_MOVIES)
-        val services = streamingService.servicesByMovie(call.currentUser(), country, movieIds)
-        call.respond(services.mapValues { (_, providers) -> providers.map { it.toPlatform() } })
     }
 
     // "Not interested": the dismissal, the pick's removal and the event are one transaction.
