@@ -16,6 +16,7 @@ import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.MovieSourceRepository
 import st.orm.demo.imdb.repository.TmdbSourceRepository
+import st.orm.demo.imdb.repository.UserRepository
 import st.orm.demo.imdb.service.Countries
 import st.orm.demo.imdb.service.ExportRow
 import st.orm.demo.imdb.service.HistoryImport
@@ -214,7 +215,7 @@ class TmdbTest {
 
     @Test
     fun `a user has services among the country's, and For You keeps to them`(orm: ORMTemplate) {
-        val streaming = StreamingService(orm.repository(), orm.repository(), tmdbService(orm, client()))
+        val streaming = StreamingService(orm.repository(), orm.repository(), orm.repository(), tmdbService(orm, client()))
         val alice = orm.insertUser("alice", name = "Alice")
         val netherlands = Countries.of("NL")!!
 
@@ -223,6 +224,8 @@ class TmdbTest {
         // Only services of the country can be had.
         runBlocking { streaming.updateServices(alice, netherlands, setOf(337, 1899, 999)) }
         assertEquals(listOf("Disney Plus"), runBlocking { streaming.servicesOf(alice) }.map { it.name })
+        // Alice left her country to the browser; her services keep the one they were chosen in.
+        assertEquals("NL", orm.repository<UserRepository>().getById("alice").country)
 
         // The Matrix streams on Disney Plus there; TMDB does not know The Shawshank Redemption.
         val byMovie = runBlocking { streaming.servicesByMovie(alice, netherlands, listOf("tt0133093", "tt0111161")) }

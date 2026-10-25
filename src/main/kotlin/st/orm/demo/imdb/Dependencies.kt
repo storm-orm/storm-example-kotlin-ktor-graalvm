@@ -103,7 +103,7 @@ fun Application.configureDependencies() {
         provide { TmdbClient(tmdbApiKey, resolve()) }
         provide { TmdbService(resolve(), resolve(), resolve(), resolve()) }
         provide { MovieSourceService(resolve(), resolve()) }
-        provide { StreamingService(resolve(), resolve(), resolve()) }
+        provide { StreamingService(resolve(), resolve(), resolve(), resolve()) }
         provide { PersonGalleryService(resolve(), resolve(), resolve(), resolve(), resolve<GalleryRefreshProperties>().maxAge) }
         provide { PosterController(resolve()) }
         provide<ImdbDatasets> { CachedImdbDatasets(syncProperties.cacheDirectory, syncProperties.datasetBaseUrl) }

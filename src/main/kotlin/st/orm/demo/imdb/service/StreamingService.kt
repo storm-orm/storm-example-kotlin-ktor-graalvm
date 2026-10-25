@@ -4,6 +4,7 @@ import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.model.WatchProvider
 import st.orm.demo.imdb.repository.MovieRepository
+import st.orm.demo.imdb.repository.UserRepository
 import st.orm.demo.imdb.repository.UserWatchProviderRepository
 import st.orm.template.transaction
 
@@ -14,6 +15,7 @@ import st.orm.template.transaction
  * streams comes from TMDB ([TmdbService]).
  */
 class StreamingService(
+    private val userRepository: UserRepository,
     private val userWatchProviderRepository: UserWatchProviderRepository,
     private val movieRepository: MovieRepository,
     private val tmdbService: TmdbService
@@ -27,10 +29,18 @@ class StreamingService(
         userWatchProviderRepository.findAll(user)
     }
 
-    /** Sets the services the user has to the ones with these ids among the services of the country. */
+    /**
+     * Sets the services the user has to the ones with these ids among the
+     * services of the country. Services are a country's, so a user who left
+     * the country to the browser gets this one: a browser in another
+     * language would otherwise make For You look for them elsewhere.
+     */
     suspend fun updateServices(user: User, country: Country, ids: Set<Int>) {
         val chosen = servicesIn(country).filter { it.id in ids }
-        transaction { userWatchProviderRepository.replace(user, chosen) }
+        transaction {
+            if (user.country == null) userRepository.update(user.copy(country = country.code))
+            userWatchProviderRepository.replace(user, chosen)
+        }
     }
 
     /**
