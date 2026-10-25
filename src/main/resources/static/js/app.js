@@ -329,6 +329,12 @@ function loadYoutubeApi() {
 // past its title overlay; where a browser holds back autoplay, the backdrop image simply stays.
 const BACKDROP_VIDEO_WIDTH = 480;
 const BACKDROP_VIDEO_HEIGHT = 270;
+const FILL_CROP = 1.08;
+
+// The icons of the trailer's controls: the whole frame (corners out), filling the hero again (corners in), and exit.
+const ICON_FULL_FRAME = '<svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8V3h5M12 3h5v5M17 12v5h-5M8 17H3v-5"/></svg>';
+const ICON_FILL = '<svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v5H3M12 3v5h5M17 12h-5v5M3 12h5v5"/></svg>';
+const ICON_EXIT = '<svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15"/></svg>';
 
 function playBehind(hero, backdrop, youtubeKey) {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return null;
@@ -350,12 +356,13 @@ function playBehind(hero, backdrop, youtubeKey) {
     layer.append(frame);
     backdrop.after(layer);
     const cover = () => {
-        const scale = Math.max(layer.clientWidth / BACKDROP_VIDEO_WIDTH, layer.clientHeight / BACKDROP_VIDEO_HEIGHT);
-        // More than covering: the player's edges stay out of sight, and so do the black bars of a
-        // trailer that is not 16:9, at the sides of a 4:3 one or above and below a widescreen one.
-        // A phone shows it unblurred in a 16:9 band, so it is cropped less there.
-        const crop = matchMedia('(max-width: 640px)').matches ? 1.2 : 1.4;
-        layer.style.setProperty('--video-scale', String(scale * crop));
+        // A little more than covering, so the black bars of a trailer that is not quite 16:9 stay out
+        // of sight. The same framing serves the trailer brought forward, which fills the hero with the
+        // player at that size, so YouTube sends a stream to match, until the full frame is asked for.
+        const scale = Math.max(layer.clientWidth / BACKDROP_VIDEO_WIDTH, layer.clientHeight / BACKDROP_VIDEO_HEIGHT) * FILL_CROP;
+        layer.style.setProperty('--video-scale', String(scale));
+        layer.style.setProperty('--video-fill-width', `${Math.round(BACKDROP_VIDEO_WIDTH * scale)}px`);
+        layer.style.setProperty('--video-fill-height', `${Math.round(BACKDROP_VIDEO_HEIGHT * scale)}px`);
     };
     cover();
     new ResizeObserver(cover).observe(layer);
@@ -381,7 +388,8 @@ function playBehind(hero, backdrop, youtubeKey) {
 }
 
 // Brings the player behind the hero forward, in the whole of the hero, the navbar sliding out of its
-// way, with an Exit trailer button floating over its corner; Exit trailer or Escape sends it back. A phone turned to landscape
+// way, framed as it was behind, with two controls floating over its corner: the whole frame, with
+// bars where the hero is not 16:9, or filling the hero again; and exit, which Escape does too. A phone turned to landscape
 // meanwhile gets the trailer on the whole screen, and back in the hero when turned upright again:
 // browsers take a fullscreen request only from a tap, so the player covers the screen itself, and
 // asks for fullscreen besides where the browser grants it. On a phone, the band comes forward in
@@ -404,11 +412,27 @@ function bringForward(hero, behind, buttons) {
             }
         }, 700);
 
-        const exit = document.createElement('button');
-        exit.type = 'button';
-        exit.className = 'button button-small trailer-exit';
-        exit.textContent = 'Exit trailer';
-        hero.append(exit);
+        const controls = document.createElement('div');
+        controls.className = 'trailer-controls';
+        const control = (icon, label) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'button trailer-control';
+            button.innerHTML = icon;
+            button.setAttribute('aria-label', label);
+            button.title = label;
+            controls.append(button);
+            return button;
+        };
+        const frameToggle = control(ICON_FULL_FRAME, 'Show the whole frame');
+        const exit = control(ICON_EXIT, 'Exit trailer');
+        hero.append(controls);
+        frameToggle.addEventListener('click', () => {
+            const fullFrame = hero.classList.toggle('trailer-full-frame');
+            frameToggle.innerHTML = fullFrame ? ICON_FILL : ICON_FULL_FRAME;
+            frameToggle.title = fullFrame ? 'Fill the screen' : 'Show the whole frame';
+            frameToggle.setAttribute('aria-label', frameToggle.title);
+        });
         const landscape = matchMedia('(orientation: landscape) and (pointer: coarse)');
         const fitScreen = () => {
             hero.classList.toggle('trailer-fullscreen', landscape.matches);
@@ -424,9 +448,9 @@ function bringForward(hero, behind, buttons) {
             if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
             player.mute();
             frame.tabIndex = -1;
-            exit.remove();
+            controls.remove();
             document.removeEventListener('keydown', onKey);
-            hero.classList.remove('trailer-playing');
+            hero.classList.remove('trailer-playing', 'trailer-full-frame');
             buttons.forEach(button => { button.textContent = 'Trailer'; });
             delete hero.sendTrailerBack;
         };

@@ -1567,8 +1567,9 @@ img { display: block; }
     transition: width 0.5s ease, height 0.5s ease, transform 0.5s ease, filter 0.5s ease;
 }
 
-/* The trailer brought forward (Trailer, then Exit trailer), in the hero's own space: its content
-   and shading give way, and the player, sharp and as large as the hero, takes clicks. */
+/* The trailer brought forward (Trailer, then exit), in the hero's own space: its content and shading
+   give way, and the player, sharp and framed as it was behind, now at that size, takes clicks. The
+   whole frame, asked for by its control, fits the player to the hero, with bars where it is not 16:9. */
 .hero::before, .movie-hero::before, .hero-content, .movie-hero-content { transition: opacity 0.4s ease; }
 
 .trailer-playing::before,
@@ -1577,25 +1578,34 @@ img { display: block; }
 
 .trailer-playing .backdrop-video { z-index: 3; opacity: 1; pointer-events: auto; }
 
-.trailer-playing .backdrop-video iframe { width: 100%; height: 100%; transform: translate(-50%, -50%); filter: none; }
+.trailer-playing .backdrop-video iframe { width: var(--video-fill-width); height: var(--video-fill-height); transform: translate(-50%, -50%); filter: none; }
+
+.trailer-playing.trailer-full-frame .backdrop-video iframe { width: 100%; height: 100%; }
 
 /* A phone turned to landscape: the trailer covers the screen, above the navbar, the page held still. */
 .trailer-fullscreen .backdrop-video { position: fixed; inset: 0; z-index: 1000; background: #000; }
 
-.trailer-fullscreen .trailer-exit { display: none; }
+.trailer-fullscreen .trailer-controls { display: none; }
 
 :root:has(.trailer-fullscreen) { overflow: hidden; }
 
-/* Exit trailer floats over the trailer's corner, rising with the navbar from just under it. */
+/* The trailer's controls float over its corner, rising with the navbar from just under it: round glass
+   buttons with an icon each, the whole frame or the fill, and exit. */
 @keyframes trailer-exit-rise { from { transform: translateY(var(--under-nav, 0px)); } }
 
-.trailer-exit {
+.trailer-controls {
     position: absolute;
     top: 16px;
     right: 16px;
     z-index: 4;
+    display: flex;
+    gap: 8px;
     animation: trailer-exit-rise 0.45s ease;
 }
+
+.trailer-control { width: 38px; height: 38px; padding: 0; justify-content: center; }
+
+.trailer-control svg { display: block; }
 
 .trailer-button::before { content: "▶"; font-size: 11px; }
 
