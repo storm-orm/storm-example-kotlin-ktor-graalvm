@@ -180,12 +180,13 @@ img { display: block; }
     font-size: 14.5px;
     font-weight: 500;
     white-space: nowrap;
-    transition: color 0.15s ease, background 0.15s ease;
+    transition: color 0.15s ease;
 }
 
-.nav-links a:hover { color: var(--text); background: var(--surface-raised); }
+/* The page's tab is told by its color alone, without a block behind it. */
+.nav-links a:hover { color: var(--text); }
 
-.nav-links a.active { color: var(--accent-strong); background: var(--surface-raised); }
+.nav-links a.active { color: var(--accent-strong); }
 
 /* The search box gives way before the page links do, so the navbar stays one row. */
 .navbar .search-box { margin-left: auto; flex: 0 1 320px; min-width: 190px; }
