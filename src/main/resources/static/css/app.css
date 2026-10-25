@@ -134,6 +134,19 @@ img { display: block; }
    when the trailer goes back behind the hero. */
 :root:has(.trailer-playing) .navbar { transform: translateY(-100%); }
 
+/* Safari on a phone tints the strip of its status bar from a fixed element along the top of the page,
+   and shows the page through it, blurred, when there is none: this hairline, in the page's color,
+   hidden in the dark top of the navbar, gives it one. */
+.status-bar-tint {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--background);
+    pointer-events: none;
+}
+
 /* A hero that opens the page reaches up under the navbar (--navbar-height, measured by the script),
    so the trailer or the backdrop runs to the top of the screen; its content stays below the navbar. */
 .navbar + .hero,
