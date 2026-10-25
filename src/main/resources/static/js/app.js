@@ -977,19 +977,31 @@ function setupListToggles() {
     // The check-ins of the movie: the latest in the pill, which unfolds the rest; a new one joins the top.
     const checkIns = document.querySelector('[data-check-ins]');
     const CHECK_IN_DAY = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+    // The hero clips what sticks out of it, so the panel is placed on the page itself, under the pill,
+    // while it is open; scrolling closes it, as its place would go stale.
     const showCheckIns = shown => {
-        checkIns.querySelector('[data-check-in-list]').hidden = !shown;
-        checkIns.querySelector('[data-check-ins-toggle]').setAttribute('aria-expanded', String(shown));
+        const list = checkIns.querySelector('[data-check-in-list]') ?? document.body.querySelector('[data-check-in-list]');
+        const pill = checkIns.querySelector('[data-check-ins-toggle]');
+        if (shown) {
+            const at = pill.getBoundingClientRect();
+            list.style.position = 'fixed';
+            list.style.top = `${Math.round(at.bottom + 8)}px`;
+            list.style.left = `${Math.round(at.left)}px`;
+            document.body.append(list);
+        }
+        list.hidden = !shown;
+        pill.setAttribute('aria-expanded', String(shown));
     };
-    checkIns?.querySelector('[data-check-ins-toggle]').addEventListener('click', () => showCheckIns(checkIns.querySelector('[data-check-in-list]').hidden));
+    checkIns?.querySelector('[data-check-ins-toggle]').addEventListener('click', () => showCheckIns((checkIns.querySelector('[data-check-in-list]') ?? document.body.querySelector('[data-check-in-list]')).hidden));
     // A click elsewhere, or Escape, folds the panel away.
     if (checkIns) {
-        document.addEventListener('click', event => { if (!event.target.closest('[data-check-ins]')) showCheckIns(false); });
+        document.addEventListener('click', event => { if (!event.target.closest('[data-check-ins], [data-check-in-list]')) showCheckIns(false); });
         document.addEventListener('keydown', event => { if (event.key === 'Escape') showCheckIns(false); });
+        window.addEventListener('scroll', () => showCheckIns(false), { passive: true });
     }
     const addCheckIn = day => {
         if (!checkIns) return;
-        const list = checkIns.querySelector('[data-check-in-list]');
+        const list = checkIns.querySelector('[data-check-in-list]') ?? document.body.querySelector('[data-check-in-list]');
         const item = document.createElement('li');
         item.textContent = CHECK_IN_DAY.format(new Date(day + 'T00:00:00Z'));
         list.prepend(item);
@@ -1011,7 +1023,7 @@ function setupListToggles() {
         });
         showCheckIn(state.seenAt);
         // Unmarked as watched, the check-ins go with it.
-        if (checkIns && !state.seen) { checkIns.hidden = true; checkIns.querySelector('[data-check-in-list]').replaceChildren(); }
+        if (checkIns && !state.seen) { checkIns.hidden = true; (checkIns.querySelector('[data-check-in-list]') ?? document.body.querySelector('[data-check-in-list]')).replaceChildren(); }
         if (voteGroup) voteGroup.hidden = !state.seen;
         voteButtons.forEach(button => button.classList.toggle('active', String(state.liked) === button.dataset.vote));
     };
