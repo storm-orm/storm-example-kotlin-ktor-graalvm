@@ -19,7 +19,7 @@ data class Trailer(val youtubeKey: String)
  */
 fun Route.trailerRoutes(tmdbService: TmdbService) {
     get("/api/trailer/{movieId}") {
-        val key = tmdbService.trailer(call.parameters.getOrFail("movieId"))
+        val key = tmdbService.trailer(call.parameters.getOrFail("movieId"), askTmdb = call.isSignedIn())
             ?: return@get call.respond(HttpStatusCode.NotFound)
         call.respond(Trailer(key))
     }

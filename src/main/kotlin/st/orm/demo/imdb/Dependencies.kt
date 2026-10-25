@@ -32,6 +32,7 @@ import st.orm.demo.imdb.service.ViewLogProperties
 import st.orm.demo.imdb.service.ViewLogService
 import st.orm.demo.imdb.service.WatchlistService
 import st.orm.demo.imdb.service.MovieSourceService
+import st.orm.demo.imdb.service.StreamingService
 import st.orm.demo.imdb.service.TmdbClient
 import st.orm.demo.imdb.service.TmdbService
 import st.orm.demo.imdb.service.WikipediaSummaryService
@@ -102,6 +103,7 @@ fun Application.configureDependencies() {
         provide { TmdbClient(tmdbApiKey, resolve()) }
         provide { TmdbService(resolve(), resolve(), resolve(), resolve()) }
         provide { MovieSourceService(resolve(), resolve()) }
+        provide { StreamingService(resolve(), resolve(), resolve()) }
         provide { PersonGalleryService(resolve(), resolve(), resolve(), resolve(), resolve<GalleryRefreshProperties>().maxAge) }
         provide { PosterController(resolve()) }
         provide<ImdbDatasets> { CachedImdbDatasets(syncProperties.cacheDirectory, syncProperties.datasetBaseUrl) }

@@ -109,6 +109,12 @@ fun ApplicationCall.country(): Country? =
 fun ApplicationCall.browserCountry(): Country? =
     request.acceptLanguageItems().firstNotNullOfOrNull { Countries.of(Locale.forLanguageTag(it.value).country.ifEmpty { null }) }
 
+/**
+ * Whether the visitor signed in: an account with a name. Only such a visitor's
+ * requests ask TMDB, so a crawler, which never signs in, cannot run up calls.
+ */
+fun ApplicationCall.isSignedIn(): Boolean = currentUser().name != null
+
 /** Puts the account in the cookie, for a year; the cookie never reaches scripts. */
 fun ApplicationCall.setAccountCookie(accountId: String) {
     response.cookies.append(

@@ -288,7 +288,8 @@ private fun Application.configureStorm() {
                     "db/migration/V15__friend_requests.sql",
                     "db/migration/V16__movie_sources.sql",
                     "db/migration/V17__watch_providers.sql",
-                    "db/migration/V18__refetch_watch_providers.sql"
+                    "db/migration/V18__refetch_watch_providers.sql",
+                    "db/migration/V19__user_watch_providers.sql"
                 )))
                 .load()
                 .migrate()

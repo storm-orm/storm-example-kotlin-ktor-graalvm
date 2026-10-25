@@ -16,8 +16,11 @@ import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.MovieSourceRepository
 import st.orm.demo.imdb.repository.TmdbSourceRepository
+import st.orm.demo.imdb.service.Countries
 import st.orm.demo.imdb.service.ExportRow
 import st.orm.demo.imdb.service.HistoryImport
+import st.orm.demo.imdb.service.RecommendedMovie
+import st.orm.demo.imdb.service.StreamingService
 import st.orm.demo.imdb.service.TmdbClient
 import st.orm.demo.imdb.service.TmdbExport
 import st.orm.repository.repository
@@ -48,6 +51,7 @@ class TmdbTest {
             val body = when (exchange.requestURI.path) {
                 "/3/find/tt0133093" -> """{"movie_results":[{"id":603,"title":"The Matrix"}]}"""
                 "/3/movie/603" -> MATRIX
+                "/3/watch/providers/movie" -> NETHERLANDS
                 else -> if (exchange.requestURI.path.startsWith("/3/find/")) """{"movie_results":[]}""" else null
             }
             val bytes = (body ?: """{"status_code":34}""").toByteArray()
@@ -88,7 +92,7 @@ class TmdbTest {
 
     @Test
     fun `an import finds movies by any source, and asks TMDB once for the TMDB ids it does not know`(orm: ORMTemplate) {
-        val user = orm.insertUser("alice")
+        val user = orm.insertUser("alice", name = "Alice")
         val service = movieSeenService(orm, client())
         val rows = listOf(
             ExportRow(Source.TMDB, "603", LocalDate.of(2024, 2, 11), 9),       // The Matrix, by its TMDB id
@@ -118,24 +122,44 @@ class TmdbTest {
     }
 
     @Test
+    fun `a visitor who did not sign in never makes TMDB be asked`(orm: ORMTemplate) {
+        val tmdb = tmdbService(orm, client())
+        val visitor = orm.insertUser("visitor")
+        val rows = listOf(ExportRow(Source.TMDB, "603", LocalDate.of(2024, 2, 11), 9))
+
+        // Nothing stored yet: no trailer, no platforms, and an import that cannot place the TMDB id.
+        assertNull(runBlocking { tmdb.trailer("tt0133093", askTmdb = false) })
+        assertTrue(runBlocking { tmdb.watchProviders("tt0133093", "NL", askTmdb = false) }.isEmpty())
+        assertEquals(1, runBlocking { movieSeenService(orm, client()).importHistory(visitor, rows) }.skipped)
+        assertTrue(requests.isEmpty())
+
+        // Once a signed-in visitor's request stored the answer, everyone reads it, still without a call.
+        runBlocking { tmdb.trailer("tt0133093", askTmdb = true) }
+        requests.clear()
+        assertEquals("vKQi3bBA1y8", runBlocking { tmdb.trailer("tt0133093", askTmdb = false) })
+        assertEquals(listOf("Disney Plus", "Netflix"), runBlocking { tmdb.watchProviders("tt0133093", "NL", askTmdb = false) }.map { it.name })
+        assertTrue(requests.isEmpty())
+    }
+
+    @Test
     fun `a movie's trailer comes from TMDB once, and is stored, none included`(orm: ORMTemplate) {
         val tmdb = tmdbService(orm, client())
 
         // The official English trailer, ahead of the teaser and of the video on another site.
-        assertEquals("vKQi3bBA1y8", runBlocking { tmdb.trailer("tt0133093") })
+        assertEquals("vKQi3bBA1y8", runBlocking { tmdb.trailer("tt0133093", askTmdb = true) })
         assertEquals(listOf("/3/find/tt0133093", "/3/movie/603"), requests.map { it.substringBefore('?') })
         requests.clear()
-        assertEquals("vKQi3bBA1y8", runBlocking { tmdb.trailer("tt0133093") })
+        assertEquals("vKQi3bBA1y8", runBlocking { tmdb.trailer("tt0133093", askTmdb = true) })
         assertTrue(requests.isEmpty())
 
         // A movie TMDB does not have is remembered as such.
-        assertNull(runBlocking { tmdb.trailer("tt0111161") })
-        assertNull(runBlocking { tmdb.trailer("tt0111161") })
+        assertNull(runBlocking { tmdb.trailer("tt0111161", askTmdb = true) })
+        assertNull(runBlocking { tmdb.trailer("tt0111161", askTmdb = true) })
         assertEquals(listOf("/3/find/tt0111161"), requests.map { it.substringBefore('?') })
 
         // Without a key there are no trailers, and TMDB is not asked.
         requests.clear()
-        assertNull(runBlocking { tmdbService(orm, client(apiKey = null)).trailer("tt0068646") })
+        assertNull(runBlocking { tmdbService(orm, client(apiKey = null)).trailer("tt0068646", askTmdb = true) })
         assertTrue(requests.isEmpty())
     }
 
@@ -145,13 +169,13 @@ class TmdbTest {
         val stored = orm.repository<TmdbSourceRepository>()
         val matrix = orm.repository<MovieRepository>().getById("tt0133093")
         val longAgo = Instant.parse("2026-01-01T00:00:00Z")
-        runBlocking { tmdb.trailer("tt0133093", now = longAgo) }
+        runBlocking { tmdb.trailer("tt0133093", askTmdb = true, now = longAgo) }
 
         // Five months on, the page still reads the stored trailer; seven months on, it asks TMDB again.
         requests.clear()
-        runBlocking { tmdb.trailer("tt0133093", now = longAgo.plusSeconds(150L * 24 * 3600)) }
+        runBlocking { tmdb.trailer("tt0133093", askTmdb = true, now = longAgo.plusSeconds(150L * 24 * 3600)) }
         assertTrue(requests.isEmpty())
-        runBlocking { tmdb.trailer("tt0133093", now = longAgo.plusSeconds(210L * 24 * 3600)) }
+        runBlocking { tmdb.trailer("tt0133093", askTmdb = true, now = longAgo.plusSeconds(210L * 24 * 3600)) }
         assertEquals(2, requests.size)
 
         // Unasked for six months past that lookup, it is gone.
@@ -166,29 +190,57 @@ class TmdbTest {
 
         // Streaming first, in TMDB's order, then free and with ads, each platform once; renting, a service
         // resold through Amazon and a plan with ads are left out.
-        assertEquals(listOf("Disney Plus", "Netflix"), runBlocking { tmdb.watchProviders("tt0133093", "NL", now) }.map { it.name })
-        assertEquals(listOf("/disney.jpg", "/netflix.jpg"), runBlocking { tmdb.watchProviders("tt0133093", "NL", now) }.map { it.logoPath })
-        assertEquals(listOf("Tubi TV"), runBlocking { tmdb.watchProviders("tt0133093", "US", now) }.map { it.name })
+        assertEquals(listOf("Disney Plus", "Netflix"), runBlocking { tmdb.watchProviders("tt0133093", "NL", askTmdb = true, now = now) }.map { it.name })
+        assertEquals(listOf("/disney.jpg", "/netflix.jpg"), runBlocking { tmdb.watchProviders("tt0133093", "NL", askTmdb = true, now = now) }.map { it.logoPath })
+        assertEquals(listOf("Tubi TV"), runBlocking { tmdb.watchProviders("tt0133093", "US", askTmdb = true, now = now) }.map { it.name })
         // Only to buy is nowhere to stream, and a country TMDB does not name has none either.
-        assertTrue(runBlocking { tmdb.watchProviders("tt0133093", "DE", now) }.isEmpty())
-        assertTrue(runBlocking { tmdb.watchProviders("tt0133093", "BE", now) }.isEmpty())
+        assertTrue(runBlocking { tmdb.watchProviders("tt0133093", "DE", askTmdb = true, now = now) }.isEmpty())
+        assertTrue(runBlocking { tmdb.watchProviders("tt0133093", "BE", askTmdb = true, now = now) }.isEmpty())
         // One lookup answered all of it, the trailer included.
         assertEquals(listOf("/3/find/tt0133093", "/3/movie/603"), requests.map { it.substringBefore('?') })
         assertTrue(requests.last().contains("append_to_response=videos,watch/providers"))
         requests.clear()
-        assertEquals("vKQi3bBA1y8", runBlocking { tmdb.trailer("tt0133093", now) })
+        assertEquals("vKQi3bBA1y8", runBlocking { tmdb.trailer("tt0133093", askTmdb = true, now = now) })
         assertTrue(requests.isEmpty())
 
         // Six days on, the stored platforms; eight days on, TMDB again, while the trailer alone would wait.
-        runBlocking { tmdb.watchProviders("tt0133093", "NL", now.plusSeconds(6L * 24 * 3600)) }
+        runBlocking { tmdb.watchProviders("tt0133093", "NL", askTmdb = true, now = now.plusSeconds(6L * 24 * 3600)) }
         assertTrue(requests.isEmpty())
-        runBlocking { tmdb.trailer("tt0133093", now.plusSeconds(8L * 24 * 3600)) }
+        runBlocking { tmdb.trailer("tt0133093", askTmdb = true, now = now.plusSeconds(8L * 24 * 3600)) }
         assertTrue(requests.isEmpty())
-        runBlocking { tmdb.watchProviders("tt0133093", "NL", now.plusSeconds(8L * 24 * 3600)) }
+        runBlocking { tmdb.watchProviders("tt0133093", "NL", askTmdb = true, now = now.plusSeconds(8L * 24 * 3600)) }
         assertEquals(2, requests.size)
     }
 
+    @Test
+    fun `a user has services among the country's, and For You keeps to them`(orm: ORMTemplate) {
+        val streaming = StreamingService(orm.repository(), orm.repository(), tmdbService(orm, client()))
+        val alice = orm.insertUser("alice", name = "Alice")
+        val netherlands = Countries.of("NL")!!
+
+        // The services of the country, most watched there first; the one resold through Amazon is left out.
+        assertEquals(listOf("Netflix", "Disney Plus"), runBlocking { streaming.servicesIn(netherlands) }.map { it.name })
+        // Only services of the country can be had.
+        runBlocking { streaming.updateServices(alice, netherlands, setOf(337, 1899, 999)) }
+        assertEquals(listOf("Disney Plus"), runBlocking { streaming.servicesOf(alice) }.map { it.name })
+
+        // The Matrix streams on Disney Plus there; TMDB does not know The Shawshank Redemption.
+        val byMovie = runBlocking { streaming.servicesByMovie(alice, netherlands, listOf("tt0133093", "tt0111161")) }
+        assertEquals(mapOf("tt0133093" to listOf("Disney Plus")), byMovie.mapValues { (_, services) -> services.map { it.name } })
+        val movies = orm.repository<MovieRepository>()
+        val picks = listOf(RecommendedMovie(movies.getById("tt0111161"), emptyList()), RecommendedMovie(movies.getById("tt0133093"), emptyList()))
+        assertEquals(listOf("tt0133093"), runBlocking { streaming.keepToServices(alice, netherlands, picks) }.map { it.movie.id })
+    }
+
     private companion object {
+        val NETHERLANDS = """
+            {"results":[
+              {"provider_id":337,"provider_name":"Disney Plus","logo_path":"/disney.jpg","display_priority":9,"display_priorities":{"NL":2}},
+              {"provider_id":1899,"provider_name":"HBO Max Amazon Channel","logo_path":"/hbo-amazon.jpg","display_priority":1,"display_priorities":{"NL":3}},
+              {"provider_id":8,"provider_name":"Netflix","logo_path":"/netflix.jpg","display_priority":5,"display_priorities":{"NL":1}}
+            ]}
+        """.trimIndent()
+
         val MATRIX = """
             {"id":603,"imdb_id":"tt0133093","title":"The Matrix","videos":{"results":[
               {"site":"YouTube","type":"Teaser","key":"teaser1","official":true,"iso_639_1":"en","published_at":"2021-01-01T00:00:00.000Z"},

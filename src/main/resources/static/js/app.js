@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupHeroBands();
     setupTrailers();
     setupWatchProviders();
+    setupServiceLogos();
     setupPosterGlows();
     setupPosterTilt();
     setupCardTitles();
@@ -164,6 +165,45 @@ function setupWatchProviders() {
         } catch (e) {
             // No platforms then: the page is complete without them.
         }
+    });
+}
+
+/* ── Your services on the posters of For You ─────────────────────── */
+
+// The logos of the visitor's streaming services on the posters of the picks they stream: asked for the
+// cards on the page in one request, and again for the cards the scroll adds. A pick on none of them,
+// or a page without services, keeps its poster as it is.
+function setupServiceLogos() {
+    document.querySelectorAll('[data-service-logos]').forEach(container => {
+        const show = async () => {
+            const cards = [...container.querySelectorAll('.recommended[data-movie-id]:not([data-services-asked])')];
+            if (cards.length === 0) return;
+            cards.forEach(card => { card.dataset.servicesAsked = ''; });
+            try {
+                const ids = cards.map(card => card.dataset.movieId).join(',');
+                const response = await fetch(container.dataset.serviceLogos + '?movies=' + encodeURIComponent(ids));
+                if (!response.ok) return;
+                const services = await response.json();
+                cards.forEach(card => {
+                    const platforms = (services[card.dataset.movieId] || []).filter(platform => platform.logoUrl);
+                    if (platforms.length === 0) return;
+                    const strip = document.createElement('div');
+                    strip.className = 'poster-services';
+                    platforms.forEach(platform => {
+                        const logo = document.createElement('img');
+                        logo.src = platform.logoUrl;
+                        logo.alt = platform.name;
+                        logo.title = platform.name;
+                        strip.appendChild(logo);
+                    });
+                    card.querySelector('.poster').appendChild(strip);
+                });
+            } catch (e) {
+                // The posters are complete without the logos.
+            }
+        };
+        new MutationObserver(show).observe(container, { childList: true });
+        show();
     });
 }
 

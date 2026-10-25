@@ -940,6 +940,52 @@ img { display: block; }
 
 .country-select option { background: var(--surface-raised); color: var(--text); }
 
+/* The streaming services of the user's country, each a tile with its logo and name, ticked by a click. */
+.services-card { max-width: 760px; margin-bottom: 22px; }
+
+.service-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; margin-bottom: 16px; }
+
+.service-choice {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    font-size: 13.5px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.service-choice input { position: absolute; opacity: 0; pointer-events: none; }
+
+.service-choice img { width: 28px; height: 28px; flex-shrink: 0; border-radius: 7px; }
+
+.service-choice span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.service-choice:hover { border-color: rgba(255, 255, 255, 0.25); }
+
+.service-choice:has(input:checked) { border-color: rgba(var(--accent-rgb), 0.75); background: rgba(var(--accent-rgb), 0.12); }
+
+.service-choice:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* For You: all picks, or the ones on the visitor's services, under the page title. */
+.page-header .for-you-tabs { margin: 16px 0 0; }
+
+/* The visitor's services a pick streams on, small in the poster's corner (For You). */
+.poster-services { position: absolute; right: 6px; bottom: 6px; z-index: 3; display: flex; gap: 4px; }
+
+.poster-services img {
+    width: 24px;
+    height: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
 /* The providers in their own colours, each with its mark: the git providers' single-colour marks
    (Simple Icons, CC0) are masks filled with the button's text colour, Freepod's is its full-colour
    app icon. */

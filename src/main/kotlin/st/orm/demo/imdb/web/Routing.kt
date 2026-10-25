@@ -24,6 +24,7 @@ import st.orm.demo.imdb.service.InviteService
 import st.orm.demo.imdb.service.StatisticsService
 import st.orm.demo.imdb.service.TopMoviesService
 import st.orm.demo.imdb.service.WatchlistService
+import st.orm.demo.imdb.service.StreamingService
 import st.orm.demo.imdb.service.TmdbService
 import st.orm.demo.imdb.service.WikipediaSummaryService
 
@@ -56,13 +57,14 @@ fun Application.configureRouting() {
     val personGalleryService: PersonGalleryService by dependencies
     val wikipediaSummaryService: WikipediaSummaryService by dependencies
     val tmdbService: TmdbService by dependencies
+    val streamingService: StreamingService by dependencies
     routing {
         // Static resources at the same URLs the templates reference.
         staticResources("/css", "static/css")
         staticResources("/js", "static/js")
         staticResources("/img", "static/img")
 
-        accountRoutes(accountService, gitSignIn, freepodSignIn)
+        accountRoutes(accountService, streamingService, gitSignIn, freepodSignIn)
         homeRoutes(homeService)
         topMoviesRoutes(topMoviesService)
         watchlistRoutes(watchlistService)
@@ -75,7 +77,7 @@ fun Application.configureRouting() {
         searchRoutes(searchService)
         browseRoutes(browseService)
         recentlyAddedRoutes(recentlyAddedService)
-        forYouRoutes(recommendationService)
+        forYouRoutes(recommendationService, streamingService)
         movieRoutes(movieService, watchlistService, movieSeenService)
         personRoutes(personService)
         posterRoutes(posterController)

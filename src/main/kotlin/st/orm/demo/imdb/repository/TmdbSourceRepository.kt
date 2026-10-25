@@ -16,6 +16,10 @@ interface TmdbSourceRepository : EntityRepository<TmdbSource, Long> {
     fun findByMovie(movie: Movie): TmdbSource? =
         find(TmdbSource_.movie eq movie)
 
+    /** What TMDB answered about these movies, for the ones that were asked: the posters of For You. */
+    fun findByMovies(movies: Collection<Movie>): List<TmdbSource> =
+        if (movies.isEmpty()) emptyList() else findAll(TmdbSource_.movie inList movies)
+
     /** The sources of the movies with these TMDB ids, for an import that names movies by them. */
     fun findByExternalIds(externalIds: Collection<String>): List<TmdbSource> =
         if (externalIds.isEmpty()) emptyList() else findAll(TmdbSource_.externalId inList externalIds)

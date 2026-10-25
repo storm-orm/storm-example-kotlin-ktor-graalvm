@@ -67,6 +67,19 @@
             </select>
             <button type="submit" class="button">Save</button>
         </form>
+        <!-- Signed in: the streaming services of the user's country, ticked for the ones they have. -->
+        <form class="stat-card services-card" id="services-card" th:unless="${services.isEmpty()}" th:action="@{/account/services}" method="post">
+            <h2>Your services</h2>
+            <p class="stat-note" th:text="|The streaming services you have in ${country.name}. For You shows their logos on the picks they stream, and can keep to them.|">The streaming services you have.</p>
+            <div class="service-grid">
+                <label class="service-choice" th:each="service : ${services}">
+                    <input type="checkbox" name="service" th:value="${service.id}" th:checked="${service.chosen}">
+                    <img th:if="${service.logoUrl != null}" th:src="${service.logoUrl}" alt="" loading="lazy">
+                    <span th:text="${service.name}">Netflix</span>
+                </label>
+            </div>
+            <button type="submit" class="button">Save</button>
+        </form>
         <form class="signout-form" th:if="${account.name != null}" th:action="@{/signout}" method="post">
             <button type="submit" class="button" id="signout">Sign out</button>
         </form>

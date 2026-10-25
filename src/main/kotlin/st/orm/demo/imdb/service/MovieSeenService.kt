@@ -165,7 +165,8 @@ class MovieSeenService(
      */
     suspend fun importHistory(user: User, rows: List<ExportRow>, now: Instant = Instant.now()): HistoryImport {
         val movieIds = rows.groupBy { it.source }.mapValues { (source, sourceRows) ->
-            movieSourceService.movieIds(source, sourceRows.mapTo(HashSet()) { it.externalId })
+            // Only a signed-in user's import asks TMDB about the ids it does not know yet.
+            movieSourceService.movieIds(source, sourceRows.mapTo(HashSet()) { it.externalId }, askTmdb = user.name != null)
         }
         val (placed, unplaced) = rows.partition { movieIds.getValue(it.source)[it.externalId] != null }
         val titles = placed.map { ImportedTitle(movieIds.getValue(it.source).getValue(it.externalId), it.date, it.rating) }

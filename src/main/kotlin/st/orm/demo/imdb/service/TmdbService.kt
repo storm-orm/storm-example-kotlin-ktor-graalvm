@@ -23,19 +23,23 @@ import st.orm.template.ref
 import st.orm.template.transaction
 import java.time.Duration
 import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
 
 private val logger = LoggerFactory.getLogger(TmdbService::class.java)
 
 /**
  * TMDB as a source next to IMDb: the trailers and the platforms on the movie
- * pages, and the movies a TMDB export names by their TMDB ids. What TMDB
- * answers is stored as the movie's TMDB source ([TmdbSource]) for six months,
- * the most TMDB's terms allow: a page reads it from the database, a movie
- * asked for after that is fetched again, and the rest is removed. Where a
- * movie plays changes more often, so a page that shows the platforms asks
- * again after a week. The calls run outside any transaction, so no
- * connection waits on TMDB. Without an API key, there are no trailers and no
- * platforms, and a TMDB export brings only the movies it gives IMDb ids for.
+ * pages and For You's posters, the services of a country, and the movies a
+ * TMDB export names by their TMDB ids. What TMDB answers about a movie is
+ * stored as its TMDB source ([TmdbSource]) for six months, the most TMDB's
+ * terms allow: a page reads it from the database, a movie asked for after
+ * that is fetched again, and the rest is removed. Where a movie plays
+ * changes more often, so a page that shows the platforms asks again after a
+ * week. The calls run outside any transaction, so no connection waits on
+ * TMDB. Only a signed-in visitor's request asks TMDB ([askTmdb]): anyone else,
+ * a crawler included, gets what is stored, so no visit can run up calls.
+ * Without an API key, there are no trailers and no platforms, and a TMDB
+ * export brings only the movies it gives IMDb ids for.
  */
 class TmdbService(
     private val movieRepository: MovieRepository,
@@ -48,48 +52,111 @@ class TmdbService(
     val enabled: Boolean get() = client.enabled
 
     /**
-     * One lookup at a time: a movie page asks for the trailer and the
-     * platforms at once, and the second waits for the answer to the first
-     * rather than asking TMDB again.
+     * One lookup of a movie at a time: a movie page asks for the trailer and
+     * the platforms at once, and the second waits for the answer to the
+     * first rather than asking TMDB again. A lock per stripe of movies, so
+     * the lookups of other movies, like the posters of For You, run alongside.
      */
-    private val lookups = Mutex()
+    private val lookups = Array(LOOKUP_STRIPES) { Mutex() }
+
+    private fun lockOf(movie: Movie) = lookups[Math.floorMod(movie.id.hashCode(), LOOKUP_STRIPES)]
+
+    /** The services of a country, the same for everyone there: kept in memory, and asked again after a day. */
+    private class Region(val fetchedAt: Instant, val providers: List<WatchProvider>)
+
+    private val regions = ConcurrentHashMap<String, Region>()
 
     /**
      * The YouTube key of a movie's trailer, or null when it has none, TMDB
      * does not know the movie, or TMDB is off. A failed call stores nothing
-     * and answers with what was stored before.
+     * and answers with what was stored before; so does a request that may
+     * not ask TMDB ([askTmdb]).
      */
-    suspend fun trailer(movieId: String, now: Instant = Instant.now()): String? =
-        source(movieId, now) { it.fetchedAt.isAfter(now.minus(keep)) }?.trailerKey
+    suspend fun trailer(movieId: String, askTmdb: Boolean, now: Instant = Instant.now()): String? =
+        source(movieId, askTmdb, now) { it.fetchedAt.isAfter(now.minus(keep)) }?.trailerKey
 
     /**
      * The platforms a movie streams on or shows free in a country, in TMDB's
      * order; none when it plays nowhere there, TMDB does not know the movie,
-     * or TMDB is off.
+     * or TMDB is off. As stored for a request that may not ask TMDB.
      */
-    suspend fun watchProviders(movieId: String, country: String, now: Instant = Instant.now()): List<WatchProvider> {
-        val source = source(movieId, now) { it.watchProviders != null && it.fetchedAt.isAfter(now.minus(keepWatchProviders)) }
-        val ids = source?.watchProviders?.byCountry?.get(country) ?: return emptyList()
+    suspend fun watchProviders(movieId: String, country: String, askTmdb: Boolean, now: Instant = Instant.now()): List<WatchProvider> {
+        val ids = source(movieId, askTmdb, now, freshWatchProviders(now))?.watchProviders?.byCountry?.get(country) ?: return emptyList()
         val providers = transaction(readOnly = true) { watchProviderRepository.findAllById(ids) }.associateBy { it.id }
         return ids.mapNotNull { providers[it] }
     }
 
     /**
-     * What TMDB answered about a movie: as stored while [fresh], else asked
-     * again and stored, or as stored when TMDB cannot be reached. Null for a
-     * movie the catalogue does not have, and when TMDB is off.
+     * Where each of these movies streams or shows free in a country, as the
+     * ids of the platforms by movie id, for the posters of For You: what is
+     * stored and fresh is read in one query, the rest asked of TMDB a few
+     * calls at a time. A movie TMDB cannot place plays nowhere.
      */
-    private suspend fun source(movieId: String, now: Instant, fresh: (TmdbSource) -> Boolean): TmdbSource? {
+    suspend fun watchProviderIds(movies: List<Movie>, country: String, now: Instant = Instant.now()): Map<String, List<Int>> {
+        if (!enabled || movies.isEmpty()) return emptyMap()
+        val fresh = freshWatchProviders(now)
+        val stored = transaction(readOnly = true) { tmdbSourceRepository.findByMovies(movies) }.associateBy { it.movie.entityId() }
+        val calls = Semaphore(PARALLEL_CALLS)
+        return coroutineScope {
+            movies.map { movie ->
+                async {
+                    val source = stored[movie.id]?.takeIf(fresh) ?: calls.withPermit { lookUpOnce(movie, now, fresh) }
+                    movie.id to source?.watchProviders?.byCountry?.get(country).orEmpty()
+                }
+            }.awaitAll().toMap()
+        }
+    }
+
+    /**
+     * The streaming services active in a country, the most watched there
+     * first, for the account page: as TMDB answered within the day, each
+     * stored as a platform, so a user's choice can name it. None when TMDB
+     * is off; as answered before when it cannot be reached.
+     */
+    suspend fun watchProvidersIn(country: String, now: Instant = Instant.now()): List<WatchProvider> {
+        if (!enabled) return emptyList()
+        val cached = regions[country]
+        if (cached != null && cached.fetchedAt.isAfter(now.minus(KEEP_REGION))) return cached.providers
+        val providers = try {
+            withContext(Dispatchers.IO) { client.watchProvidersIn(country) }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            logger.warn("Asking TMDB for the services in {} failed: {}", country, e.message)
+            return cached?.providers.orEmpty()
+        }
+        transaction { watchProviderRepository.upsert(providers) }
+        regions[country] = Region(now, providers)
+        return providers
+    }
+
+    /** Whether a source names the platforms, as TMDB answered within the week. */
+    private fun freshWatchProviders(now: Instant): (TmdbSource) -> Boolean =
+        { it.watchProviders != null && it.fetchedAt.isAfter(now.minus(keepWatchProviders)) }
+
+    /**
+     * What TMDB answered about a movie: as stored while [fresh], else asked
+     * again and stored, or as stored when TMDB cannot be reached or the
+     * request may not ask it ([askTmdb]). Null for a movie the catalogue
+     * does not have, and when TMDB is off.
+     */
+    private suspend fun source(movieId: String, askTmdb: Boolean, now: Instant, fresh: (TmdbSource) -> Boolean): TmdbSource? {
         if (!enabled) return null
         val (movie, stored) = transaction(readOnly = true) {
             movieRepository.findById(movieId)?.let { it to tmdbSourceRepository.findByMovie(it) }
         } ?: return null
-        if (stored != null && fresh(stored)) return stored
-        return lookups.withLock {
+        return if ((stored != null && fresh(stored)) || !askTmdb) stored else lookUpOnce(movie, now, fresh)
+    }
+
+    /**
+     * Asks TMDB about a movie under its lock: whoever waited finds the answer
+     * the first one stored, and asks no more. As stored when TMDB cannot be reached.
+     */
+    private suspend fun lookUpOnce(movie: Movie, now: Instant, fresh: (TmdbSource) -> Boolean): TmdbSource? =
+        lockOf(movie).withLock {
             val current = transaction(readOnly = true) { tmdbSourceRepository.findByMovie(movie) }
             if (current != null && fresh(current)) current else lookUp(movie, now) ?: current
         }
-    }
 
     /** Asks TMDB about a movie and stores the answer, with the platforms it names; null when TMDB cannot be reached. */
     private suspend fun lookUp(movie: Movie, now: Instant): TmdbSource? {
@@ -126,14 +193,15 @@ class TmdbService(
      * The movies with these TMDB ids, by TMDB id, for an import of a TMDB
      * export: the stored sources first, then the others from TMDB, a few
      * calls at a time and at most [MAX_LOOKUPS] per import, each stored as
-     * the movie's TMDB source for the next time. A movie TMDB cannot place,
-     * or one the catalogue does not keep, is left out.
+     * the movie's TMDB source for the next time; only the stored ones for an
+     * import that may not ask TMDB. A movie TMDB cannot place, or one the
+     * catalogue does not keep, is left out.
      */
-    suspend fun movieIds(tmdbIds: Set<String>, now: Instant = Instant.now()): Map<String, String> {
+    suspend fun movieIds(tmdbIds: Set<String>, askTmdb: Boolean, now: Instant = Instant.now()): Map<String, String> {
         val known = transaction(readOnly = true) { tmdbSourceRepository.findByExternalIds(tmdbIds) }
             .associate { it.externalId!! to it.movie.entityId() }
         val missing = (tmdbIds - known.keys).mapNotNull { it.toIntOrNull() }.take(MAX_LOOKUPS)
-        if (missing.isEmpty() || !enabled) return known
+        if (missing.isEmpty() || !enabled || !askTmdb) return known
         val calls = Semaphore(PARALLEL_CALLS)
         val found = coroutineScope {
             missing.map { tmdbId ->
@@ -167,5 +235,7 @@ class TmdbService(
         /** The most movies one import looks up on TMDB; importing the file again looks up the rest. */
         const val MAX_LOOKUPS = 1000
         private const val PARALLEL_CALLS = 6
+        private const val LOOKUP_STRIPES = 64
+        private val KEEP_REGION: Duration = Duration.ofDays(1)
     }
 }

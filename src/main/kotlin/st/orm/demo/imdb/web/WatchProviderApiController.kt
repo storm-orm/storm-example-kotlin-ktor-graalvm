@@ -5,6 +5,7 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.util.getOrFail
 import kotlinx.serialization.Serializable
+import st.orm.demo.imdb.model.WatchProvider
 import st.orm.demo.imdb.service.TmdbService
 
 /** A platform a movie plays on, as the movie page shows it: a logo, with the name for its tooltip. */
@@ -19,10 +20,13 @@ data class Platform(val name: String, val logoUrl: String?)
 fun Route.watchProviderRoutes(tmdbService: TmdbService) {
     get("/api/watch-providers/{movieId}") {
         val country = call.country() ?: return@get call.respond(emptyList<Platform>())
-        val providers = tmdbService.watchProviders(call.parameters.getOrFail("movieId"), country.code)
-        call.respond(providers.map { Platform(it.name, it.logoPath?.let { path -> "$TMDB_LOGOS$path" }) })
+        val providers = tmdbService.watchProviders(call.parameters.getOrFail("movieId"), country.code, askTmdb = call.isSignedIn())
+        call.respond(providers.map { it.toPlatform() })
     }
 }
 
-/** TMDB's image server, at a size that stays sharp for a small icon on a high-density screen. */
-private const val TMDB_LOGOS = "https://image.tmdb.org/t/p/w92"
+/** A platform as a page shows it. */
+fun WatchProvider.toPlatform() = Platform(name, logoPath?.let(::tmdbLogoUrl))
+
+/** A logo on TMDB's image server, at a size that stays sharp for a small icon on a high-density screen. */
+fun tmdbLogoUrl(path: String) = "https://image.tmdb.org/t/p/w92$path"

@@ -7,8 +7,14 @@
 <header class="page-header">
     <div class="container">
         <h1 class="page-title">For You</h1>
-        <p class="page-subtitle" th:if="${personal}">What to watch next, from what you have watched and saved. Each card says why.</p>
+        <p class="page-subtitle" th:if="${onServices}">Your picks that stream on your services.</p>
+        <p class="page-subtitle" th:if="${personal and !onServices}">What to watch next, from what you have watched and saved.</p>
         <p class="page-subtitle" th:unless="${personal}">Picks from the whole catalogue. Mark movies as watched, or save them, and these become yours.</p>
+        <!-- With streaming services ticked on the account page: all picks, or the ones on those services. -->
+        <nav class="view-tabs for-you-tabs" th:if="${hasServices}">
+            <a th:href="@{/for-you}" th:classappend="${!onServices} ? 'active'">All picks</a>
+            <a th:href="@{/for-you(on='services')}" th:classappend="${onServices} ? 'active'" id="on-services-tab">On my services</a>
+        </nav>
     </div>
 </header>
 
@@ -20,7 +26,7 @@
             <h2 class="section-title" th:text="${personal} ? 'New since your last visit' : 'New this month'">New since your last visit</h2>
             <span class="section-note-inline" th:if="${personal}" th:text="|Joined the catalogue in the past ${newSinceDays} days|">Joined the catalogue in the past 7 days</span>
         </div>
-        <div class="movie-row">
+        <div class="movie-row" th:data-service-logos="${hasServices} ? '/api/for-you/services'">
             <th:block th:each="pick : ${newArrivals}">
                 <a th:replace="~{fragments/cards :: recommended(${pick.movie.id}, ${pick.movie.primaryTitle}, ${pick.movie.startYear}, ${pick.reasons})}"></a>
             </th:block>
@@ -30,8 +36,10 @@
 
 <section class="section">
     <div class="container">
-        <div class="empty-state" th:if="${movies.isEmpty()}">Nothing to recommend yet. Try again in a moment.</div>
-        <div class="movie-grid" id="for-you-results">
+        <div class="empty-state" th:if="${movies.isEmpty() and !onServices}">Nothing to recommend yet. Try again in a moment.</div>
+        <div class="empty-state" th:if="${movies.isEmpty() and onServices}">None of your picks streams on your services right now.</div>
+        <!-- The logos of the visitor's services go on the posters of the picks they stream, once the page asks. -->
+        <div class="movie-grid" id="for-you-results" th:data-service-logos="${hasServices} ? '/api/for-you/services'">
             <th:block th:each="pick : ${movies}">
                 <a th:replace="~{fragments/cards :: recommended(${pick.movie.id}, ${pick.movie.primaryTitle}, ${pick.movie.startYear}, ${pick.reasons})}"></a>
             </th:block>

@@ -87,10 +87,29 @@ class TmdbClient(
         countries.properties().associate { (country, offers) ->
             country to OFFER_TYPES
                 .flatMap { type -> offers.path(type).sortedBy { it.path("display_priority").asInt() } }
-                .filterNot { offer -> offer.path("provider_name").asString("").let { it.endsWith(" Channel") || it.endsWith(" with Ads") } }
-                .map { WatchProvider(it.path("provider_id").asInt(), it.path("provider_name").asString(""), it.path("logo_path").asString(null)) }
+                .map(::watchProviderOf)
+                .filter(::isOwnService)
                 .distinctBy { it.id }
         }.filterValues { it.isNotEmpty() }
+
+    /**
+     * The streaming services active in a country (ISO 3166-1 alpha-2), the
+     * most watched there first, for the account page to choose from; as
+     * with a movie's platforms, the resold ones and the plans with ads are
+     * left out.
+     */
+    fun watchProvidersIn(country: String): List<WatchProvider> =
+        get("/3/watch/providers/movie?watch_region=$country")?.path("results")?.toList().orEmpty()
+            .sortedBy { it.path("display_priorities").path(country).asInt(it.path("display_priority").asInt()) }
+            .map(::watchProviderOf)
+            .filter(::isOwnService)
+
+    private fun watchProviderOf(json: JsonNode) =
+        WatchProvider(json.path("provider_id").asInt(), json.path("provider_name").asString(""), json.path("logo_path").asString(null))
+
+    /** Whether TMDB names a service itself, rather than one resold through another or a plan with ads. */
+    private fun isOwnService(provider: WatchProvider) =
+        !provider.name.endsWith(" Channel") && !provider.name.endsWith(" with Ads")
 
     private fun get(pathAndQuery: String): JsonNode? {
         check(enabled) { "TMDB has no API key." }

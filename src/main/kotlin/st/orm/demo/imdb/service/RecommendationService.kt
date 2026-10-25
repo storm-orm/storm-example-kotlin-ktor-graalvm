@@ -245,6 +245,15 @@ class RecommendationService(
         return recommendationRepository.findAll(user).filter { it.movie.id in arrived }.take(NEW_ARRIVALS_LIMIT)
     }
 
+    /**
+     * All the visitor's picks, best first, or the catalogue's for a visitor
+     * without picks: a hundred at most, for For You kept to the visitor's
+     * streaming services, which needs all of them at once.
+     */
+    suspend fun allPicks(user: User): List<RecommendedMovie> = transaction(readOnly = true) {
+        recommendationRepository.findAll(user).map { it.toRecommendedMovie() }.ifEmpty { coldStartPicks() }
+    }
+
     /** The next window of the visitor's picks, for the infinite scroll. */
     suspend fun scroll(user: User, cursor: String): Window<Recommendation> = transaction(readOnly = true) {
         recommendationRepository.scroll(user, bestFirst(PAGE_SIZE).from(cursor))

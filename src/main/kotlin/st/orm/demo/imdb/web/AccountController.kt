@@ -14,6 +14,7 @@ import io.ktor.server.util.getOrFail
 import io.ktor.server.request.receiveParameters
 import st.orm.demo.imdb.service.AccountService
 import st.orm.demo.imdb.service.Countries
+import st.orm.demo.imdb.service.StreamingService
 import st.orm.demo.imdb.service.FreepodSignIn
 import st.orm.demo.imdb.service.GitProvider
 import st.orm.demo.imdb.service.GitSignIn
@@ -26,6 +27,9 @@ import java.util.Base64
 /** A login of the signed-in account, as the account page lists it. */
 data class AccountLogin(val provider: String, val label: String, val username: String)
 
+/** A streaming service of the visitor's country, as the account page offers it, ticked or not. */
+data class ServiceChoice(val id: Int, val name: String, val logoUrl: String?, val chosen: Boolean)
+
 /**
  * Signing in with a git provider, in the OAuth 2 authorization code flow:
  * the sign-in page lists the configured providers, choosing one sends the
@@ -37,16 +41,21 @@ data class AccountLogin(val provider: String, val label: String, val username: S
  * Signed in, the same page is the account page: it lists the account's
  * logins and offers the providers not linked yet, and signing in with one
  * of them links it (AccountService.signIn). It also holds the country the
- * user is from, for where movies play.
+ * user is from, for where movies play, and the streaming services they have.
  */
-fun Route.accountRoutes(accountService: AccountService, gitSignIn: GitSignIn, freepodSignIn: FreepodSignIn) {
+fun Route.accountRoutes(accountService: AccountService, streamingService: StreamingService, gitSignIn: GitSignIn, freepodSignIn: FreepodSignIn) {
     val random = SecureRandom()
     val labels = (GitProvider.ALL + freepodSignIn).associate { it.key to it.label }
 
     get("/signin") {
         val returnTo = returnPath(call.request.queryParameters["rd"])
-        val logins = accountService.loginsOf(call.currentUser())
+        val user = call.currentUser()
+        val logins = accountService.loginsOf(user)
             .map { AccountLogin(it.id.provider, labels[it.id.provider] ?: it.id.provider, it.username) }
+        // Signed in, the services of the visitor's country to tick, and the ones ticked.
+        val country = call.country().takeIf { user.name != null }
+        val services = country?.let { streamingService.servicesIn(it) }.orEmpty()
+        val myServices = if (services.isEmpty()) emptySet() else streamingService.servicesOf(user).map { it.id }.toSet()
         call.respondPage(
             ThymeleafContent(
                 "signin",
@@ -58,7 +67,9 @@ fun Route.accountRoutes(accountService: AccountService, gitSignIn: GitSignIn, fr
                     "returnTo" to returnTo,
                     "failure" to call.request.queryParameters["failure"],
                     "countries" to Countries.all,
-                    "browserCountry" to call.browserCountry()
+                    "browserCountry" to call.browserCountry(),
+                    "country" to country,
+                    "services" to services.map { ServiceChoice(it.id, it.name, it.logoPath?.let(::tmdbLogoUrl), it.id in myServices) }
                 )
             )
         )
@@ -124,6 +135,15 @@ fun Route.accountRoutes(accountService: AccountService, gitSignIn: GitSignIn, fr
         val user = call.currentUser().takeIf { it.name != null } ?: return@post call.respondRedirect("/signin")
         accountService.updateCountry(user, call.receiveParameters()["country"]?.ifBlank { null })
         call.respondRedirect("/signin")
+    }
+
+    // The streaming services a signed-in user has, among the ones of their country.
+    post("/account/services") {
+        val user = call.currentUser().takeIf { it.name != null } ?: return@post call.respondRedirect("/signin")
+        val country = call.country() ?: return@post call.respondRedirect("/signin")
+        val ids = call.receiveParameters().getAll("service").orEmpty().mapNotNull { it.toIntOrNull() }.toSet()
+        streamingService.updateServices(user, country, ids)
+        call.respondRedirect("/signin#services-card")
     }
 
     // Signing out forgets the account cookie; the next page starts a new,
