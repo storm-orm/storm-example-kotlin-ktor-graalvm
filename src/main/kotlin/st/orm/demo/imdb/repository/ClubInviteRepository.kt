@@ -7,6 +7,7 @@ import st.orm.demo.imdb.model.User
 import st.orm.repository.EntityRepository
 import st.orm.template.and
 import st.orm.template.eq
+import st.orm.template.greaterEq
 import st.orm.template.less
 import java.time.Instant
 
@@ -20,6 +21,17 @@ interface ClubInviteRepository : EntityRepository<ClubInvite, String> {
     /** Withdraws the club's public invite link, when an admin replaces it. */
     fun removePublic(club: Club) {
         removeAll((ClubInvite_.club eq club) and (ClubInvite_.reusable eq true))
+    }
+
+    /** The club's personal invites made since a moment, by any of its admins, the newest first: the ones still open. */
+    fun findPersonalSince(club: Club, since: Instant): List<ClubInvite> =
+        select((ClubInvite_.club eq club) and (ClubInvite_.reusable eq false) and (ClubInvite_.createdAt greaterEq since))
+            .orderByDescending(ClubInvite_.createdAt)
+            .resultList
+
+    /** Withdraws one of the club's personal invites: its link stops working. */
+    fun removePersonal(club: Club, token: String) {
+        removeAll((ClubInvite_.token eq token) and (ClubInvite_.club eq club) and (ClubInvite_.reusable eq false))
     }
 
     /** Removes the club's personal invites created before a moment: the ones no longer accepted. */

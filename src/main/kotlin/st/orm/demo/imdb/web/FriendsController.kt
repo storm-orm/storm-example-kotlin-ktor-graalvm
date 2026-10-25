@@ -49,6 +49,13 @@ fun Route.friendsRoutes(friendService: FriendService) {
         }
     }
 
+    // Withdrawing a personal invite link: it stops working.
+    post("/friends/invites/{token}/withdraw") {
+        val user = call.currentUser().takeIf { it.name != null } ?: return@post call.respondRedirect("/friends")
+        friendService.withdrawInvite(user, call.parameters.getOrFail("token"))
+        call.respondRedirect("/friends#friends-card")
+    }
+
     // The friend invite links made before invites of both kinds shared one page lead there.
     get("/friends/invite/{token}") {
         call.respondRedirect("/invite/" + call.parameters.getOrFail("token"))

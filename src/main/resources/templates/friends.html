@@ -101,6 +101,7 @@
                     <button type="button" class="link-button" data-invite="/api/friends/public-invite/new">New public link</button>
                 </div>
                 <input class="invite-link" type="text" readonly data-invite-link hidden aria-label="Invite link">
+                <div th:replace="~{fragments/community :: openInvites(${view.invites}, '/friends/invites')}"></div>
             </div>
         </div>
 

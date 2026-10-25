@@ -102,6 +102,7 @@
                     <button type="button" class="link-button" th:data-invite="|/api/clubs/${view.club.id}/public-invite/new|">New public link</button>
                 </div>
                 <input class="invite-link" type="text" readonly data-invite-link hidden aria-label="Invite link">
+                <div th:replace="~{fragments/community :: openInvites(${view.invites}, |/clubs/${view.club.id}/invites|)}"></div>
             </div>
             <p class="stat-note" th:unless="${view.me.admin}">Ask an admin to invite someone.</p>
 

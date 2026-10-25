@@ -37,5 +37,22 @@
     <span th:unless="${user.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(user.name, 0, 1))}">A</span>
 </span>
 
+<!-- The personal invite links still open, each with its link to copy and a way to withdraw it; hidden while
+     there are none. The page fetches the list again after a new invite (app.js), so the new one shows. -->
+<div th:fragment="openInvites(invites, withdrawPath)" class="open-invites" data-open-invites th:hidden="${invites.isEmpty()}">
+    <h3 class="choice-heading">Open invites</h3>
+    <div class="stat-row" th:each="invite : ${invites}">
+        <span class="open-invite-age"
+              th:text="${(invite.daysOld == 0 ? 'Made today' : (invite.daysOld == 1 ? 'Made yesterday' : 'Made ' + invite.daysOld + ' days ago'))
+                       + ' · ' + (invite.daysLeft == 0 ? 'last day' : (invite.daysLeft == 1 ? 'open 1 more day' : 'open ' + invite.daysLeft + ' more days'))}">Made today · open 13 more days</span>
+        <span class="stat-end">
+            <button type="button" class="link-button" th:data-copy-link="@{/invite/{token}(token=${invite.token})}">Copy link</button>
+            <form th:action="|${withdrawPath}/${invite.token}/withdraw|" method="post">
+                <button type="submit" class="link-button">Withdraw</button>
+            </form>
+        </span>
+    </div>
+</div>
+
 </body>
 </html>

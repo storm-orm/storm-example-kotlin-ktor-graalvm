@@ -1287,6 +1287,26 @@ function showSeenCount() {
     document.querySelectorAll('[data-seen-count]').forEach(count => count.textContent = seenMovies.size.toLocaleString('en-GB'));
 }
 
+// The open invites under the invite buttons: fetched again from the page after a new invite, so it shows
+// in the list; and each one's link copied by its button, in full, as the device shares it.
+async function refreshOpenInvites() {
+    const list = document.querySelector('[data-open-invites]');
+    if (!list) return;
+    const response = await fetch(location.pathname);
+    if (!response.ok) return;
+    const fresh = new DOMParser().parseFromString(await response.text(), 'text/html').querySelector('[data-open-invites]');
+    if (fresh) list.replaceWith(fresh);
+}
+
+document.addEventListener('click', async event => {
+    const button = event.target.closest('[data-copy-link]');
+    if (!button || !navigator.clipboard) return;
+    await navigator.clipboard.writeText(new URL(button.dataset.copyLink, location.origin).href);
+    const label = button.textContent;
+    button.textContent = 'Copied';
+    setTimeout(() => { button.textContent = label; }, 1500);
+});
+
 // The invite buttons on the friends page and a club's page: each asks its
 // endpoint for a link, a personal invite, the public one, or a new public one,
 // then hands it to the device's share sheet where there is one, under the
@@ -1304,6 +1324,7 @@ function setupInvite() {
             field.value = url;
             field.hidden = false;
             field.select();
+            refreshOpenInvites();
             if (navigator.share) {
                 try {
                     await navigator.share({ title: button.closest('[data-invite-title]').dataset.inviteTitle, url });

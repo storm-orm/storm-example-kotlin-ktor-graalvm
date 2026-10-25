@@ -192,4 +192,22 @@ class ClubServiceTest {
         assertTrue(members.findClubs(alice).all { it.admin })
         assertTrue(members.findClubs(phone).isEmpty())
     }
+
+    @Test
+    fun `admins see the club's open personal invites, and withdraw them`(orm: ORMTemplate) {
+        val service = service(orm)
+        val alice = orm.insertUser("alice", name = "Alice")
+        val bob = orm.insertUser("bob", name = "Bob")
+        val club = runBlocking { service.create(alice, "Office film club") }
+        orm.join(club, bob)
+        val token = runBlocking { service.createInvite(alice, club.id) }!!
+
+        assertEquals(listOf(token), runBlocking { service.clubOf(alice, club.id) }!!.invites.map { it.token })
+        // A member who is no admin neither sees nor withdraws them.
+        assertTrue(runBlocking { service.clubOf(bob, club.id) }!!.invites.isEmpty())
+        runBlocking { service.withdrawInvite(bob, club.id, token) }
+        assertEquals(1, runBlocking { service.clubOf(alice, club.id) }!!.invites.size)
+        runBlocking { service.withdrawInvite(alice, club.id, token) }
+        assertTrue(runBlocking { service.clubOf(alice, club.id) }!!.invites.isEmpty())
+    }
 }

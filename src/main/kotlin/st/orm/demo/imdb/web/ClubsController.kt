@@ -93,6 +93,11 @@ fun Route.clubsRoutes(clubService: ClubService) {
         null
     }
 
+    clubPost("/clubs/{id}/invites/{token}/withdraw") { user, clubId ->
+        clubService.withdrawInvite(user, clubId, call.parameters.getOrFail("token"))
+        null
+    }
+
     // Invite links, for the club's admins: a personal one for one person, the club's public one, and a
     // new public one that replaces it. Each answers with the link, for the page to share.
     for ((path, create) in listOf<Pair<String, suspend (User, Long) -> String?>>(

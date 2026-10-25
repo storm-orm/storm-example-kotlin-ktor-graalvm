@@ -1,5 +1,9 @@
 package st.orm.demo.imdb
 
+import org.junit.jupiter.api.Assertions.assertTrue
+
+import java.time.Duration
+
 import st.orm.demo.imdb.model.CheckIn
 import st.orm.demo.imdb.repository.ClubMemberRepository
 import st.orm.demo.imdb.repository.ClubRepository
@@ -78,5 +82,30 @@ class FriendServiceTest {
         // Either side ends a friendship, both ways.
         runBlocking { service.remove(bob, alice.id) }
         assertEquals(listOf("Carol"), runBlocking { service.friendsOf(alice) }.friends.map { it.name })
+    }
+
+    @Test
+    fun `the personal invites still open are listed, and withdrawn by their inviter only`(orm: ORMTemplate) {
+        val service = service(orm)
+        val alice = orm.insertUser("alice", name = "Alice")
+        val bob = orm.insertUser("bob", name = "Bob")
+        val now = Instant.parse("2026-10-25T12:00:00Z")
+        val expired = runBlocking { service.createInvite(alice, now.minus(Duration.ofDays(15))) }
+        val older = runBlocking { service.createInvite(alice, now.minus(Duration.ofDays(3))) }
+        val newer = runBlocking { service.createInvite(alice, now) }
+        runBlocking { service.publicInvite(alice, now) }
+
+        // The personal ones within two weeks, the newest first; the expired one and the public link are not listed.
+        val invites = runBlocking { service.friendsOf(alice, now) }.invites
+        assertEquals(listOf(newer, older), invites.map { it.token })
+        assertEquals(listOf(0L to 14L, 3L to 11L), invites.map { it.daysOld to it.daysLeft })
+        assertTrue(expired !in invites.map { it.token })
+
+        // Bob cannot withdraw Alice's invite; Alice can, and its link stops working.
+        runBlocking { service.withdrawInvite(bob, older) }
+        assertEquals(2, runBlocking { service.friendsOf(alice, now) }.invites.size)
+        runBlocking { service.withdrawInvite(alice, older) }
+        assertEquals(listOf(newer), runBlocking { service.friendsOf(alice, now) }.invites.map { it.token })
+        assertNull(orm.repository<FriendInviteRepository>().findById(older))
     }
 }

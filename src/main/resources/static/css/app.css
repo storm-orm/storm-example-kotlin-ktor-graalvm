@@ -1847,6 +1847,13 @@ img { display: block; }
 
 .invite-link[hidden] { display: none; }
 
+/* The personal invite links still open, under the invite buttons. */
+.open-invites { align-self: stretch; margin-top: 6px; }
+
+.open-invites[hidden] { display: none; }
+
+.open-invite-age { color: var(--text-muted); font-size: 13.5px; }
+
 .switch-row { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); cursor: pointer; font-size: 14px; color: var(--text-muted); }
 
 .switch-row strong { color: var(--text); font-weight: 600; }
