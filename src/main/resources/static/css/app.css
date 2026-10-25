@@ -978,13 +978,19 @@ img { display: block; }
 /* The visitor's services a pick streams on, small in the poster's corner (For You). */
 .poster-services { position: absolute; right: 6px; bottom: 6px; z-index: 3; display: flex; gap: 4px; }
 
-.poster-services img {
+/* The logos are images in the poster, so they undo what the poster's own image takes: the whole
+   poster, and the zoom under the mouse. */
+.poster .poster-services img {
+    position: static;
     width: 24px;
     height: 24px;
+    object-fit: contain;
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 6px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 }
+
+.movie-card:hover .poster .poster-services img { transform: none; }
 
 /* The providers in their own colours, each with its mark: the git providers' single-colour marks
    (Simple Icons, CC0) are masks filled with the button's text colour, Freepod's is its full-colour

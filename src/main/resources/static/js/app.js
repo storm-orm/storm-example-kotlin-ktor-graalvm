@@ -97,10 +97,11 @@ function setupPosterGlows() {
         frame.style.setProperty('--poster', `url("${image.currentSrc || image.src}")`);
         frame.classList.add('poster-glow');
     };
+    // The poster's own image only, a child of the poster: not the logos For You puts on it.
     document.addEventListener('load', event => {
-        if (event.target instanceof HTMLImageElement && event.target.closest('.poster')) glow(event.target);
+        if (event.target instanceof HTMLImageElement && event.target.parentElement?.classList.contains('poster')) glow(event.target);
     }, true);
-    document.querySelectorAll('.poster img').forEach(image => { if (image.complete && image.naturalWidth) glow(image); });
+    document.querySelectorAll('.poster > img').forEach(image => { if (image.complete && image.naturalWidth) glow(image); });
 }
 
 /* ── Trailers (from TMDB, played from YouTube without its cookies) ── */
