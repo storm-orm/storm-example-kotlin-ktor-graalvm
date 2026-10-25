@@ -993,6 +993,7 @@ function setupListToggles() {
         const more = checkIns.querySelector('[data-check-in-more]');
         more.textContent = '+' + (list.children.length - 1);
         more.hidden = list.children.length < 2;
+        checkIns.querySelector('[data-check-ins-toggle]').disabled = list.children.length < 2;
         checkIns.hidden = false;
     };
     const render = state => {

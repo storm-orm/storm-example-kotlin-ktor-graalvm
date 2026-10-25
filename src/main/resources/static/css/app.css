@@ -1635,7 +1635,10 @@ img { display: block; }
     transition: border-color 0.15s ease, background 0.15s ease;
 }
 
-.check-in-pill:hover { border-color: rgba(var(--green-rgb), 0.7); }
+.check-in-pill:hover:not(:disabled) { border-color: rgba(var(--green-rgb), 0.7); }
+
+/* One check-in alone unfolds nothing: the pill is a plain mark. */
+.check-in-pill:disabled { cursor: default; opacity: 1; }
 
 .check-in-tick { color: var(--green); font-weight: 700; }
 

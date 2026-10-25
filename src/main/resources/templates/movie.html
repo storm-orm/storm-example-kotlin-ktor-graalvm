@@ -121,7 +121,7 @@
                 </div>
                 <!-- The visitor's check-ins of this movie: the latest as a pill, the others unfolding from it; a new one joins (app.js). -->
                 <div class="check-ins" data-check-ins th:hidden="${detail.checkIns.isEmpty()}">
-                    <button type="button" class="check-in-pill" data-check-ins-toggle aria-expanded="false">
+                    <button type="button" class="check-in-pill" data-check-ins-toggle aria-expanded="false" th:disabled="${detail.checkIns.size() < 2}">
                         <span class="check-in-tick">✓</span>
                         <span>Checked in <span data-check-in-latest th:text="${detail.checkIns.isEmpty() ? '' : detail.checkIns[0]}">23 Oct 2026</span></span>
                         <span class="check-in-more" data-check-in-more th:hidden="${detail.checkIns.size() < 2}" th:text="|+${detail.checkIns.size() - 1}|">+2</span>
