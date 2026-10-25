@@ -79,24 +79,17 @@
                             th:title="${detail.lists.onWatchlist} ? 'On your watchlist' : 'Add to your watchlist'">
                         <span data-watchlist-label>Watchlist</span>
                     </button>
-                    <button class="button list-button seen-button" data-list-toggle="seen"
-                            th:data-movie-id="${detail.movie.id}"
-                            th:data-seen-at="${detail.lists.seenAt}"
-                            th:classappend="${detail.lists.seen} ? 'active'"
-                            th:aria-pressed="${detail.lists.seen}"
-                            th:title="${detail.lists.seen} ? 'Watched' : 'Mark as watched'">
-                        <span data-seen-label>Watched</span>
-                    </button>
-                    <!-- Watched records having watched it, without a day; Check-in records watching it on a day. -->
-                    <!-- Check in opens the days of the past week; the script fills them in the visitor's own calendar. -->
-                    <!-- One button for the check-ins: Check-in with none, the latest day with one or more, and how many
-                         more; it opens the days to check in on, or the other days first, with a way to check in again. -->
+                    <!-- Watched and the check-ins as one button. It reads Watched, pink once the movie is marked so, and,
+                         checked in, the latest day in green with how many more. Its menu carries the difference between
+                         having watched it some time ago and watching it on a day; the script fills it in (app.js). -->
                     <div class="check-in">
-                        <button class="button list-button check-in-button" data-check-in
+                        <button class="button list-button seen-button" data-seen
                                 th:data-movie-id="${detail.movie.id}"
+                                th:data-seen="${detail.lists.seen}"
                                 th:data-check-in-days="${#strings.listJoin(detail.checkIns, '|')}"
-                                th:classappend="${!detail.checkIns.isEmpty()} ? 'active'">
-                            <span data-check-in-label th:text="${detail.checkIns.isEmpty()} ? 'Check-in' : |Checked in ${detail.checkIns[0]}|">Check-in</span>
+                                th:classappend="${!detail.checkIns.isEmpty()} ? 'checked-in' : (${detail.lists.seen} ? 'active')"
+                                th:aria-pressed="${detail.lists.seen}">
+                            <span data-seen-label th:text="${detail.checkIns.isEmpty()} ? 'Watched' : |Checked in ${detail.checkIns[0]}|">Watched</span>
                             <span class="check-in-more" data-check-in-more th:hidden="${detail.checkIns.size() < 2}" th:text="|+${detail.checkIns.size() - 1}|">+2</span>
                         </button>
                         <div class="share-menu check-in-menu" data-check-in-menu hidden></div>

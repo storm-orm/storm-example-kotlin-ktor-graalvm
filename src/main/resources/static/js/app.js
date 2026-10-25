@@ -960,50 +960,47 @@ function personCard(person) {
 
 // Every toggle answers with the state of both lists and the vote: marking a
 // movie seen takes it off the watchlist, so the other button follows, and
-// the thumbs appear once the movie is watched. Watched records having watched
-// it, as history, and unmarks it again; Check-in records watching it on a day. The
-// labels stay short and the same; the pressed look and the title say the state.
+// the thumbs appear once the movie is watched. One button carries Watched and
+// the check-ins; its menu tells having watched it some time ago, as history,
+// from watching it on a day, a check-in, and unmarks it again.
 function setupListToggles() {
-    const buttons = document.querySelectorAll('[data-list-toggle]');
-    const checkIn = document.querySelector('[data-check-in]');
+    const watchlist = document.querySelector('[data-list-toggle="watchlist"]');
+    const seen = document.querySelector('[data-seen]');
     const voteButtons = document.querySelectorAll('[data-vote]');
     const voteGroup = document.querySelector('[data-vote-buttons]');
-    // The check-in button carries the check-ins: Check-in with none, the latest day with one or more,
-    // and how many more. The days come with the page, the latest first; a new one joins the top.
+    // The button reads Watched, pink once the movie is, and, checked in, the latest day in green with how
+    // many more. The days come with the page, the latest first; a new one joins the top.
     const CHECK_IN_DAY = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
-    const checkInDays = (checkIn?.dataset.checkInDays || '').split('|').filter(Boolean);
-    const showCheckIn = () => {
-        if (!checkIn) return;
+    const checkInDays = (seen?.dataset.checkInDays || '').split('|').filter(Boolean);
+    let watched = seen?.dataset.seen === 'true';
+    const showSeen = () => {
+        if (!seen) return;
         const count = checkInDays.length;
-        checkIn.classList.toggle('active', count > 0);
-        checkIn.querySelector('[data-check-in-label]').textContent = count ? `Checked in ${checkInDays[0]}` : 'Check-in';
-        const more = checkIn.querySelector('[data-check-in-more]');
+        seen.classList.toggle('checked-in', count > 0);
+        seen.classList.toggle('active', watched && count === 0);
+        seen.setAttribute('aria-pressed', String(watched));
+        seen.querySelector('[data-seen-label]').textContent = count ? `Checked in ${checkInDays[0]}` : 'Watched';
+        const more = seen.querySelector('[data-check-in-more]');
         more.hidden = count < 2;
         more.textContent = `+${count - 1}`;
-        checkIn.title = count === 0 ? 'Check in on a day of the past week'
-            : count === 1 ? 'Checked in once; check in again' : `Checked in ${count} times`;
+        seen.title = !watched ? 'Watched some time ago, or on a day of the past week'
+            : count === 0 ? 'Watched' : count === 1 ? 'Checked in once' : `Checked in ${count} times`;
     };
     const render = state => {
-        buttons.forEach(button => {
-            const onList = button.dataset.listToggle === 'watchlist' ? state.onWatchlist : state.seen;
-            button.classList.toggle('active', onList);
-            button.setAttribute('aria-pressed', String(onList));
-            button.title = button.dataset.listToggle === 'watchlist'
-                ? (onList ? 'On your watchlist' : 'Add to your watchlist')
-                : (onList ? seenLabel('Watched', state.seenAt) : 'Mark as watched');
-        });
+        if (watchlist) {
+            watchlist.classList.toggle('active', state.onWatchlist);
+            watchlist.setAttribute('aria-pressed', String(state.onWatchlist));
+            watchlist.title = state.onWatchlist ? 'On your watchlist' : 'Add to your watchlist';
+        }
+        watched = state.seen;
         // Unmarked as watched, the check-ins go with it.
-        if (!state.seen) checkInDays.length = 0;
-        showCheckIn();
-        if (voteGroup) voteGroup.hidden = !state.seen;
+        if (!watched) checkInDays.length = 0;
+        showSeen();
+        if (voteGroup) voteGroup.hidden = !watched;
         voteButtons.forEach(button => button.classList.toggle('active', String(state.liked) === button.dataset.vote));
     };
-    // The page renders the plain titles; the day of a check-in joins them here, as on the tags.
-    buttons.forEach(button => {
-        if (button.dataset.seenAt) button.title = seenLabel('Watched', button.dataset.seenAt);
-    });
-    showCheckIn();
-    const all = [...buttons, ...voteButtons, ...(checkIn ? [checkIn] : [])];
+    showSeen();
+    const all = [...(watchlist ? [watchlist] : []), ...voteButtons, ...(seen ? [seen] : [])];
     const submit = async (url, body) => {
         all.forEach(button => button.disabled = true);
         try {
@@ -1019,20 +1016,17 @@ function setupListToggles() {
             all.forEach(button => button.disabled = false);
         }
     };
-    buttons.forEach(button => {
-        button.addEventListener('click', () => submit('/api/' + button.dataset.listToggle + '/' + button.dataset.movieId
-            + (button.dataset.listToggle === 'seen' ? '?when=earlier' : '')));
-    });
-    // The button opens its menu: the days of the past week to check in on, in the visitor's own calendar,
-    // or, checked in more than once, the other days first and a way to the days. The menu is placed on
-    // the page itself, under the button, as the hero clips what sticks out of it; a click elsewhere,
-    // Escape or a scroll closes it.
+    watchlist?.addEventListener('click', () => submit('/api/watchlist/' + watchlist.dataset.movieId));
+    // The button opens its menu: the days of the past week, in the visitor's own calendar, with Some time
+    // ago for a movie not yet watched, or Not watched after all for one that is; checked in more than
+    // once, the other days first and a way to the days. The menu is placed on the page itself, under
+    // the button, as the hero clips what sticks out of it; a click elsewhere, Escape or a scroll closes it.
     const menu = document.querySelector('[data-check-in-menu]');
-    if (checkIn && menu) {
-        const option = (text, attributes = {}) => {
+    if (seen && menu) {
+        const option = (text, attributes = {}, className = '') => {
             const button = document.createElement('button');
             button.type = 'button';
-            button.className = 'share-option';
+            button.className = 'share-option ' + className;
             Object.assign(button.dataset, attributes);
             button.textContent = text;
             return button;
@@ -1045,6 +1039,9 @@ function setupListToggles() {
                 const key = [day.getFullYear(), String(day.getMonth() + 1).padStart(2, '0'), String(day.getDate()).padStart(2, '0')].join('-');
                 menu.append(option(ago === 0 ? 'Today' : ago === 1 ? 'Yesterday' : WEEKDAY.format(day), { checkInDay: key }));
             }
+            menu.append(watched
+                ? option('Not watched after all', { seenToggle: '' }, 'share-option-apart share-option-muted')
+                : option('Some time ago', { seenToggle: '' }, 'share-option-apart'));
         };
         const others = () => {
             menu.replaceChildren();
@@ -1054,12 +1051,13 @@ function setupListToggles() {
                 row.textContent = day;
                 menu.append(row);
             });
-            menu.append(option('Check in again', { checkInAgain: '' }));
+            menu.append(option('Check in again', { checkInAgain: '' }, 'share-option-apart'));
+            menu.append(option('Not watched after all', { seenToggle: '' }, 'share-option-muted'));
         };
         const close = () => { menu.hidden = true; };
         // Under the button, or above it where the screen ends below; placed again when its content changes.
         const place = () => {
-            const at = checkIn.getBoundingClientRect();
+            const at = seen.getBoundingClientRect();
             menu.style.position = 'fixed';
             menu.style.left = `${Math.round(at.left)}px`;
             const below = at.bottom + 8 + menu.offsetHeight <= window.innerHeight;
@@ -1071,22 +1069,24 @@ function setupListToggles() {
             menu.hidden = false;
             place();
         };
-        checkIn.addEventListener('click', () => menu.hidden ? open() : close());
+        seen.addEventListener('click', () => menu.hidden ? open() : close());
         menu.addEventListener('click', event => {
             if (event.target.closest('[data-check-in-again]')) { days(); place(); return; }
+            const movie = '/api/seen/' + seen.dataset.movieId;
+            if (event.target.closest('[data-seen-toggle]')) { close(); submit(movie + '?when=earlier'); return; }
             const chosen = event.target.closest('[data-check-in-day]');
             if (!chosen) return;
             close();
-            submit('/api/seen/' + checkIn.dataset.movieId + '/check-in?day=' + chosen.dataset.checkInDay).then(ok => {
+            submit(movie + '/check-in?day=' + chosen.dataset.checkInDay).then(ok => {
                 if (!ok) return;
                 checkInDays.unshift(CHECK_IN_DAY.format(new Date(chosen.dataset.checkInDay + 'T00:00:00Z')));
-                showCheckIn();
+                showSeen();
             });
         });
         // The path rather than the target: Check in again replaces the menu's content, the clicked option with it.
         document.addEventListener('click', event => {
             const path = event.composedPath();
-            if (!path.includes(menu) && !path.includes(checkIn)) close();
+            if (!path.includes(menu) && !path.includes(seen)) close();
         });
         document.addEventListener('keydown', event => { if (event.key === 'Escape') close(); });
         window.addEventListener('scroll', close, { passive: true });

@@ -81,7 +81,7 @@
 
         <th:block th:if="${checkIns != null}">
             <div class="empty-state" th:if="${checkIns.window.content().isEmpty()}">
-                No check-ins yet: a movie marked as watched today, from its page, is checked in on that day.
+                No check-ins yet: a movie marked as watched on a day, from its page, is checked in on that day.
             </div>
             <div id="seen-results">
                 <section class="day-group" th:each="month : ${checkIns.months}" th:data-group="${month.label}">

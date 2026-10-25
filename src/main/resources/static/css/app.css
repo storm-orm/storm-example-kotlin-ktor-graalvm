@@ -1775,21 +1775,26 @@ img { display: block; }
 
 .signin-nudge.urgent { border-color: var(--gold); background: rgba(245, 197, 24, 0.12); }
 
-.check-in-button::before {
-    content: "+";
-    font-size: 16px;
-    font-weight: 700;
-    line-height: 1;
-}
-
-.check-in-button.active::before { content: "✓"; }
-
-/* Checked in, the button is green rather than the pink of Watched: the two states tell apart at a glance. */
-.check-in-button.active {
+/* Checked in, the button is green rather than the pink of Watched: the two tell apart at a glance. */
+.seen-button.checked-in {
     --from: var(--green-rgb);
     --to: var(--cyan-rgb);
     background: linear-gradient(135deg, rgba(var(--from), 0.26), rgba(var(--to), 0.14));
     color: var(--green);
+}
+
+/* The eye for a movie not watched yet; watched or checked in, a plus: a tap there adds a check-in. */
+.seen-button.active::before,
+.seen-button.checked-in::before {
+    content: "+";
+    width: auto;
+    height: auto;
+    background: none;
+    -webkit-mask: none;
+    mask: none;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
 }
 
 .check-in { position: relative; }
@@ -1801,7 +1806,10 @@ img { display: block; }
 
 .check-in-menu .check-in-day::before { content: "✓"; margin-right: 8px; color: var(--green); font-weight: 700; }
 
-.check-in-menu .check-in-day + .share-option { border-top: 1px solid var(--border); }
+/* An option set apart from the ones above it, and one that takes something back. */
+.share-option-apart { border-top: 1px solid var(--border); }
+
+.share-option-muted { color: var(--text-muted); }
 
 /* The catch-up toolbar stays in view under the navbar while the list scrolls. */
 .catch-up-toolbar {
