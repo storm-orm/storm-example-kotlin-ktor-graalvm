@@ -114,13 +114,13 @@ img { display: block; }
     -webkit-backdrop-filter: blur(24px) saturate(160%);
     backdrop-filter: blur(24px) saturate(160%);
     background: linear-gradient(
-        rgba(var(--background-rgb), 0.85),
-        rgba(var(--background-rgb), 0.74) 15%,
-        rgba(var(--background-rgb), 0.6) 30%,
-        rgba(var(--background-rgb), 0.44) 45%,
-        rgba(var(--background-rgb), 0.29) 60%,
-        rgba(var(--background-rgb), 0.16) 75%,
-        rgba(var(--background-rgb), 0.06) 88%,
+        rgba(var(--background-rgb), 0.7),
+        rgba(var(--background-rgb), 0.6) 15%,
+        rgba(var(--background-rgb), 0.48) 30%,
+        rgba(var(--background-rgb), 0.35) 45%,
+        rgba(var(--background-rgb), 0.23) 60%,
+        rgba(var(--background-rgb), 0.13) 75%,
+        rgba(var(--background-rgb), 0.05) 88%,
         rgba(var(--background-rgb), 0));
     -webkit-mask-image: linear-gradient(#000 30%, rgba(0, 0, 0, 0.6) 55%, rgba(0, 0, 0, 0.2) 80%, transparent);
     mask-image: linear-gradient(#000 30%, rgba(0, 0, 0, 0.6) 55%, rgba(0, 0, 0, 0.2) 80%, transparent);
