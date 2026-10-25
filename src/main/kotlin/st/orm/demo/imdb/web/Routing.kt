@@ -70,7 +70,7 @@ fun Application.configureRouting() {
         watchlistRoutes(watchlistService)
         movieSeenRoutes(movieSeenService, catchUpService, friendService, clubService)
         statisticsRoutes(statisticsService)
-        insightsRoutes(insightsService)
+        insightsRoutes(insightsService, streamingService)
         friendsRoutes(friendService)
         clubsRoutes(clubService)
         inviteRoutes(inviteService)

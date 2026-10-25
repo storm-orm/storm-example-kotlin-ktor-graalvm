@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupTrailers();
     setupWatchProviders();
     setupServiceLogos();
+    setupServiceShares();
     setupPosterGlows();
     setupPosterTilt();
     setupCardTitles();
@@ -208,6 +209,68 @@ function setupServiceLogos() {
         new MutationObserver(show).observe(container, { childList: true });
         show();
     });
+}
+
+/* ── The share of your services (About You) ─────────────────────── */
+
+// Where the movies the visitor watched stream, per service of theirs: a bar each, with the share and the
+// count. The server looks up a few dozen more watched movies on TMDB per request, so the card asks again
+// while some are unknown and draws the bars anew each time, until all are known or no more come in.
+function setupServiceShares() {
+    const card = document.querySelector('[data-service-shares]');
+    if (!card) return;
+    const rows = card.querySelector('[data-service-share-rows]');
+    const note = card.querySelector('[data-service-share-note]');
+    const draw = shares => {
+        // The bars are as long as their share of the largest, like the genres beside them.
+        const largest = Math.max(1, ...shares.services.map(service => service.percent));
+        rows.replaceChildren(...shares.services.map(service => {
+            const row = document.createElement('div');
+            row.className = 'service-share-row';
+            const label = document.createElement('span');
+            label.className = 'service-share-name';
+            if (service.logoUrl) {
+                const logo = document.createElement('img');
+                logo.src = service.logoUrl;
+                logo.alt = '';
+                logo.addEventListener('error', () => logo.remove());
+                label.appendChild(logo);
+            }
+            label.appendChild(document.createTextNode(service.name));
+            const track = document.createElement('div');
+            track.className = 'bar-track';
+            const fill = document.createElement('div');
+            fill.className = 'bar-fill';
+            fill.style.width = `${100 * service.percent / largest}%`;
+            track.appendChild(fill);
+            const value = document.createElement('span');
+            value.className = 'bar-value';
+            value.textContent = `${service.percent}% · ${service.movies}`;
+            row.append(label, track, value);
+            return row;
+        }));
+        const counted = `${shares.counted} of your ${shares.watched} watched movies stream on your services.`;
+        note.textContent = shares.known < shares.watched
+            ? `${counted} Looking up where the rest stream: ${shares.known} of ${shares.watched} known so far.`
+            : counted;
+        card.hidden = false;
+    };
+    let known = -1;
+    const ask = async () => {
+        try {
+            const response = await fetch(card.dataset.serviceShares);
+            if (!response.ok) return;
+            const shares = await response.json();
+            draw(shares);
+            if (shares.known < shares.watched && shares.known > known) {
+                known = shares.known;
+                setTimeout(ask, 500);
+            }
+        } catch (e) {
+            // The page is complete without the card.
+        }
+    };
+    ask();
 }
 
 // On a phone, the hero's head (poster, title, genres) lies on the backdrop, or the trailer behind it,

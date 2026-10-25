@@ -88,22 +88,30 @@ class TmdbService(
 
     /**
      * Where each of these movies streams or shows free in a country, as the
-     * ids of the platforms by movie id, for the posters of For You: what is
-     * stored and fresh is read in one query, the rest asked of TMDB a few
-     * calls at a time. A movie TMDB cannot place plays nowhere.
+     * ids of the platforms by movie id, for the posters and the share of the
+     * user's services: what is stored and fresh is read in one query, the
+     * rest asked of TMDB a few calls at a time, at most [maxLookups] of them;
+     * the others answer as stored. A movie TMDB cannot place plays nowhere,
+     * and a movie whose platforms are not known yet is left out.
      */
-    suspend fun watchProviderIds(movies: List<Movie>, country: String, now: Instant = Instant.now()): Map<String, List<Int>> {
+    suspend fun watchProviderIds(
+        movies: List<Movie>,
+        country: String,
+        maxLookups: Int = Int.MAX_VALUE,
+        now: Instant = Instant.now()
+    ): Map<String, List<Int>> {
         if (!enabled || movies.isEmpty()) return emptyMap()
         val fresh = freshWatchProviders(now)
         val stored = transaction(readOnly = true) { tmdbSourceRepository.findByMovies(movies) }.associateBy { it.movie.entityId() }
+        val lookUps = movies.filter { stored[it.id]?.let(fresh) != true }.take(maxLookups).toSet()
         val calls = Semaphore(PARALLEL_CALLS)
         return coroutineScope {
             movies.map { movie ->
                 async {
-                    val source = stored[movie.id]?.takeIf(fresh) ?: calls.withPermit { lookUpOnce(movie, now, fresh) }
-                    movie.id to source?.watchProviders?.byCountry?.get(country).orEmpty()
+                    val source = if (movie in lookUps) calls.withPermit { lookUpOnce(movie, now, fresh) } else stored[movie.id]
+                    source?.watchProviders?.let { movie.id to it.byCountry[country].orEmpty() }
                 }
-            }.awaitAll().toMap()
+            }.awaitAll().filterNotNull().toMap()
         }
     }
 

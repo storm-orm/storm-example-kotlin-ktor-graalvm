@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import st.orm.demo.imdb.model.MovieSeen
 import st.orm.demo.imdb.model.MovieSeenPk
 import st.orm.demo.imdb.model.Source
 import st.orm.demo.imdb.model.source
@@ -215,7 +216,7 @@ class TmdbTest {
 
     @Test
     fun `a user has services among the country's, and For You keeps to them`(orm: ORMTemplate) {
-        val streaming = StreamingService(orm.repository(), orm.repository(), orm.repository(), tmdbService(orm, client()))
+        val streaming = StreamingService(orm.repository(), orm.repository(), orm.repository(), orm.repository(), tmdbService(orm, client()))
         val alice = orm.insertUser("alice", name = "Alice")
         val netherlands = Countries.of("NL")!!
 
@@ -233,6 +234,24 @@ class TmdbTest {
         val movies = orm.repository<MovieRepository>()
         val picks = listOf(RecommendedMovie(movies.getById("tt0111161"), emptyList()), RecommendedMovie(movies.getById("tt0133093"), emptyList()))
         assertEquals(listOf("tt0133093"), runBlocking { streaming.keepToServices(alice, netherlands, picks) }.map { it.movie.id })
+    }
+
+    @Test
+    fun `the share of a user's services counts the watched movies on each, and leaves out the ones on none`(orm: ORMTemplate) {
+        val streaming = StreamingService(orm.repository(), orm.repository(), orm.repository(), orm.repository(), tmdbService(orm, client()))
+        val alice = orm.insertUser("alice", name = "Alice")
+        val netherlands = Countries.of("NL")!!
+        runBlocking { streaming.updateServices(alice, netherlands, setOf(8, 337)) }
+        val movies = orm.repository<MovieRepository>()
+        val seenAt = Instant.parse("2026-10-01T20:00:00Z")
+        // The Matrix streams on both of Alice's services there; TMDB does not know The Shawshank Redemption.
+        orm.repository<MovieSeenRepository>().insert(listOf(MovieSeen(alice, movies.getById("tt0133093"), seenAt), MovieSeen(alice, movies.getById("tt0111161"), seenAt)))
+
+        val shares = runBlocking { streaming.sharesOfWatched(alice, netherlands) }
+
+        assertEquals(listOf("Netflix" to 1, "Disney Plus" to 1), shares.shares.map { it.service.name to it.movies }.sortedByDescending { it.first })
+        assertEquals(listOf(50, 50), shares.shares.map { it.percent })
+        assertEquals(Triple(1, 2, 2), Triple(shares.counted, shares.known, shares.watched))
     }
 
     private companion object {
