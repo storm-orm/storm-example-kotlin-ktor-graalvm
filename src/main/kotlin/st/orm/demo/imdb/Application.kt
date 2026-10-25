@@ -323,7 +323,8 @@ private fun Application.configureStorm() {
                     "db/migration/V21__languages_from_tmdb.sql",
                     "db/migration/V22__ask_languages_again.sql",
                     "db/migration/V23__invite_accepted_count.sql",
-                    "db/migration/V24__movie_countries.sql"
+                    "db/migration/V24__movie_countries.sql",
+                    "db/migration/V25__ask_countries.sql"
                 )))
                 .load()
                 .migrate()
