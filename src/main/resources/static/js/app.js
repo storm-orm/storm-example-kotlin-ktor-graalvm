@@ -451,6 +451,9 @@ function bringForward(hero, behind, buttons) {
             if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
             player.mute();
             player.playVideo();
+            // Paused, the player keeps its controls up: it is set playing again, and once more if the first
+            // call did not take, as on a phone that stops a video losing its sound.
+            [600, 1800].forEach(wait => setTimeout(() => { if (player.getPlayerState() !== YT.PlayerState.PLAYING) player.playVideo(); }, wait));
             // The player keeps its controls up while it has the focus: the focus goes back to the page.
             frame.tabIndex = -1;
             frame.blur();
@@ -985,9 +988,12 @@ function setupListToggles() {
         if (shown) {
             const at = pill.getBoundingClientRect();
             list.style.position = 'fixed';
-            list.style.top = `${Math.round(at.bottom + 8)}px`;
             list.style.left = `${Math.round(at.left)}px`;
             document.body.append(list);
+            list.hidden = false;
+            // Under the pill, or above it where the screen ends too soon below.
+            const below = at.bottom + 8 + list.offsetHeight <= window.innerHeight;
+            list.style.top = `${Math.round(below ? at.bottom + 8 : at.top - 8 - list.offsetHeight)}px`;
         }
         list.hidden = !shown;
         pill.setAttribute('aria-expanded', String(shown));
