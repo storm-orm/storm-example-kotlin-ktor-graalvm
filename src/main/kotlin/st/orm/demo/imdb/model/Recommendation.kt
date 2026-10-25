@@ -13,7 +13,7 @@ import java.math.BigDecimal
 import java.time.Instant
 
 /** What a reason for a recommendation is about; the text is what the card shows. */
-enum class ReasonKind { SEED, PERSON, GENRE, DECADE, NEW, RATING, TRENDING }
+enum class ReasonKind { SEED, PERSON, GENRE, DECADE, LANGUAGE, COUNTRY, NEW, RATING, TRENDING }
 
 /** One reason a movie was recommended, as the card shows it: "Because you saw Inception". */
 @Serializable

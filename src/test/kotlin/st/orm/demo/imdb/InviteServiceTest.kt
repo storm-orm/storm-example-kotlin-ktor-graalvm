@@ -13,6 +13,7 @@ import st.orm.demo.imdb.repository.ClubRepository
 import st.orm.demo.imdb.repository.FriendInviteRepository
 import st.orm.demo.imdb.repository.FriendshipRepository
 import st.orm.demo.imdb.repository.InviteRepository
+import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.UserRepository
 import st.orm.demo.imdb.service.Accepted
@@ -20,6 +21,7 @@ import st.orm.demo.imdb.service.ClubService
 import st.orm.demo.imdb.service.FriendService
 import st.orm.demo.imdb.service.InviteService
 import st.orm.demo.imdb.service.InviteState
+import st.orm.demo.imdb.service.TasteOverlap
 import st.orm.repository.repository
 import st.orm.template.ORMTemplate
 import st.orm.test.StormTest
@@ -52,7 +54,8 @@ class InviteServiceTest {
         orm.repository<ClubRepository>(),
         orm.repository<ClubMemberRepository>(),
         orm.repository<MovieSeenRepository>(),
-        orm.repository<CheckInRepository>()
+        orm.repository<CheckInRepository>(),
+        TasteOverlap(orm.repository<MovieSeenRepository>(), orm.repository<MovieGenreRepository>())
     )
 
     private fun clubService(orm: ORMTemplate) = ClubService(
@@ -63,7 +66,8 @@ class InviteServiceTest {
         orm.repository<FriendshipRepository>(),
         orm.repository<FriendRequestRepository>(),
         orm.repository<MovieSeenRepository>(),
-        orm.repository<CheckInRepository>()
+        orm.repository<CheckInRepository>(),
+        TasteOverlap(orm.repository<MovieSeenRepository>(), orm.repository<MovieGenreRepository>())
     )
 
     @Test
@@ -100,6 +104,8 @@ class InviteServiceTest {
         assertEquals(Accepted.Friends, runBlocking { invites.accept(link, bob) })
         assertEquals(Accepted.Friends, runBlocking { invites.accept(link, carol, now = later) })
         assertEquals(listOf("Bob", "Carol"), runBlocking { friends.friendsOf(alice) }.friends.map { it.name })
+        // The link counts how often it was accepted, for the one who shares it.
+        assertEquals(2, runBlocking { friends.friendsOf(alice) }.invites.single { it.public }.accepted)
 
         // Replaced, the old link stops working.
         val replaced = runBlocking { friends.replacePublicInvite(alice) }

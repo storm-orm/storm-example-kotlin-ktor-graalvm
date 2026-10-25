@@ -17,6 +17,10 @@ data class LanguageCount(val language: String, val movies: Long)
 
 interface MovieLanguageRepository : EntityRepository<MovieLanguage, MovieLanguagePk> {
 
+    /** The languages of several movies at once, for the recommendations. */
+    fun findByMovies(movies: Collection<Ref<Movie>>): List<MovieLanguage> =
+        if (movies.isEmpty()) emptyList() else findAll(MovieLanguage_.movie inRefs movies)
+
     /** The languages a movie was made in, as ISO 639 codes. */
     fun findLanguages(movie: Movie): List<String> =
         findAll(MovieLanguage_.movie eq movie).map { it.id.language }

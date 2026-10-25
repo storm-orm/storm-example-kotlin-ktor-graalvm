@@ -1318,7 +1318,7 @@ function showSeenCount() {
 async function refreshOpenInvites() {
     const list = document.querySelector('[data-open-invites]');
     if (!list) return;
-    const response = await fetch(location.pathname);
+    const response = await fetch(location.href);
     if (!response.ok) return;
     const fresh = new DOMParser().parseFromString(await response.text(), 'text/html').querySelector('[data-open-invites]');
     if (fresh) list.replaceWith(fresh);

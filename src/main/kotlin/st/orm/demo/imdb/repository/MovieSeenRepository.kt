@@ -58,7 +58,38 @@ data class MovieSeenCount(
     val seenCount: Long
 )
 
+/**
+ * Query result shape: how many movies a user has seen, or has seen that
+ * another user has seen too, by the user's id. Not backed by a database
+ * table or view, so it is a plain data class — deliberately not a Data type.
+ */
+@GenerateMetamodel
+data class SeenCount(
+    val user: Ref<User>,
+    val movieCount: Long
+)
+
 interface MovieSeenRepository : EntityRepository<MovieSeen, MovieSeenPk> {
+
+    /** How many movies each of several users has seen. */
+    fun countSeen(users: List<User>): List<SeenCount> =
+        select<SeenCount, _, _> { "${MovieSeen_.user}, COUNT(*)" }
+            .where(MovieSeen_.user inList users)
+            .groupBy(MovieSeen_.user)
+            .resultList
+
+    /**
+     * How many of the movies each of several users has seen the [user] has
+     * seen too: what they have in common. The other users' seen rows are
+     * counted, kept by a semi-join to the user's own seen rows on the movie,
+     * the table joined to itself, each side its own alias.
+     */
+    fun countSeenInCommon(user: User, others: List<User>): List<SeenCount> =
+        select<SeenCount, _, _> { "${MovieSeen_.user}, COUNT(*)" }
+            .semiJoin<MovieSeen>().on<Movie> { MovieSeen_.user eq user }
+            .where(MovieSeen_.user inList others)
+            .groupBy(MovieSeen_.user)
+            .resultList
 
     /** Whether the user has marked the movie as seen: a lookup of the pair key. */
     fun contains(user: User, movie: Movie): Boolean =

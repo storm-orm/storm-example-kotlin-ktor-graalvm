@@ -10,11 +10,12 @@ import java.time.Instant
  * whole days; a personal one also what is left of its two weeks, for "made 2
  * days ago, open 12 more days". A public one is open until it is replaced.
  */
-data class OpenInvite(val token: String, val public: Boolean, val daysOld: Long, val daysLeft: Long?) {
+data class OpenInvite(val token: String, val public: Boolean, val daysOld: Long, val daysLeft: Long?, val accepted: Int) {
     companion object {
         fun of(invite: Invite, now: Instant) = OpenInvite(
             token = invite.token,
             public = invite.reusable,
+            accepted = invite.acceptedCount,
             daysOld = Duration.between(invite.createdAt, now).toDays(),
             daysLeft = if (invite.reusable) null else Math.ceilDiv(Duration.between(now, invite.createdAt.plus(Invite.VALIDITY)).toSeconds(), SECONDS_PER_DAY)
         )

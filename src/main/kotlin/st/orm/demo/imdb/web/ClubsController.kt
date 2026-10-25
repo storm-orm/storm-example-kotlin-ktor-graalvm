@@ -50,6 +50,7 @@ fun Route.clubsRoutes(clubService: ClubService) {
         val parameters = call.request.queryParameters
         call.respondPage(ThymeleafContent("club", mapOf(
             "view" to view,
+            "tab" to (if (parameters["tab"] == "manage") "manage" else "club"),
             "joined" to (parameters["joined"] != null),
             "lastAdmin" to (parameters["last-admin"] != null)
         )))

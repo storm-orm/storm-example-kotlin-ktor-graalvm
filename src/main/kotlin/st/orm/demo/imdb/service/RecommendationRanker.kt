@@ -28,12 +28,14 @@ import kotlin.math.sqrt
 data class Seed(val movie: Movie, val weight: Double, val wanted: Boolean)
 
 /**
- * What a user's lists say they like: a weight per genre, per person and
- * per decade, summed over the seeds, and which seeds brought each genre
- * and person in, so a pick can say which movie of the user's own argued
- * for it. A director weighs more than an actor on the same seed. The
- * rating range is where the ratings of what the user sees lie
- * ([RatingRange]), null while too few are seen to tell.
+ * What a user's lists say they like: a weight per genre, per person, per
+ * decade, per language and per country, summed over the seeds, and which
+ * seeds brought each genre and person in, so a pick can say which movie of
+ * the user's own argued for it. A director weighs more than an actor on
+ * the same seed. The rating range is where the ratings of what the user
+ * sees lie ([RatingRange]), null while too few are seen to tell. The home
+ * country is the one the user is from, if they said; a movie made there
+ * gets a push of its own, whatever the seeds say.
  */
 data class TasteProfile(
     val seeds: List<Seed>,
@@ -42,7 +44,10 @@ data class TasteProfile(
     val decadeWeights: Map<Int, Double>,
     val seedsByGenre: Map<Ref<Genre>, List<Seed>>,
     val seedsByPerson: Map<Ref<Person>, List<Seed>>,
-    val ratingRange: RatingRange? = null
+    val ratingRange: RatingRange? = null,
+    val languageWeights: Map<String, Double> = emptyMap(),
+    val countryWeights: Map<String, Double> = emptyMap(),
+    val homeCountry: String? = null
 ) {
     val isEmpty: Boolean get() = seeds.isEmpty()
 
@@ -92,8 +97,9 @@ data class RatingRange(val mean: Double, val spread: Double) {
  * A movie that might be recommended, with what the scoring looks at: its
  * rating (which carries the movie), its genres, the credits of the user's
  * favourite people on it, how often the site's visitors viewed it lately,
- * how often the user was shown it already, and when it joined the
- * catalogue, if it joined after the catalogue was created.
+ * how often the user was shown it already, when it joined the catalogue,
+ * if it joined after the catalogue was created, and the languages it was
+ * made in and the countries it was made in, as far as Wikidata knows.
  */
 data class Candidate(
     val rating: Rating,
@@ -101,7 +107,9 @@ data class Candidate(
     val credits: List<CandidateCredit>,
     val viewCount: Long,
     val shownCount: Int = 0,
-    val addedAt: Instant? = null
+    val addedAt: Instant? = null,
+    val languages: Set<String> = emptySet(),
+    val countries: Set<String> = emptySet()
 ) {
     val movie: Movie get() = rating.movie
 }
@@ -114,13 +122,16 @@ fun decadeOf(year: Int): Int = year / 10 * 10
 
 /**
  * The scoring, in one place and free of the database: the taste profile
- * and the candidates come in, the best picks come out. Seven terms add up,
- * each in [0, 1] (the three taste terms can go negative after a thumbs down):
+ * and the candidates come in, the best picks come out. Ten terms add up,
+ * each in [0, 1] (the five taste terms can go negative after a thumbs down):
  *
  * - genre affinity, the candidate's genres weighed by the profile;
  * - person affinity, the favourite people credited on it, weighed the
  *   same, a director counting more than an actor;
  * - decade affinity, how much of the profile falls in the candidate's decade;
+ * - language affinity, how much of the profile is in the candidate's
+ *   languages, and country affinity, how much was made where it was made;
+ * - home, whether it was made in the user's own country;
  * - quality, the IMDB average shrunk towards the catalogue mean for movies
  *   with few votes, so a 9.0 from two thousand voters does not beat an 8.5
  *   from two million;
@@ -146,6 +157,9 @@ object RecommendationRanker {
     private const val GENRE_WEIGHT = 1.0
     private const val PERSON_WEIGHT = 1.5
     private const val DECADE_WEIGHT = 0.5
+    private const val LANGUAGE_WEIGHT = 0.5
+    private const val COUNTRY_WEIGHT = 0.4
+    private const val HOME_WEIGHT = 0.3
     private const val QUALITY_WEIGHT = 1.0
     private const val RECENCY_WEIGHT = 0.2
     private const val TRENDING_WEIGHT = 0.3
@@ -172,6 +186,8 @@ object RecommendationRanker {
         val maxGenreWeight = profile.genreWeights.values.maxOfOrNull { it }?.takeIf { it > 0 } ?: 1.0
         val maxPersonWeight = profile.people.values.maxOfOrNull { it }?.takeIf { it > 0 } ?: 1.0
         val maxDecadeWeight = profile.decadeWeights.values.maxOfOrNull { it }?.takeIf { it > 0 } ?: 1.0
+        val maxLanguageWeight = profile.languageWeights.values.maxOfOrNull { it }?.takeIf { it > 0 } ?: 1.0
+        val maxCountryWeight = profile.countryWeights.values.maxOfOrNull { it }?.takeIf { it > 0 } ?: 1.0
         val maxViewCount = candidates.maxOfOrNull { it.viewCount }?.takeIf { it > 0 } ?: 1L
 
         val scored = candidates.map { candidate ->
@@ -183,6 +199,10 @@ object RecommendationRanker {
             val genreAffinity = (genres.sumOf { it.second } / maxGenreWeight).coerceIn(-1.0, 1.0)
             val personAffinity = (people.sumOf { it.second } / maxPersonWeight).coerceIn(-1.0, 1.0)
             val decadeAffinity = ((decade?.let { profile.decadeWeights[it] } ?: 0.0) / maxDecadeWeight).coerceIn(-1.0, 1.0)
+            // A movie in two languages, or made in two countries, takes the one the user likes best.
+            val languageAffinity = (candidate.languages.maxOfOrNull { profile.languageWeights[it] ?: 0.0 } ?: 0.0) / maxLanguageWeight
+            val countryAffinity = (candidate.countries.maxOfOrNull { profile.countryWeights[it] ?: 0.0 } ?: 0.0) / maxCountryWeight
+            val home = if (profile.homeCountry != null && profile.homeCountry in candidate.countries) 1.0 else 0.0
             val quality = ((weightedRating(candidate.rating) - 5.0) / 5.0).coerceIn(0.0, 1.0)
             val recency = candidate.movie.startYear?.let { (1.0 - (currentYear - it) / RECENCY_YEARS).coerceIn(0.0, 1.0) } ?: 0.0
             val trending = candidate.viewCount.toDouble() / maxViewCount
@@ -190,6 +210,9 @@ object RecommendationRanker {
             val fit = GENRE_WEIGHT * genreAffinity +
                 PERSON_WEIGHT * personAffinity +
                 DECADE_WEIGHT * decadeAffinity +
+                LANGUAGE_WEIGHT * languageAffinity.coerceIn(-1.0, 1.0) +
+                COUNTRY_WEIGHT * countryAffinity.coerceIn(-1.0, 1.0) +
+                HOME_WEIGHT * home +
                 QUALITY_WEIGHT * quality +
                 RECENCY_WEIGHT * recency +
                 TRENDING_WEIGHT * trending +
@@ -202,7 +225,10 @@ object RecommendationRanker {
             val bestPerson = people.filter { it.second > 0 }.maxByOrNull { it.second }?.first
             val bestGenre = genres.filter { it.second > 0 }.maxByOrNull { it.second }?.first
             val seed = seedFor(profile, bestPerson, genres.filter { it.second > 0 }.map { it.first })
-            val reasons = reasons(candidate, seed, bestPerson, bestGenre, decade.takeIf { decadeAffinity >= 0.5 }, newness > 0, trending)
+            val likedLanguage = candidate.languages.filter { (profile.languageWeights[it] ?: 0.0) / maxLanguageWeight >= 0.5 }.maxByOrNull { profile.languageWeights.getValue(it) }
+            val likedCountry = candidate.countries.firstOrNull { it == profile.homeCountry }
+                ?: candidate.countries.filter { (profile.countryWeights[it] ?: 0.0) / maxCountryWeight >= 0.5 }.maxByOrNull { profile.countryWeights.getValue(it) }
+            val reasons = reasons(candidate, seed, bestPerson, bestGenre, decade.takeIf { decadeAffinity >= 0.5 }, likedLanguage, likedCountry, profile.homeCountry, newness > 0, trending)
             Scored(Pick(candidate.movie, score, seed, reasons), bestPerson?.person?.ref())
         }
 
@@ -259,6 +285,9 @@ object RecommendationRanker {
         bestPerson: CandidateCredit?,
         bestGenre: Genre?,
         likedDecade: Int?,
+        likedLanguage: String?,
+        likedCountry: String?,
+        homeCountry: String?,
         isNew: Boolean,
         trending: Double
     ): List<Reason> =
@@ -275,6 +304,13 @@ object RecommendationRanker {
             }
             if (size < 3 && likedDecade != null) {
                 add(Reason(ReasonKind.DECADE, "From the ${likedDecade}s, like much of what you've watched"))
+            }
+            if (size < 3 && likedCountry != null) {
+                val country = Countries.of(likedCountry)?.name ?: likedCountry
+                add(Reason(ReasonKind.COUNTRY, if (likedCountry == homeCountry) "Made in $country, your country" else "Made in $country, like much of what you've watched"))
+            }
+            if (size < 3 && likedLanguage != null) {
+                add(Reason(ReasonKind.LANGUAGE, "In ${Languages.nameOf(likedLanguage)}, like much of what you've watched"))
             }
             if (trending >= 0.5) {
                 add(Reason(ReasonKind.TRENDING, "Popular on Storm Movies this week"))

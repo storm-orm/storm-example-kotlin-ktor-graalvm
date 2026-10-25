@@ -10,10 +10,12 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
 import st.orm.demo.imdb.model.Movie
+import st.orm.demo.imdb.model.MovieCountry
 import st.orm.demo.imdb.model.MovieLanguage
 import st.orm.demo.imdb.model.MovieTag
 import st.orm.demo.imdb.model.Tag
 import st.orm.demo.imdb.model.WikidataSource
+import st.orm.demo.imdb.repository.MovieCountryRepository
 import st.orm.demo.imdb.repository.MovieLanguageRepository
 import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.MovieTagRepository
@@ -38,6 +40,7 @@ class WikidataService(
     private val movieRepository: MovieRepository,
     private val wikidataSourceRepository: WikidataSourceRepository,
     private val movieLanguageRepository: MovieLanguageRepository,
+    private val movieCountryRepository: MovieCountryRepository,
     private val movieTagRepository: MovieTagRepository
 ) {
     private val logger = LoggerFactory.getLogger(WikidataService::class.java)
@@ -85,12 +88,15 @@ class WikidataService(
         return movies.associate { movie -> movie.id to (answers[movie.id]?.languages.orEmpty().ifEmpty { setOfNotNull(fromTmdb[movie.id]) }) }
     }
 
-    /** The answers for a window of movies: the sources, and in place of what they had, the languages and the tags. */
+    /** The answers for a window of movies: the sources, and in place of what they had, the languages, the countries and the tags. */
     private fun store(movies: List<Movie>, answers: Map<String, WikidataMovie>, languages: Map<String, Set<String>>, now: Instant) {
         val refs = movies.map { it.ref() }
         wikidataSourceRepository.replace(movies.map { WikidataSource(movie = it.ref(), externalId = answers[it.id]?.itemId, fetchedAt = now) })
         movieLanguageRepository.replace(refs, movies.flatMap { movie ->
             languages.getValue(movie.id).map { MovieLanguage(movie.ref(), it) }
+        })
+        movieCountryRepository.replace(refs, movies.flatMap { movie ->
+            answers[movie.id]?.countries.orEmpty().map { MovieCountry(movie.ref(), it) }
         })
         movieTagRepository.replace(refs, movies.flatMap { movie ->
             answers[movie.id]?.let { tagsOf(it.countries, languages.getValue(movie.id)) }.orEmpty().map { MovieTag(movie.ref(), it) }

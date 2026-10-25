@@ -46,13 +46,36 @@
             <span class="open-invite-kind" th:classappend="${invite.public} ? 'public'" th:text="${invite.public} ? 'Public' : 'Personal'">Personal</span>
             <span class="open-invite-age"
                   th:text="${(invite.daysOld == 0 ? 'Made today' : (invite.daysOld == 1 ? 'Made yesterday' : 'Made ' + invite.daysOld + ' days ago'))
-                           + ' · ' + (invite.public ? 'open until replaced' : (invite.daysLeft == 1 ? 'open 1 more day' : 'open ' + invite.daysLeft + ' more days'))}">Made today · open 14 more days</span>
+                           + ' · ' + (invite.public ? 'open until replaced' : (invite.daysLeft == 1 ? 'open 1 more day' : 'open ' + invite.daysLeft + ' more days'))
+                           + (invite.public ? ' · ' + (invite.accepted == 0 ? 'accepted by nobody yet' : (invite.accepted == 1 ? 'accepted by 1' : 'accepted by ' + invite.accepted)) : '')}">Made today · open 14 more days</span>
         </span>
         <span class="stat-end">
             <button type="button" class="link-button" th:data-copy-link="@{/invite/{token}(token=${invite.token})}">Copy link</button>
             <form th:action="|${withdrawPath}/${invite.token}/withdraw|" method="post">
                 <button type="submit" class="link-button">Withdraw</button>
             </form>
+        </span>
+    </div>
+</div>
+
+<!-- What the visitor has in common with each person: the movies both watched, as a share of what the other
+     watched, and the genres both watch most; a person who does not share what they watch shows no numbers. -->
+<div th:fragment="inCommon(items)" class="in-common" data-in-common>
+    <div class="stat-row in-common-row" th:each="item : ${items}">
+        <span class="friend-name">
+            <span th:replace="~{fragments/community :: avatar(${item.user}, '')}"></span>
+            <span>
+                <span th:text="${item.user.name}">Alice</span>
+                <span class="in-common-detail" th:if="${item.shares}">
+                    <strong th:text="${item.movies == 1} ? '1 movie in common' : |${item.movies} movies in common|">12 movies in common</strong>
+                    <th:block th:if="${item.theirs > 0}">· <th:block th:text="|${item.percent}% of the ${item.theirs} they watched|">34% of the 68 they watched</th:block></th:block>
+                    <th:block th:unless="${item.genres.isEmpty()}">· you both watch <th:block th:each="genre, status : ${item.genres}"><a th:href="@{/browse/{name}(name=${genre.name})}" th:text="${genre.name}">Drama</a><th:block th:unless="${status.last}">, </th:block></th:block></th:block>
+                </span>
+                <span class="in-common-detail" th:unless="${item.shares}">Doesn't share what they watch</span>
+            </span>
+        </span>
+        <span class="in-common-bar" th:if="${item.shares and item.theirs > 0}" th:title="|${item.percent}% in common|">
+            <span class="bar-track"><span class="bar-fill" th:style="|width: ${item.percent}%|"></span></span>
         </span>
     </div>
 </div>

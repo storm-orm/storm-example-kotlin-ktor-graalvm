@@ -34,6 +34,7 @@ import st.orm.demo.imdb.service.ViewLogService
 import st.orm.demo.imdb.service.WatchlistService
 import st.orm.demo.imdb.service.MovieSourceService
 import st.orm.demo.imdb.service.StreamingService
+import st.orm.demo.imdb.service.TasteOverlap
 import st.orm.demo.imdb.service.TmdbClient
 import st.orm.demo.imdb.service.TmdbService
 import st.orm.demo.imdb.service.WikidataClient
@@ -83,12 +84,14 @@ fun Application.configureDependencies() {
             RecommendationService(
                 resolve(), resolve(), resolve(), resolve(), resolve(), resolve(),
                 resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(),
+                resolve(), resolve(),
             )
         }
         provide { AccountService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { HomeService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
-        provide { FriendService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
-        provide { ClubService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { TasteOverlap(resolve(), resolve()) }
+        provide { FriendService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { ClubService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { InviteService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { TopMoviesService(resolve(), resolve()) }
         provide { WatchlistService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
@@ -108,7 +111,7 @@ fun Application.configureDependencies() {
         provide { MovieSourceService(resolve(), resolve(), resolve()) }
         // Wikidata, for where each movie was made and in what language: its languages and tags.
         provide { WikidataClient(resolve()) }
-        provide { WikidataService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { WikidataService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { MovieFilterService(resolve(), resolve(), resolve()) }
         provide { StreamingService(resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PersonGalleryService(resolve(), resolve(), resolve(), resolve(), resolve<GalleryRefreshProperties>().maxAge) }

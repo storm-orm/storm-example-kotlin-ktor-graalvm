@@ -9,6 +9,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import st.orm.demo.imdb.model.MovieFilter
 import st.orm.demo.imdb.model.Tag
+import st.orm.demo.imdb.repository.MovieCountryRepository
 import st.orm.demo.imdb.repository.MovieLanguageRepository
 import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.MovieTagRepository
@@ -21,6 +22,7 @@ import st.orm.demo.imdb.service.TmdbClient
 import st.orm.demo.imdb.service.WikidataService
 import st.orm.repository.repository
 import st.orm.template.ORMTemplate
+import st.orm.template.ref
 import st.orm.test.SqlCapture
 import st.orm.test.StormTest
 import tools.jackson.module.kotlin.jacksonObjectMapper
@@ -76,6 +78,7 @@ class WikidataTest {
         orm.repository<MovieRepository>(),
         orm.repository<WikidataSourceRepository>(),
         orm.repository<MovieLanguageRepository>(),
+        orm.repository<MovieCountryRepository>(),
         orm.repository<MovieTagRepository>()
     )
 
@@ -110,6 +113,8 @@ class WikidataTest {
         assertEquals(listOf("hi"), languages.findLanguages(movies.getById("tt0111161")))
         assertEquals(listOf("en"), languages.findLanguages(movies.getById("tt0110912")))
         assertEquals(emptyList<String>(), languages.findLanguages(movies.getById("tt0234215")))
+        // The countries too, for the recommendations.
+        assertEquals(listOf("IN"), orm.repository<MovieCountryRepository>().findByMovies(listOf(movies.getById("tt0111161").ref())).map { it.id.country })
 
         // Asked lately, a movie is not asked again until it is due.
         runBlocking { wikidataService(orm).askAboutMovies(now.plusSeconds(3600)) }

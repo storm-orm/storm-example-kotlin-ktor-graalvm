@@ -16,6 +16,8 @@ import st.orm.demo.imdb.repository.ClubInviteRepository
 import st.orm.demo.imdb.repository.ClubMemberRepository
 import st.orm.demo.imdb.repository.FriendshipRepository
 import st.orm.demo.imdb.repository.MovieAdditionRepository
+import st.orm.demo.imdb.repository.MovieCountryRepository
+import st.orm.demo.imdb.repository.MovieLanguageRepository
 import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
@@ -228,7 +230,9 @@ class AccountServiceTest {
             orm.repository<MovieViewRepository>(),
             orm.repository<RecommendationRepository>(),
             orm.repository<RecommendationEventRepository>(),
-            orm.repository<CheckInRepository>()
+            orm.repository<CheckInRepository>(),
+            orm.repository<MovieLanguageRepository>(),
+            orm.repository<MovieCountryRepository>()
         )
     )
 }

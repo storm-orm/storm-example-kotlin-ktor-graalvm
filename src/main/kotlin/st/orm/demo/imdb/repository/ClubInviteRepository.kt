@@ -34,6 +34,14 @@ interface ClubInviteRepository : EntityRepository<ClubInvite, String> {
             .orderByDescending(ClubInvite_.reusable, ClubInvite_.createdAt)
             .resultList
 
+    /** Counts the invite as accepted once more, in the database, so two accepts at once both count. */
+    fun countAccepted(token: String) {
+        update()
+            .set(ClubInvite_.acceptedCount) { "${ClubInvite_.acceptedCount} + 1" }
+            .where(ClubInvite_.token eq token)
+            .executeUpdate()
+    }
+
     /** Withdraws one of the club's invites, public or personal: its link stops working. */
     fun removeInvite(club: Club, token: String) {
         removeAll((ClubInvite_.token eq token) and (ClubInvite_.club eq club))

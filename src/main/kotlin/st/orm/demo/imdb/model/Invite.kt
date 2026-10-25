@@ -29,6 +29,8 @@ sealed interface Invite : Entity<String> {
     val inviter: User
     val createdAt: Instant
     val reusable: Boolean
+    /** How often the link was accepted: a public one counts up; a personal one goes when accepted. */
+    val acceptedCount: Int
 
     /** Whether the invite can still be accepted: a public one as long as it exists, a personal one for two weeks. */
     fun isOpen(now: Instant): Boolean = reusable || createdAt.isAfter(now.minus(VALIDITY))
@@ -50,7 +52,8 @@ data class FriendInvite(
     @PK(generation = NONE) override val token: String,
     @FK override val inviter: User,
     override val createdAt: Instant,
-    override val reusable: Boolean = false
+    override val reusable: Boolean = false,
+    override val acceptedCount: Int = 0
 ) : Invite
 
 /** An invite to join a club, made by one of its admins. */
@@ -60,5 +63,6 @@ data class ClubInvite(
     @FK override val inviter: User,
     override val createdAt: Instant,
     override val reusable: Boolean = false,
+    override val acceptedCount: Int = 0,
     @FK val club: Club
 ) : Invite

@@ -18,11 +18,13 @@ import st.orm.demo.imdb.repository.ClubMemberRepository
 import st.orm.demo.imdb.repository.ClubRepository
 import st.orm.demo.imdb.repository.FriendshipRepository
 import st.orm.demo.imdb.repository.MovieRepository
+import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.UserRepository
 import st.orm.demo.imdb.service.ClubSeen
 import st.orm.demo.imdb.service.ClubService
 import st.orm.demo.imdb.service.Leaving
+import st.orm.demo.imdb.service.TasteOverlap
 import st.orm.repository.repository
 import st.orm.template.ORMTemplate
 import st.orm.test.StormTest
@@ -39,7 +41,8 @@ class ClubServiceTest {
         orm.repository<FriendshipRepository>(),
         orm.repository<FriendRequestRepository>(),
         orm.repository<MovieSeenRepository>(),
-        orm.repository<CheckInRepository>()
+        orm.repository<CheckInRepository>(),
+        TasteOverlap(orm.repository<MovieSeenRepository>(), orm.repository<MovieGenreRepository>())
     )
 
     /** Makes the user a member, as accepting an invite does (InviteServiceTest covers the invites). */

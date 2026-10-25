@@ -241,6 +241,27 @@ class RecommendationRankerTest {
         assertTrue(reloadedAfter / reloadedBefore < 0.35)
     }
 
+    @Test
+    fun `the languages and countries of the seeds count, and the user's own country, and are named`() {
+        // One Dutch seed made in the Netherlands; the user is from Belgium.
+        val profile = profileFrom(Seed(matrix, 1.0, wanted = false), genres = emptyMap(), people = emptyMap())
+            .copy(languageWeights = mapOf("nl" to 1.0), countryWeights = mapOf("NL" to 1.0), homeCountry = "BE")
+        val plain = candidate(movie("tt0000001", "Plain", 2010), 8.0, 500_000)
+        val dutch = plain.copy(rating = rating(movie("tt0000002", "Dutch", 2010), 8.0, 500_000), languages = setOf("nl"), countries = setOf("NL"))
+        val belgian = plain.copy(rating = rating(movie("tt0000003", "Belgian", 2010), 8.0, 500_000), countries = setOf("BE"))
+
+        val picks = RecommendationRanker.rank(profile, listOf(plain, dutch, belgian), now = NOW)
+
+        // Alike in every other way: the Dutch one has the language and the country going for it, the Belgian one the home country.
+        assertEquals(listOf("Dutch", "Belgian", "Plain"), picks.map { it.movie.primaryTitle })
+        assertEquals(
+            listOf("Made in Netherlands, like much of what you've watched", "In Dutch, like much of what you've watched"),
+            picks[0].reasons.filter { it.kind == ReasonKind.COUNTRY || it.kind == ReasonKind.LANGUAGE }.map { it.text }
+        )
+        assertEquals(listOf("Made in Belgium, your country"), picks[1].reasons.filter { it.kind == ReasonKind.COUNTRY }.map { it.text })
+        assertFalse(picks[2].reasons.any { it.kind == ReasonKind.COUNTRY || it.kind == ReasonKind.LANGUAGE })
+    }
+
     /** A profile the way the service builds it: weights summed per genre, person and decade over the seeds. */
     private fun profileFrom(vararg seeds: Seed, genres: Map<Movie, List<Genre>>, people: Map<Movie, List<Pair<Person, String>>>): TasteProfile {
         val seedsByGenre = seeds.flatMap { seed -> genres[seed.movie].orEmpty().map { it.ref() to seed } }.groupBy({ it.first }, { it.second })

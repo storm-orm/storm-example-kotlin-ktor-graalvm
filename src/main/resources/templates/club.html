@@ -16,6 +16,17 @@
     <div class="container">
         <div class="notice" th:if="${joined}">Welcome to the club.</div>
         <div class="notice notice-error" th:if="${lastAdmin}">A club keeps at least one admin: make another member an admin first.</div>
+        <!-- The club's page is about the club; its members, invites, name and the sharing are behind a tab. -->
+        <nav class="view-tabs page-tabs">
+            <a th:href="@{/clubs/{id}(id=${view.club.id})}" th:classappend="${tab == 'club'} ? 'active'">Overview</a>
+            <a th:href="@{/clubs/{id}(id=${view.club.id}, tab='manage')}" th:classappend="${tab == 'manage'} ? 'active'">Manage</a>
+        </nav>
+    </div>
+</section>
+
+<th:block th:if="${tab == 'club'}">
+<section class="section">
+    <div class="container">
         <div class="section-header">
             <h2 class="section-title">Recently Watched in the Club</h2>
         </div>
@@ -51,7 +62,21 @@
     </div>
 </section>
 
-<section class="section">
+<!-- What the visitor and each member have in common: the movies both watched, and the genres both watch most. -->
+<section class="section" id="in-common-section" th:unless="${view.inCommon.isEmpty()}">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">In Common</h2>
+            <span class="section-note">what you and each member both watched</span>
+        </div>
+        <div class="stat-card">
+            <div th:replace="~{fragments/community :: inCommon(${view.inCommon})}"></div>
+        </div>
+    </div>
+</section>
+</th:block>
+
+<section class="section" th:if="${tab == 'manage'}">
     <div class="container friends-grid">
         <div class="stat-card" id="members-card">
             <h2>Members</h2>

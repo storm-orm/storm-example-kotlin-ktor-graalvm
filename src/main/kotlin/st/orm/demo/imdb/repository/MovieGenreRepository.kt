@@ -13,6 +13,7 @@ import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.model.Rating_
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.serialization.BigDecimalAsStringSerializer
+import st.orm.Ref
 import st.orm.repository.EntityRepository
 import st.orm.repository.select
 import st.orm.template.eq
@@ -44,7 +45,27 @@ data class GenreSeenCount(
     val movieCount: Long
 )
 
+/**
+ * Query result shape: how many movies of a genre one of several users has
+ * seen, by the user's id. Not backed by a database table or view, so it is
+ * a plain data class — deliberately not a Data type.
+ */
+@GenerateMetamodel
+data class UserGenreSeenCount(
+    val user: Ref<User>,
+    val genre: Genre,
+    val movieCount: Long
+)
+
 interface MovieGenreRepository : EntityRepository<MovieGenre, MovieGenrePk> {
+
+    /** How many movies of each genre each of several users has seen, for what they have in common. */
+    fun countSeenPerGenre(users: List<User>): List<UserGenreSeenCount> =
+        select<UserGenreSeenCount, _, _> { "${MovieSeen_.user}, ${Genre::class}, COUNT(*)" }
+            .innerJoin<MovieSeen>().on<Movie>()
+            .where(MovieSeen_.user inList users)
+            .groupBy(MovieSeen_.user, MovieGenre_.genre)
+            .resultList
 
     /** The genre links of several movies at once. */
     fun findByMovies(movies: List<Movie>) =

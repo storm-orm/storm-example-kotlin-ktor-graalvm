@@ -223,6 +223,7 @@ CREATE TABLE invite (
     inviter_id VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
     created_at TIMESTAMP NOT NULL,
     reusable   BOOLEAN NOT NULL DEFAULT FALSE,
+    accepted_count INTEGER NOT NULL DEFAULT 0,
     club_id    BIGINT REFERENCES club (id) ON DELETE CASCADE,
     CHECK ((kind = 'club') = (club_id IS NOT NULL))
 );
@@ -275,6 +276,13 @@ CREATE TABLE movie_language (
     PRIMARY KEY (movie_id, language)
 );
 CREATE INDEX idx_movie_language_language ON movie_language (language);
+
+CREATE TABLE movie_country (
+    movie_id VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
+    country  VARCHAR(2) NOT NULL,
+    PRIMARY KEY (movie_id, country)
+);
+CREATE INDEX idx_movie_country_country ON movie_country (country);
 
 CREATE TABLE movie_tag (
     movie_id VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,

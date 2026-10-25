@@ -50,11 +50,22 @@
 <section class="section">
     <div class="container">
         <div class="notice" th:if="${added}">You are friends now.</div>
+        <!-- With friends, the page is about them; the friend list, the invites and the sharing are behind a tab. -->
+        <nav class="view-tabs page-tabs" th:unless="${view.friends.isEmpty()}">
+            <a th:href="@{/friends}" th:classappend="${tab == 'community'} ? 'active'">Overview</a>
+            <a th:href="@{/friends(tab='manage')}" th:classappend="${tab == 'manage'} ? 'active'">Manage</a>
+        </nav>
+    </div>
+</section>
+
+<th:block th:if="${tab == 'community'}">
+<section class="section">
+    <div class="container">
         <div class="section-header">
             <h2 class="section-title">Recently Watched by Friends</h2>
         </div>
         <div class="empty-state" th:if="${view.feed.isEmpty()}">
-            Nothing yet: invite a friend below, or wait for your friends to mark what they saw.
+            Nothing yet: wait for your friends to mark what they saw.
         </div>
         <div class="movie-grid" id="friends-feed">
             <th:block th:each="item : ${view.feed}">
@@ -64,7 +75,21 @@
     </div>
 </section>
 
-<section class="section">
+<!-- What the visitor and each friend have in common: the movies both watched, and the genres both watch most. -->
+<section class="section" id="in-common-section" th:unless="${view.inCommon.isEmpty()}">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">In Common</h2>
+            <span class="section-note">what you and each friend both watched</span>
+        </div>
+        <div class="stat-card">
+            <div th:replace="~{fragments/community :: inCommon(${view.inCommon})}"></div>
+        </div>
+    </div>
+</section>
+</th:block>
+
+<section class="section" th:if="${tab == 'manage'}">
     <div class="container friends-grid">
         <div class="stat-card" id="friends-card">
             <h2>Your friends</h2>

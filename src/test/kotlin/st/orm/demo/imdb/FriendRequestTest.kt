@@ -14,11 +14,13 @@ import st.orm.demo.imdb.repository.ClubRepository
 import st.orm.demo.imdb.repository.FriendInviteRepository
 import st.orm.demo.imdb.repository.FriendRequestRepository
 import st.orm.demo.imdb.repository.FriendshipRepository
+import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.UserRepository
 import st.orm.demo.imdb.service.ClubService
 import st.orm.demo.imdb.service.FriendService
 import st.orm.demo.imdb.service.FriendStatus
+import st.orm.demo.imdb.service.TasteOverlap
 import st.orm.repository.repository
 import st.orm.template.ORMTemplate
 import st.orm.test.StormTest
@@ -36,7 +38,8 @@ class FriendRequestTest {
         orm.repository<ClubRepository>(),
         orm.repository<ClubMemberRepository>(),
         orm.repository<MovieSeenRepository>(),
-        orm.repository<CheckInRepository>()
+        orm.repository<CheckInRepository>(),
+        TasteOverlap(orm.repository<MovieSeenRepository>(), orm.repository<MovieGenreRepository>())
     )
 
     private fun clubService(orm: ORMTemplate) = ClubService(
@@ -47,7 +50,8 @@ class FriendRequestTest {
         orm.repository<FriendshipRepository>(),
         orm.repository<FriendRequestRepository>(),
         orm.repository<MovieSeenRepository>(),
-        orm.repository<CheckInRepository>()
+        orm.repository<CheckInRepository>(),
+        TasteOverlap(orm.repository<MovieSeenRepository>(), orm.repository<MovieGenreRepository>())
     )
 
     private fun ORMTemplate.join(club: Club, user: User) =

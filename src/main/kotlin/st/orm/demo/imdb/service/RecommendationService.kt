@@ -24,6 +24,8 @@ import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.repository.CheckInRepository
 import st.orm.demo.imdb.repository.DIRECTOR
 import st.orm.demo.imdb.repository.MovieAdditionRepository
+import st.orm.demo.imdb.repository.MovieCountryRepository
+import st.orm.demo.imdb.repository.MovieLanguageRepository
 import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
@@ -114,7 +116,9 @@ class RecommendationService(
     private val movieViewRepository: MovieViewRepository,
     private val recommendationRepository: RecommendationRepository,
     private val recommendationEventRepository: RecommendationEventRepository,
-    private val checkInRepository: CheckInRepository
+    private val checkInRepository: CheckInRepository,
+    private val movieLanguageRepository: MovieLanguageRepository,
+    private val movieCountryRepository: MovieCountryRepository
 ) {
     private val logger = LoggerFactory.getLogger(RecommendationService::class.java)
 
@@ -421,6 +425,13 @@ class RecommendationService(
             .mapNotNull { seed -> seed.movie.startYear?.let { decadeOf(it) to seed.weight } }
             .groupBy({ it.first }, { it.second })
             .mapValues { (_, weights) -> weights.sum() }
+        // Two queries more: the seeds' languages and countries, weighed like their decades.
+        val languageWeights = movieLanguageRepository.findByMovies(seedsByMovie.keys)
+            .groupBy({ it.id.language }, { seedsByMovie.getValue(it.movie).weight })
+            .mapValues { (_, weights) -> weights.sum() }
+        val countryWeights = movieCountryRepository.findByMovies(seedsByMovie.keys)
+            .groupBy({ it.id.country }, { seedsByMovie.getValue(it.movie).weight })
+            .mapValues { (_, weights) -> weights.sum() }
         return TasteProfile(
             seeds = seeds,
             genreWeights = seedsByGenre.mapValues { (_, seeds) -> seeds.sumOf { it.weight } },
@@ -428,7 +439,10 @@ class RecommendationService(
             decadeWeights = decadeWeights,
             seedsByGenre = seedsByGenre,
             seedsByPerson = seedsByPerson,
-            ratingRange = RatingRange.of(seenRatings)
+            ratingRange = RatingRange.of(seenRatings),
+            languageWeights = languageWeights,
+            countryWeights = countryWeights,
+            homeCountry = user.country
         )
     }
 
@@ -448,7 +462,7 @@ class RecommendationService(
      * the catalogue, the most viewed of the week, and the recent releases
      * that joined the catalogue lately, each a bounded query by index, minus
      * the seeds, dismissed picks among them. One query more brings the
-     * candidates' genres. With a [filter], the best-rated queries keep to the
+     * candidates' genres, and two their languages and countries. With a [filter], the best-rated queries keep to the
      * movies it lets through, so they still bring their full share, and one
      * query more keeps the rest of the candidates to them.
      */
@@ -472,11 +486,18 @@ class RecommendationService(
         if (filter != null) ratings.keys.retainAll(movieRepository.findMatching(ratings.keys, filter))
 
         val genresByMovie = movieGenreRepository.findByMovies(ratings.values.map { it.movie }).groupBy({ it.movie.ref() }, { it.genre })
+        val languagesByMovie = movieLanguageRepository.findByMovies(ratings.keys).groupBy({ it.movie }, { it.id.language })
+        val countriesByMovie = movieCountryRepository.findByMovies(ratings.keys).groupBy({ it.movie }, { it.id.country })
         val creditsByMovie = credits.groupBy { it.rating.movie.ref() }
         val viewsByMovie = viewCounts.associate { it.movie to it.viewCount }
         val addedAtByMovie = additions.associate { it.movie.ref() to it.addedAt }
         return ratings.map { (movie, rating) ->
-            Candidate(rating, genresByMovie[movie].orEmpty(), creditsByMovie[movie].orEmpty(), viewsByMovie[movie] ?: 0L, addedAt = addedAtByMovie[movie])
+            Candidate(
+                rating, genresByMovie[movie].orEmpty(), creditsByMovie[movie].orEmpty(), viewsByMovie[movie] ?: 0L,
+                addedAt = addedAtByMovie[movie],
+                languages = languagesByMovie[movie].orEmpty().toSet(),
+                countries = countriesByMovie[movie].orEmpty().toSet()
+            )
         }
     }
 

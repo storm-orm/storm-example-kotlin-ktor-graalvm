@@ -85,7 +85,7 @@ class InviteService(
                 if (invite.inviter.id == user.id) return@transaction null
                 friendshipRepository.befriend(user, invite.inviter, now)
                 friendRequestRepository.removeBetween(user, invite.inviter)
-                if (!invite.reusable) friendInviteRepository.remove(invite)
+                if (invite.reusable) friendInviteRepository.countAccepted(invite.token) else friendInviteRepository.remove(invite)
                 Accepted.Friends
             }
             is ClubInvite -> {
@@ -93,7 +93,7 @@ class InviteService(
                 if (clubMemberRepository.findMember(club, user.id) == null) {
                     if (clubMemberRepository.countMembers(club) >= ClubService.MAX_MEMBERS) return@transaction null
                     clubMemberRepository.insert(ClubMember(club, user, admin = false, joinedAt = now))
-                    if (!invite.reusable) clubInviteRepository.remove(invite)
+                    if (invite.reusable) clubInviteRepository.countAccepted(invite.token) else clubInviteRepository.remove(invite)
                 }
                 Accepted.Joined(club)
             }

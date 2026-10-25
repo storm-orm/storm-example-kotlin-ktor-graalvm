@@ -1,5 +1,11 @@
 package st.orm.demo.imdb
 
+import st.orm.demo.imdb.printStatements
+
+import org.junit.jupiter.api.Assertions.assertFalse
+
+import st.orm.test.SqlCapture
+
 import org.junit.jupiter.api.Assertions.assertTrue
 
 import java.time.Duration
@@ -17,9 +23,11 @@ import st.orm.demo.imdb.model.MovieSeen
 import st.orm.demo.imdb.repository.FriendInviteRepository
 import st.orm.demo.imdb.repository.FriendshipRepository
 import st.orm.demo.imdb.repository.MovieRepository
+import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.UserRepository
 import st.orm.demo.imdb.service.FriendService
+import st.orm.demo.imdb.service.TasteOverlap
 import st.orm.repository.repository
 import st.orm.template.ORMTemplate
 import st.orm.test.StormTest
@@ -36,7 +44,8 @@ class FriendServiceTest {
         orm.repository<ClubRepository>(),
         orm.repository<ClubMemberRepository>(),
         orm.repository<MovieSeenRepository>(),
-        orm.repository<CheckInRepository>()
+        orm.repository<CheckInRepository>(),
+        TasteOverlap(orm.repository<MovieSeenRepository>(), orm.repository<MovieGenreRepository>())
     )
 
     @Test
@@ -110,5 +119,40 @@ class FriendServiceTest {
         runBlocking { service.withdrawInvite(alice, public) }
         assertEquals(listOf(newer), runBlocking { service.friendsOf(alice, now) }.invites.map { it.token })
         assertNull(orm.repository<FriendInviteRepository>().findById(older))
+    }
+
+    @Test
+    fun `what friends have in common is counted by a semi-join of the seen list to itself`(orm: ORMTemplate, capture: SqlCapture) {
+        val service = service(orm)
+        val movies = orm.repository<MovieRepository>()
+        val users = orm.repository<UserRepository>()
+        val alice = orm.insertUser("alice", name = "Alice")
+        val bob = orm.insertUser("bob", name = "Bob")
+        val carol = orm.insertUser("carol", name = "Carol").copy(shareSeen = false).also { users.update(it) }
+        val friendships = orm.repository<FriendshipRepository>()
+        friendships.befriend(alice, bob, Instant.now())
+        friendships.befriend(alice, carol, Instant.now())
+        val seen = orm.repository<MovieSeenRepository>()
+        fun saw(user: st.orm.demo.imdb.model.User, vararg ids: String) = ids.forEach { seen.insert(MovieSeen(user, movies.getById(it), Instant.now())) }
+        saw(alice, "tt0133093", "tt0111161", "tt0068646")        // The Matrix, The Shawshank Redemption, The Godfather
+        saw(bob, "tt0133093", "tt0111161", "tt0110912", "tt0211915")  // two of Alice's, and Pulp Fiction and Amélie
+        saw(carol, "tt0133093")
+
+        val inCommon = capture.execute { runBlocking { service.friendsOf(alice) } }.inCommon
+        capture.printStatements("inCommon")
+
+        // Bob: two of the four he watched are Alice's too; Carol does not share what she watches.
+        assertEquals(listOf("Bob", "Carol"), inCommon.map { it.user.name })
+        val bobs = inCommon.first()
+        assertEquals(2L to 4L, bobs.movies to bobs.theirs)
+        assertEquals(50, bobs.percent)
+        assertTrue(bobs.shares)
+        // The genres both watch most: Alice's and Bob's top genres overlap in what the shared movies bring.
+        assertTrue(bobs.genres.isNotEmpty())
+        assertFalse(inCommon.last().shares)
+        assertEquals(0L, inCommon.last().movies)
+        // The count in common is one query: the seen list semi-joined to itself on the movie.
+        val statement = capture.statements().map { it.statement() }.single { it.contains("movie_seen") && it.contains("EXISTS") }
+        assertTrue(statement.contains("GROUP BY"))
     }
 }

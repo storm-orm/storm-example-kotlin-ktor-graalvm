@@ -50,7 +50,9 @@ data class FriendsView(
     val feed: List<SharedCheckIn>,
     val sharing: User,
     /** The visitor's invite links still open, the public one and the personal ones. */
-    val invites: List<OpenInvite>
+    val invites: List<OpenInvite>,
+    /** What the visitor has in common with each friend, the most first. */
+    val inCommon: List<InCommon>
 )
 
 /** Where the visitor stands with another member of a club, for the button by their name. */
@@ -83,7 +85,8 @@ class FriendService(
     private val clubRepository: ClubRepository,
     private val clubMemberRepository: ClubMemberRepository,
     private val movieSeenRepository: MovieSeenRepository,
-    private val checkInRepository: CheckInRepository
+    private val checkInRepository: CheckInRepository,
+    private val tasteOverlap: TasteOverlap
 ) {
     /** The friends page for a signed-in visitor. */
     suspend fun friendsOf(user: User, now: Instant = Instant.now()): FriendsView = transaction(readOnly = true) {
@@ -94,7 +97,8 @@ class FriendService(
             friends = friends,
             feed = feed(friends, FEED_LIMIT),
             sharing = user,
-            invites = friendInviteRepository.findOpen(user, now.minus(Invite.VALIDITY)).map { OpenInvite.of(it, now) }
+            invites = friendInviteRepository.findOpen(user, now.minus(Invite.VALIDITY)).map { OpenInvite.of(it, now) },
+            inCommon = tasteOverlap.inCommon(user, friends) { it.shareSeen }
         )
     }
 

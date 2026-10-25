@@ -1867,6 +1867,8 @@ img { display: block; }
 
 .open-invites[hidden] { display: none; }
 
+.open-invites .stat-end { flex-shrink: 0; white-space: nowrap; }
+
 .open-invite { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
 
 /* Personal or public, as a small tag: a public link is open to anyone who has it, so it stands out. */
@@ -1882,6 +1884,28 @@ img { display: block; }
 .open-invite-kind.public { border-color: rgba(var(--green-rgb), 0.45); color: var(--green); }
 
 .open-invite-age { color: var(--text-muted); font-size: 13.5px; }
+
+/* The tabs within a community page: the community itself, and what to manage. */
+.page-tabs { margin-bottom: 0; }
+
+/* What the visitor has in common with each person: the name, the numbers under it, and a bar for the share. */
+.in-common-row { display: grid; grid-template-columns: minmax(0, 1fr) 140px; gap: 6px 18px; align-items: center; }
+
+.in-common-row .friend-name { align-items: flex-start; min-width: 0; }
+
+.in-common-row .friend-name .nav-account-icon { margin-top: 2px; }
+
+.in-common-detail { display: block; margin-top: 2px; color: var(--text-muted); font-size: 13.5px; line-height: 1.5; }
+
+.in-common-detail strong { color: var(--text); font-weight: 600; }
+
+.in-common-detail a { color: var(--text); }
+
+.in-common-bar, .in-common-bar .bar-track, .in-common-bar .bar-fill { display: block; }
+
+.in-common-bar .bar-track { height: 8px; border-radius: 4px; }
+
+.in-common-bar .bar-fill { border-radius: 4px; background: linear-gradient(90deg, rgba(var(--accent-rgb), 0.55), rgba(var(--accent-rgb), 0.9)); }
 
 .switch-row { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); cursor: pointer; font-size: 14px; color: var(--text-muted); }
 
@@ -2207,8 +2231,10 @@ img { display: block; }
     .trailer-playing .hero-content, .trailer-playing .movie-hero-content { opacity: 1; pointer-events: auto; }
     .trailer-playing .hero-head, .trailer-playing .hero-poster, .trailer-playing .movie-hero-poster { opacity: 0; pointer-events: none; }
     .trailer-playing:not(.trailer-fullscreen) .backdrop-video { position: fixed; z-index: 40; background: #000; }
-    .trailer-exit { position: fixed; top: 12px; right: 12px; z-index: 41; }
+    .trailer-controls { position: fixed; top: 12px; right: 12px; z-index: 41; }
     .friend-action + .member-actions { flex-basis: 100%; justify-content: flex-end; padding-left: 0; border-left: 0; }
+    .in-common-row { grid-template-columns: minmax(0, 1fr); }
+    .in-common-bar { display: none; }
 
     .hero-content, .movie-hero-content { padding: 28px 16px 32px; }
     .hero-title, .movie-title { font-size: 28px; }

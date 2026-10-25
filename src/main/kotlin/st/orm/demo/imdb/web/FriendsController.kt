@@ -32,7 +32,9 @@ fun Route.friendsRoutes(friendService: FriendService) {
     get("/friends") {
         val user = call.currentUser()
         val view = if (user.name != null) friendService.friendsOf(user) else null
-        call.respondPage(ThymeleafContent("friends", mapOf("view" to view, "added" to (call.request.queryParameters["added"] != null))))
+        // With friends, the page is about them, and the friend list, the invites and the sharing are behind a tab.
+        val tab = if (view == null || view.friends.isEmpty() || call.request.queryParameters["tab"] == "manage") "manage" else "community"
+        call.respondPage(ThymeleafContent("friends", mapOf("view" to view, "tab" to tab, "added" to (call.request.queryParameters["added"] != null))))
     }
 
     // Invite links: a personal one for one friend, the public one to post anywhere, and a new public

@@ -32,6 +32,18 @@ interface FriendInviteRepository : EntityRepository<FriendInvite, String> {
             .orderByDescending(FriendInvite_.reusable, FriendInvite_.createdAt)
             .resultList
 
+    /**
+     * Counts the invite as accepted once more. The database adds the one,
+     * in one statement, so two people accepting a public link in the same
+     * moment both count: a row read, added to and written back would lose one.
+     */
+    fun countAccepted(token: String) {
+        update()
+            .set(FriendInvite_.acceptedCount) { "${FriendInvite_.acceptedCount} + 1" }
+            .where(FriendInvite_.token eq token)
+            .executeUpdate()
+    }
+
     /** Withdraws one of the user's invites, public or personal: its link stops working. */
     fun removeInvite(user: User, token: String) {
         removeAll((FriendInvite_.token eq token) and (FriendInvite_.inviter eq user))

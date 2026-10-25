@@ -40,7 +40,9 @@ data class ClubView(
     val feed: List<SharedCheckIn>,
     val mostSeen: List<MovieSeenCount>,
     /** The club's invite links still open, the public one and the personal ones, for its admins; none for the other members. */
-    val invites: List<OpenInvite>
+    val invites: List<OpenInvite>,
+    /** What the visitor has in common with each other member, the most first. */
+    val inCommon: List<InCommon>
 ) {
     /** How many of the members are admins: the last one is not offered to step down. */
     val adminCount: Int get() = members.count { it.admin }
@@ -81,7 +83,8 @@ class ClubService(
     private val friendshipRepository: FriendshipRepository,
     private val friendRequestRepository: FriendRequestRepository,
     private val movieSeenRepository: MovieSeenRepository,
-    private val checkInRepository: CheckInRepository
+    private val checkInRepository: CheckInRepository,
+    private val tasteOverlap: TasteOverlap
 ) {
     /* ── Reading ──────────────────────────────────────────────────── */
 
@@ -109,7 +112,8 @@ class ClubService(
             friendStatus = friendStatus(user, members),
             feed = feed(sharing),
             mostSeen = if (sharing.size < MOST_SEEN_MINIMUM) emptyList() else movieSeenRepository.countSeenBy(sharing.map { it.user }, MOST_SEEN_MINIMUM.toLong(), MOST_SEEN_LIMIT),
-            invites = if (!me.admin) emptyList() else clubInviteRepository.findOpen(club, now.minus(Invite.VALIDITY)).map { OpenInvite.of(it, now) }
+            invites = if (!me.admin) emptyList() else clubInviteRepository.findOpen(club, now.minus(Invite.VALIDITY)).map { OpenInvite.of(it, now) },
+            inCommon = tasteOverlap.inCommon(user, members.filter { it.user.id != user.id }.map { it.user }) { other -> members.first { it.user.id == other.id }.sharesSeen }
         )
     }
 
