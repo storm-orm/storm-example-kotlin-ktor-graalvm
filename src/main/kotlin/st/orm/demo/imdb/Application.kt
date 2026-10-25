@@ -320,7 +320,8 @@ private fun Application.configureStorm() {
                     "db/migration/V18__refetch_watch_providers.sql",
                     "db/migration/V19__user_watch_providers.sql",
                     "db/migration/V20__movie_tags.sql",
-                    "db/migration/V21__languages_from_tmdb.sql"
+                    "db/migration/V21__languages_from_tmdb.sql",
+                    "db/migration/V22__ask_languages_again.sql"
                 )))
                 .load()
                 .migrate()

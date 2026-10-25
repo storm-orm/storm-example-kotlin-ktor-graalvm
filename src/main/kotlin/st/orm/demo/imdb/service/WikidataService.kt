@@ -51,15 +51,22 @@ class WikidataService(
      */
     suspend fun askAboutMovies(now: Instant = Instant.now()) {
         var asked = 0
+        var withoutLanguage = 0
+        var namedByTmdb = 0
         movieRepository.findNotAskedOfWikidataSince(now.minus(ASK_AGAIN_AFTER), WINDOW_SIZE).collect { window ->
             val movies = window.content()
             val answers = withContext(Dispatchers.IO) { wikidataClient.findMovies(movies.map { it.id }) }
             val languages = languagesOf(movies, answers)
             transaction { store(movies, answers, languages, now) }
+            val gaps = movies.filter { answers[it.id]?.languages.isNullOrEmpty() }
             asked += movies.size
+            withoutLanguage += gaps.size
+            namedByTmdb += gaps.count { languages.getValue(it.id).isNotEmpty() }
             delay(PAUSE.toMillis())
         }
-        if (asked > 0) logger.info("Asked Wikidata about {} movies.", asked)
+        if (asked > 0) {
+            logger.info("Asked Wikidata about {} movies; it named no language for {}, of which TMDB named {}.", asked, withoutLanguage, namedByTmdb)
+        }
     }
 
     /**
