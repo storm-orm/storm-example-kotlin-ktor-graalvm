@@ -70,6 +70,23 @@
     </div>
 </section>
 
+<!-- How the members did on today's quiz, once anyone finished it. -->
+<section class="section" id="club-quiz-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Today's Quiz</h2>
+            <a class="section-link" th:href="@{/play/quiz}">Play</a>
+        </div>
+        <p class="stat-note" th:if="${quizBoard.isEmpty()}">Nobody played today's quiz yet: one movie, six clues. Who gets it first?</p>
+        <div class="quiz-chips" th:unless="${quizBoard.isEmpty()}">
+            <span class="quiz-chip" th:each="score : ${quizBoard}" th:classappend="${score.solved} ? 'hit' : 'miss'">
+                <span th:text="${score.name}">Alice</span>
+                <strong th:text="${score.solved} ? |${score.guesses}/6| : 'X/6'">3/6</strong>
+            </span>
+        </div>
+    </div>
+</section>
+
 <!-- The club's lists, which every member adds to. -->
 <section class="section" id="club-lists-section">
     <div class="container">

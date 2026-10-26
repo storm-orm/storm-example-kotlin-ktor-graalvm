@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupCardTitles();
     setupPickers();
     setupLists();
+    setupQuiz();
 });
 
 // Under the mouse a poster gives a little: it tilts toward the cursor, a light follows the cursor
@@ -1628,5 +1629,21 @@ function setupLists() {
 
     document.querySelectorAll('[data-confirm-remove]').forEach(form => form.addEventListener('submit', event => {
         if (!confirm('Remove this list, and the movies on it?')) event.preventDefault();
+    }));
+}
+
+// The daily quiz: a movie picked from the suggestions is the guess, sent at once; the score shares
+// through the device's share sheet where there is one, and is copied otherwise.
+function setupQuiz() {
+    document.querySelectorAll('[data-quiz-form]').forEach(form => form.addEventListener('pick', () => form.submit()));
+    document.querySelectorAll('[data-quiz-share]').forEach(button => button.addEventListener('click', async () => {
+        const text = button.dataset.quizShare + '\n' + location.origin + '/play/quiz';
+        if (navigator.share) {
+            try { await navigator.share({ text }); } catch (e) { /* The sheet was dismissed. */ }
+        } else if (navigator.clipboard) {
+            await navigator.clipboard.writeText(text);
+            button.textContent = 'Copied';
+            setTimeout(() => { button.textContent = 'Share your score'; }, 1500);
+        }
     }));
 }

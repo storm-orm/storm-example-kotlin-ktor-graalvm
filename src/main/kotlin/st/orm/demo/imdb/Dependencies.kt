@@ -23,6 +23,7 @@ import st.orm.demo.imdb.service.MovieSeenService
 import st.orm.demo.imdb.service.MovieService
 import st.orm.demo.imdb.service.PersonGalleryService
 import st.orm.demo.imdb.service.PersonService
+import st.orm.demo.imdb.service.QuizService
 import st.orm.demo.imdb.service.SearchService
 import st.orm.demo.imdb.service.SixDegreesService
 import st.orm.demo.imdb.service.FriendService
@@ -117,6 +118,7 @@ fun Application.configureDependencies() {
         provide { MovieService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PersonService(resolve(), resolve()) }
         provide { SixDegreesService(resolve(), resolve(), resolve()) }
+        provide { QuizService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { WikipediaSummaryService(resolve(), resolve(), resolve()) }
         // TMDB, for the trailers and for imports of TMDB exports, with the key from application.conf (tmdb).
         provide { TmdbClient(tmdbApiKey, resolve()) }

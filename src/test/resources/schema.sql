@@ -356,3 +356,19 @@ CREATE TABLE movie_night_vote (
     PRIMARY KEY (night_id, user_id),
     FOREIGN KEY (night_id, movie_id) REFERENCES movie_night_candidate (night_id, movie_id) ON DELETE CASCADE
 );
+
+-- V29: the daily quiz.
+CREATE TABLE quiz_day (
+    quiz_on  DATE PRIMARY KEY,
+    movie_id VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE
+);
+CREATE TABLE quiz_play (
+    user_id    VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    quiz_on    DATE NOT NULL,
+    guesses    VARCHAR NOT NULL,
+    solved     BOOLEAN NOT NULL,
+    finished   BOOLEAN NOT NULL,
+    updated_at TIMESTAMP NOT NULL,
+    PRIMARY KEY (user_id, quiz_on)
+);
+CREATE INDEX idx_quiz_play_quiz_on ON quiz_play (quiz_on);

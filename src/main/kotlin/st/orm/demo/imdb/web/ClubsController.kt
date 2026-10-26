@@ -15,6 +15,7 @@ import st.orm.demo.imdb.service.ClubService
 import st.orm.demo.imdb.service.Leaving
 import st.orm.demo.imdb.service.ListService
 import st.orm.demo.imdb.service.MovieNightService
+import st.orm.demo.imdb.service.QuizService
 
 /**
  * Clubs need a signed-in account, as friends do: the pages ask a visitor who
@@ -23,7 +24,7 @@ import st.orm.demo.imdb.service.MovieNightService
  * answered with a redirect; the invite links, for admins, a small JSON call
  * answered with the link to share.
  */
-fun Route.clubsRoutes(clubService: ClubService, listService: ListService, movieNightService: MovieNightService) {
+fun Route.clubsRoutes(clubService: ClubService, listService: ListService, movieNightService: MovieNightService, quizService: QuizService) {
     post("/clubs") {
         val user = call.currentUser().takeIf { it.name != null } ?: return@post call.respondRedirect("/community")
         val name = call.receiveParameters()["name"]?.trim().orEmpty()
@@ -48,6 +49,7 @@ fun Route.clubsRoutes(clubService: ClubService, listService: ListService, movieN
             "view" to view,
             "lists" to listService.listsOf(view.club),
             "nights" to movieNightService.nightsOf(view.club),
+            "quizBoard" to quizService.boardOf(view.club.id, user),
             "tab" to (if (parameters["tab"] == "manage") "manage" else "club"),
             "joined" to (parameters["joined"] != null),
             "lastAdmin" to (parameters["last-admin"] != null)

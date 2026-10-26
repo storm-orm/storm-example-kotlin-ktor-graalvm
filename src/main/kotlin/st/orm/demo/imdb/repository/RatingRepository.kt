@@ -54,6 +54,15 @@ interface RatingRepository : EntityRepository<Rating, Movie> {
             limit(limit)
         }.resultList
 
+    /**
+     * The movies at least [minimumVoteCount] voted on, in the order of their
+     * ids, which does not change: the daily quiz picks its movie from them.
+     */
+    fun findWellKnown(minimumVoteCount: Int): List<Rating> =
+        select(Rating_.voteCount greaterEq minimumVoteCount)
+            .orderBy(Rating_.movie)
+            .resultList
+
     /** The ratings of several movies at once, each carrying its movie. */
     fun findByMovies(movies: List<Ref<Movie>>) =
         findAll(Rating_.movie inRefs movies)
