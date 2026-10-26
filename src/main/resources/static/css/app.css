@@ -3859,3 +3859,12 @@ body::after {
     .connect-end .poster { width: 110px; }
     .connect-par-number { font-size: 44px; }
 }
+
+/* A card with a search box, and its section, lie above what follows them on the page: the box's
+   suggestions open over the posters below rather than under them. */
+.section:has(.picker) { position: relative; z-index: 10; }
+
+.stat-card:has(.picker) { z-index: 10; }
+
+/* In a card, the suggestions are solid rather than glass: the card's own lines would read through it. */
+.picker .search-suggestions { background: var(--surface-raised); -webkit-backdrop-filter: none; backdrop-filter: none; }

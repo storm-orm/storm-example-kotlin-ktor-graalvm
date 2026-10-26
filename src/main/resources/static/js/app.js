@@ -1797,11 +1797,36 @@ function wayOf(dx, dy, far) {
 }
 
 // A match page waiting on the other players asks every few seconds, while it is in view, whether
-// the match changed: a move, a pick, a swipe, a turn passing on. When it did, the page reloads, and
-// the browser keeps its scroll position.
+// the match changed: a move, a pick, a swipe, a turn passing on. When it did, the page reloads at
+// the place it was scrolled to: kept for the reload, and restored once the page is laid out, as
+// not every browser restores it, and the posters loading below can move it.
 function setupMatchWatch() {
+    const scrollKey = 'match-scroll:' + location.pathname;
+    try {
+        const kept = sessionStorage.getItem(scrollKey);
+        if (kept !== null) {
+            sessionStorage.removeItem(scrollKey);
+            const y = Number(kept);
+            const restore = () => window.scrollTo(0, y);
+            restore();
+            requestAnimationFrame(restore);
+            window.addEventListener('load', restore, { once: true });
+        }
+    } catch (e) {
+        // Without session storage, the browser's own restoring is all there is.
+    }
+    // A move of one's own posts a form that comes back to the page: it keeps the place too.
+    if (location.pathname.startsWith('/play/matches/')) {
+        document.addEventListener('submit', () => {
+            try { sessionStorage.setItem(scrollKey, String(window.scrollY)); } catch (e) { /* no storage */ }
+        });
+    }
     const watch = document.querySelector('[data-match-watch]');
     if (!watch) return;
+    const reload = () => {
+        try { sessionStorage.setItem(scrollKey, String(window.scrollY)); } catch (e) { /* no storage */ }
+        location.reload();
+    };
     const url = '/api/play/matches/' + watch.dataset.matchId + '/version';
     const check = async () => {
         if (document.hidden) return;
@@ -1810,8 +1835,8 @@ function setupMatchWatch() {
             if (!response.ok || (await response.text()) === watch.dataset.matchVersion) return;
             // Typing a move: the reload waits until the box is left.
             const typing = document.activeElement?.matches?.('input, textarea');
-            if (typing) document.activeElement.addEventListener('blur', () => location.reload(), { once: true });
-            else location.reload();
+            if (typing) document.activeElement.addEventListener('blur', reload, { once: true });
+            else reload();
         } catch (e) {
             // Offline for a moment: the next check tries again.
         }
