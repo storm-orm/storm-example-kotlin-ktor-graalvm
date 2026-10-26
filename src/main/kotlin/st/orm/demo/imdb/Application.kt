@@ -20,6 +20,7 @@ import org.thymeleaf.linkbuilder.StandardLinkBuilder
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -40,6 +41,7 @@ import st.orm.demo.imdb.web.configureAccounts
 import st.orm.demo.imdb.web.configureRouting
 import st.orm.ktor.Storm
 import st.orm.serialization.StormSerializers
+import st.orm.template.TransactionDispatchers
 import java.time.Duration
 import java.time.LocalTime
 import java.time.ZoneOffset
@@ -293,6 +295,13 @@ private fun Application.configureErrorHandling() {
  * first, so validation always sees the migrated schema.
  */
 private fun Application.configureStorm() {
+    // As many transactions at a time as the pool has connections; the others wait suspended,
+    // without a thread. On the shared IO dispatcher a burst of requests blocked every thread
+    // in the pool's wait for a connection, and the transactions that held one could not get a
+    // thread back to commit, so their connections stayed idle in transaction until a wait timed out.
+    TransactionDispatchers.Default = Dispatchers.IO.limitedParallelism(
+        environment.config.property("storm.datasource.maximumPoolSize").getString().toInt()
+    )
     install(Storm) {
         migration {
             Flyway.configure()
