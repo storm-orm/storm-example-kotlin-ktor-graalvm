@@ -6,7 +6,7 @@ import st.orm.PK
 import java.time.Instant
 
 /** The games played as matches. */
-enum class Game { HIGHER_LOWER, CHAIN, DRAFT }
+enum class Game { HIGHER_LOWER, CHAIN, DRAFT, SWIPE }
 
 /** Who a match is played with: on one's own, with a friend, or with a club. */
 enum class GameMode { SOLO, FRIEND, CLUB }

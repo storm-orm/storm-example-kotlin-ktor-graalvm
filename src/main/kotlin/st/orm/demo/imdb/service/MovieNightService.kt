@@ -221,6 +221,23 @@ class MovieNightService(
         }
     }
 
+    /**
+     * Plans a club's night with its candidates given, each with why: the
+     * most wanted of a swipe round, which the club has picked already.
+     * Null for anyone not in the club, or without candidates.
+     */
+    suspend fun planWith(user: User, clubId: Long, title: String, day: LocalDate, candidates: List<Pair<Movie, String>>, now: Instant = Instant.now()): MovieNight? = transaction {
+        if (candidates.isEmpty()) return@transaction null
+        val club = clubRepository.findById(clubId) ?: return@transaction null
+        clubMemberRepository.findMember(club, user.id) ?: return@transaction null
+        val night = movieNightRepository.insertAndFetch(MovieNight(
+            club = club, host = user, title = title.trim().take(TITLE_LENGTH).ifEmpty { DEFAULT_TITLE }, nightOn = day,
+            country = user.country, cinema = false, list = null, winner = null, createdAt = now
+        ))
+        movieNightCandidateRepository.insert(candidates.take(CANDIDATES).mapIndexed { i, (movie, reason) -> MovieNightCandidate(night, movie, i, reason) })
+        night
+    }
+
     private suspend fun readPool(user: User, clubId: Long, serviceIds: Set<Int>, listId: Long?): Pool? = transaction(readOnly = true) {
         val club = clubRepository.findById(clubId) ?: return@transaction null
         clubMemberRepository.findMember(club, user.id) ?: return@transaction null

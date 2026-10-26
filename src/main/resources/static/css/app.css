@@ -3720,3 +3720,108 @@ body::after {
 .draft-board-button:not(:disabled):hover .poster { box-shadow: 0 0 0 2px var(--cyan), 0 12px 30px rgba(var(--cyan-rgb), 0.3); }
 
 .draft-board-button:disabled { cursor: default; opacity: 0.8; }
+
+/* ── Swipe ─────────────────────────────────────────────────────────── */
+
+.swipe-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 30px; align-items: start; }
+
+.swipe-side { display: flex; flex-direction: column; gap: 18px; }
+
+/* The deck: the posters stacked, the top one to drag, the next ones peeking out under it. */
+.swipe-deck { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+
+.swipe-stack { position: relative; width: min(320px, 82vw); aspect-ratio: 2 / 3.55; }
+
+.swipe-card {
+    position: absolute;
+    inset: 0;
+    z-index: calc(100 - var(--i));
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transform: translateY(calc(min(var(--i), 3) * 10px)) scale(calc(1 - min(var(--i), 3) * 0.04));
+    transform-origin: 50% 100%;
+    opacity: calc(1 - max(var(--i) - 3, 0));
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    touch-action: none;
+    user-select: none;
+    cursor: grab;
+}
+
+.swipe-card.dragging { transition: none; cursor: grabbing; }
+
+.swipe-card .poster { width: 100%; box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55); }
+
+.swipe-card .poster img { pointer-events: none; }
+
+/* Only the top poster says what it is; the ones under it show their posters alone. */
+.swipe-card-info { display: flex; flex-direction: column; align-items: center; text-align: center; opacity: calc(1 - min(var(--i), 1)); }
+
+.swipe-card-title { font-weight: 700; font-size: 17px; }
+
+.swipe-card-meta { color: var(--text-muted); font-size: 13.5px; }
+
+/* The stamps: shown as a drag leans one way, in that way's colour. */
+.swipe-stamp {
+    position: absolute;
+    top: 22px;
+    z-index: 4;
+    padding: 4px 14px;
+    border: 3px solid currentColor;
+    border-radius: 10px;
+    background: rgba(var(--background-rgb), 0.55);
+    font-family: var(--font-display);
+    font-size: 30px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+}
+
+.stamp-want { left: 18px; color: var(--cyan); transform: rotate(-12deg); }
+.stamp-pass { right: 18px; color: var(--accent); transform: rotate(12deg); }
+.stamp-seen { left: 50%; color: var(--green); transform: translateX(-50%); }
+
+.swipe-card[data-leaning="want"] .stamp-want,
+.swipe-card[data-leaning="pass"] .stamp-pass,
+.swipe-card[data-leaning="seen"] .stamp-seen { opacity: 1; }
+
+/* A swipe: the poster flies off the way it went. */
+.swipe-card.gone { pointer-events: none; transition: transform 0.4s ease, opacity 0.4s ease; opacity: 0; }
+.swipe-card.gone-want { transform: translateX(140%) rotate(24deg); }
+.swipe-card.gone-pass { transform: translateX(-140%) rotate(-24deg); }
+.swipe-card.gone-seen { transform: translateY(-130%); }
+
+.swipe-buttons { display: flex; gap: 12px; }
+
+.swipe-pass { --from: var(--accent-rgb); --to: var(--violet-rgb); }
+.swipe-seen { --from: var(--green-rgb); --to: var(--cyan-rgb); }
+
+.swipe-done { text-align: center; }
+
+.swipe-counts { display: flex; gap: 18px; font-size: 14px; color: var(--text-muted); }
+
+.swipe-counts strong { font-family: var(--font-display); font-size: 26px; font-weight: 400; color: var(--text); margin-right: 4px; }
+
+.swipe-lean { margin: 12px 0 0; }
+
+.swipe-together .game-start { margin-top: 0; }
+
+.round-night { margin-top: 18px; }
+
+.game-swipe { --tone: var(--cyan-rgb); }
+
+.game-art-swipe { position: relative; width: 70px; }
+
+.game-art-swipe .game-art-poster { position: absolute; top: 6px; }
+.game-art-swipe .game-art-poster:nth-child(1) { left: 0; transform: rotate(-14deg); border-color: var(--accent); }
+.game-art-swipe .game-art-poster:nth-child(2) { left: 22px; transform: rotate(10deg); animation: swipe-art 3s ease-in-out infinite; }
+
+@keyframes swipe-art {
+    0%, 55%, 100% { transform: rotate(10deg) translateX(0); opacity: 1; }
+    75% { transform: rotate(24deg) translateX(30px); opacity: 0; }
+}
+
+@media (max-width: 860px) {
+    .swipe-layout { grid-template-columns: minmax(0, 1fr); }
+}

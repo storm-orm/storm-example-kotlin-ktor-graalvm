@@ -23,6 +23,7 @@ import st.orm.demo.imdb.service.PlayService
 import st.orm.demo.imdb.service.HigherLowerService
 import st.orm.demo.imdb.service.ChainService
 import st.orm.demo.imdb.service.DraftService
+import st.orm.demo.imdb.service.SwipeService
 import st.orm.demo.imdb.service.RecentlyAddedService
 import st.orm.demo.imdb.service.RecommendationService
 import st.orm.demo.imdb.service.SearchService
@@ -74,6 +75,7 @@ fun Application.configureRouting() {
     val higherLowerService: HigherLowerService by dependencies
     val chainService: ChainService by dependencies
     val draftService: DraftService by dependencies
+    val swipeService: SwipeService by dependencies
     val posterController: PosterController by dependencies
     val personGalleryService: PersonGalleryService by dependencies
     val wikipediaSummaryService: WikipediaSummaryService by dependencies
@@ -108,7 +110,8 @@ fun Application.configureRouting() {
         personRoutes(personService)
         sixDegreesRoutes(sixDegreesService)
         quizRoutes(quizService)
-        playRoutes(playService, higherLowerService, chainService, draftService)
+        playRoutes(playService, higherLowerService, chainService, draftService, swipeService, movieNightService)
+        swipeRoutes(swipeService)
         posterRoutes(posterController)
         galleryRoutes(personGalleryService)
         summaryRoutes(wikipediaSummaryService)

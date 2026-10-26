@@ -44,6 +44,25 @@ fun ORMTemplate.insertUser(id: String, name: String? = null): User {
     return repository<UserRepository>().insertAndFetch(User(id = id, name = name, avatarUrl = null, createdAt = now, lastSeenAt = now))
 }
 
+/** The recommendations' service on the test database. */
+fun recommendationService(orm: ORMTemplate) = RecommendationService(
+    orm.repository<UserRepository>(),
+    orm.repository<MovieRepository>(),
+    orm.repository<MovieSeenRepository>(),
+    orm.repository<WatchlistRepository>(),
+    orm.repository<RecommendationDismissalRepository>(),
+    orm.repository<MovieAdditionRepository>(),
+    orm.repository<MovieGenreRepository>(),
+    orm.repository<PrincipalRepository>(),
+    orm.repository<RatingRepository>(),
+    orm.repository<MovieViewRepository>(),
+    orm.repository<RecommendationRepository>(),
+    orm.repository<RecommendationEventRepository>(),
+    orm.repository<CheckInRepository>(),
+    orm.repository<MovieLanguageRepository>(),
+    orm.repository<MovieCountryRepository>()
+)
+
 /** The seen list's service on the test database, with TMDB off unless a client is given. */
 fun movieSeenService(orm: ORMTemplate, tmdbClient: TmdbClient = TmdbClient(null, jacksonObjectMapper())) = MovieSeenService(
     orm.repository<MovieRepository>(),
@@ -51,23 +70,7 @@ fun movieSeenService(orm: ORMTemplate, tmdbClient: TmdbClient = TmdbClient(null,
     orm.repository<WatchlistRepository>(),
     orm.repository<MovieSeenRepository>(),
     orm.repository<CheckInRepository>(),
-    RecommendationService(
-        orm.repository<UserRepository>(),
-        orm.repository<MovieRepository>(),
-        orm.repository<MovieSeenRepository>(),
-        orm.repository<WatchlistRepository>(),
-        orm.repository<RecommendationDismissalRepository>(),
-        orm.repository<MovieAdditionRepository>(),
-        orm.repository<MovieGenreRepository>(),
-        orm.repository<PrincipalRepository>(),
-        orm.repository<RatingRepository>(),
-        orm.repository<MovieViewRepository>(),
-        orm.repository<RecommendationRepository>(),
-        orm.repository<RecommendationEventRepository>(),
-        orm.repository<CheckInRepository>(),
-        orm.repository<MovieLanguageRepository>(),
-        orm.repository<MovieCountryRepository>()
-    ),
+    recommendationService(orm),
     MovieSourceService(orm.repository<ImdbSourceRepository>(), orm.repository<WikidataSourceRepository>(), tmdbService(orm, tmdbClient))
 )
 

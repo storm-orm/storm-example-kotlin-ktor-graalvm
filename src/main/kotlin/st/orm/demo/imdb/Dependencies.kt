@@ -29,6 +29,7 @@ import st.orm.demo.imdb.service.PlayService
 import st.orm.demo.imdb.service.HigherLowerService
 import st.orm.demo.imdb.service.ChainService
 import st.orm.demo.imdb.service.DraftService
+import st.orm.demo.imdb.service.SwipeService
 import st.orm.demo.imdb.service.SearchService
 import st.orm.demo.imdb.service.SixDegreesService
 import st.orm.demo.imdb.service.FriendService
@@ -129,6 +130,12 @@ fun Application.configureDependencies() {
         provide { MatchService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { HigherLowerService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { ChainService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide {
+            SwipeService(
+                resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(),
+                resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(),
+            )
+        }
         provide { DraftService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PlayService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { QuizService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }

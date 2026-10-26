@@ -23,5 +23,53 @@
     </span>
 </form>
 
+<!-- Starting a match with others only: against one of the visitor's friends, or with one of their clubs. -->
+<form th:fragment="togetherForm(action, label)" class="game-start" th:action="${action}" method="post">
+    <span class="game-with" th:unless="${company.friends.isEmpty()}">
+        <select name="friend" aria-label="Friend">
+            <option th:each="friend : ${company.friends}" th:value="${friend.id}" th:text="${friend.name}">Alice</option>
+        </select>
+        <button type="submit" name="mode" value="friend" class="button" th:text="${label}">Start a round</button>
+    </span>
+    <span class="game-with" th:unless="${company.clubs.isEmpty()}">
+        <select name="club" aria-label="Club">
+            <option th:each="club : ${company.clubs}" th:value="${club.id}" th:text="${club.name}">Office film club</option>
+        </select>
+        <button type="submit" name="mode" value="club" class="button" th:text="${label}">Start a round</button>
+    </span>
+    <span class="game-modes" th:if="${company.friends.isEmpty() and company.clubs.isEmpty()}">
+        <th:block th:if="${account.name == null}"><a th:href="@{/signin(rd='/swipe')}">Sign in</a> to swipe with friends and clubs.</th:block>
+        <th:block th:unless="${account.name == null}">Add friends or join a club to swipe together.</th:block>
+    </span>
+</form>
+
+<!-- A deck of posters to swipe: right to want, left to pass, up for seen; posted to [action] as the visitor goes (app.js). -->
+<div th:fragment="deck(cards, action)" class="swipe-deck" data-swipe-deck th:data-swipe-action="${action}">
+    <div class="swipe-stack">
+        <div class="swipe-card" th:each="card, i : ${cards}" th:data-movie-id="${card.movie.id}" th:style="|--i: ${i.index}|">
+            <div class="poster">
+                <div class="poster-placeholder"><span th:text="${card.movie.primaryTitle}">Title</span></div>
+                <img th:src="@{/api/poster/{id}(id=${card.movie.id})}" alt="" draggable="false" th:loading="${i.index < 3} ? 'eager' : 'lazy'" onerror="this.classList.add('failed')">
+                <span class="swipe-stamp stamp-want">Want</span>
+                <span class="swipe-stamp stamp-pass">Pass</span>
+                <span class="swipe-stamp stamp-seen">Seen</span>
+            </div>
+            <div class="swipe-card-info">
+                <a class="swipe-card-title" th:href="@{/movie/{id}(id=${card.movie.id})}" target="_blank" rel="noopener" th:text="${card.movie.primaryTitle}">The Matrix</a>
+                <span class="swipe-card-meta" th:text="${card.caption}">1999 · Action, Sci-Fi</span>
+            </div>
+        </div>
+    </div>
+    <div class="swipe-done" data-swipe-done hidden>
+        <p class="quiz-verdict">That was the stack</p>
+        <button type="button" class="button button-primary" data-swipe-again>Deal another</button>
+    </div>
+    <div class="swipe-buttons" data-swipe-buttons>
+        <button type="button" class="button swipe-button swipe-pass" data-swipe-way="PASS" title="Not for me (←)">✕ Pass</button>
+        <button type="button" class="button swipe-button swipe-seen" data-swipe-way="SEEN" title="Seen it (↑)">✓ Seen it</button>
+        <button type="button" class="button button-primary swipe-button swipe-want" data-swipe-way="WANT" title="Want to see (→)">🍿 Want</button>
+    </div>
+</div>
+
 </body>
 </html>

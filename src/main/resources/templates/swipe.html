@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Swipe')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <a class="back-link" th:href="@{/play}">← Play</a>
+        <h1 class="page-title">Swipe</h1>
+        <p class="page-subtitle">Right for a movie you want to see, left to pass, up for one you have seen. Every swipe teaches For You your taste.</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container swipe-layout">
+        <div>
+            <div th:if="${swipe.cards.isEmpty()}" class="empty-state">
+                You have swiped every well-known movie of your taste. Change what you watch on your account page for a new deck.
+            </div>
+            <div th:unless="${swipe.cards.isEmpty()}" th:replace="~{fragments/games :: deck(${swipe.cards}, '/api/swipe')}"></div>
+        </div>
+
+        <aside class="swipe-side">
+            <!-- What the swipes say so far. -->
+            <div class="stat-card" th:if="${swipe.summary.total > 0}">
+                <h2>Your swipes</h2>
+                <div class="swipe-counts">
+                    <span><strong th:text="${swipe.summary.wanted}">12</strong> want</span>
+                    <span><strong th:text="${swipe.summary.passed}">8</strong> pass</span>
+                    <span><strong th:text="${swipe.summary.seen}">5</strong> seen</span>
+                </div>
+                <p class="stat-note swipe-lean" th:unless="${swipe.summary.genres.isEmpty()}">
+                    You lean towards <strong th:text="${swipe.summary.genreNames}">Thriller, Crime</strong>.
+                </p>
+            </div>
+
+            <!-- Taste twins: whose swipes agree with the visitor's most, among friends and club members. -->
+            <div class="stat-card" th:unless="${swipe.twins.isEmpty()}">
+                <h2>Taste twins</h2>
+                <p class="stat-note">Of the movies you both swiped, how many the same way.</p>
+                <div class="quiz-board-row" th:each="twin : ${swipe.twins}">
+                    <span th:replace="~{fragments/community :: avatar(${twin.user}, '')}"></span>
+                    <span class="quiz-board-name" th:text="${twin.user.name}">Alice</span>
+                    <span class="chain-board-hints" th:text="|${twin.shared} movies|">12 movies</span>
+                    <span class="quiz-board-score" th:text="|${twin.percent}%|">84%</span>
+                </div>
+            </div>
+
+            <!-- A round with others: the same posters for everyone, the matches or the ballot at the end. -->
+            <div class="stat-card swipe-together" th:with="company=${swipe.company}">
+                <h2>Swipe together</h2>
+                <p class="stat-note">A friend and you swipe the same 30 posters: the movies you both want are your matches. With a club, the most wanted become the ballot of a movie night.</p>
+                <form th:replace="~{fragments/games :: togetherForm('/play/swipe', 'Start a round')}"></form>
+            </div>
+        </aside>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -26,6 +26,7 @@ data class GameEntry(val match: GameMatch, val with: String, val status: String,
         Game.CHAIN -> "Movie Chain"
         Game.DRAFT -> "Movie Draft"
         Game.HIGHER_LOWER -> "Higher or Lower"
+        Game.SWIPE -> "Swipe Round"
     }
 
     /** The game's emoji, for the lists. */
@@ -33,6 +34,7 @@ data class GameEntry(val match: GameMatch, val with: String, val status: String,
         Game.CHAIN -> "🎞️"
         Game.DRAFT -> "🎟️"
         Game.HIGHER_LOWER -> "🎬"
+        Game.SWIPE -> "🍿"
     }
 }
 
@@ -96,6 +98,11 @@ class PlayService(
                 !me.finished && !match.isOver(now) -> GameEntry(match, with, if (me.score == 0) "Your turn" else "Your turn: a streak of ${me.score} going", yourMove = true)
                 match.isOver(now) || match.mode == GameMode.SOLO -> GameEntry(match, with, resultOf(user, players) { "a streak of $it" }, yourMove = false)
                 else -> GameEntry(match, with, "You scored ${me.score}; waiting for the others", yourMove = false)
+            }
+            Game.SWIPE -> when {
+                match.isOver(now) -> GameEntry(match, with, "The round is closed: see what everyone wants", yourMove = false)
+                me == null || !me.finished -> GameEntry(match, with, "Your turn: swipe the posters", yourMove = true)
+                else -> GameEntry(match, with, "You swiped them all; waiting for the others", yourMove = false)
             }
             Game.DRAFT -> {
                 val turn = draftService.turnIn(match, now)

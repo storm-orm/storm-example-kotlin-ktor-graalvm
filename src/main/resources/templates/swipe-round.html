@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Swipe Round')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <a class="back-link" th:href="@{/play}">← Play</a>
+        <h1 class="page-title">Swipe Round</h1>
+        <p class="page-subtitle">
+            <th:block th:if="${round.match.mode.name() == 'FRIEND'}">With a friend: the movies you both want are your matches.</th:block>
+            <th:block th:if="${round.match.mode.name() == 'CLUB'}" th:text="|With ${round.match.club.name}: the most wanted become the ballot of a movie night.|">With the club.</th:block>
+            <th:block th:if="${round.hoursLeft != null and !round.over}" th:text="|Open ${round.hoursLeft == 1 ? 'one more hour' : round.hoursLeft + ' more hours'}.|">Open 40 more hours.</th:block>
+            <th:block th:if="${round.over}">The round is closed.</th:block>
+        </p>
+    </div>
+</header>
+
+<section class="section" th:unless="${round.cards.isEmpty()}">
+    <div class="container">
+        <div th:replace="~{fragments/games :: deck(${round.cards}, |/play/matches/${round.match.id}/swipe|)}"></div>
+    </div>
+</section>
+
+<!-- What everyone wants: the matches with a friend, the most wanted of a club. -->
+<section class="section" id="round-results">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title" th:text="${round.match.mode.name() == 'FRIEND'} ? 'Your Matches' : 'Most Wanted'">Your Matches</h2>
+            <span class="section-note" th:text="${round.over} ? 'final' : 'so far'">so far</span>
+        </div>
+        <div class="empty-state" th:if="${round.results.isEmpty()}"
+             th:text="${round.match.mode.name() == 'FRIEND'} ? 'No matches yet: a movie you both swipe right on shows up here.' : 'Nothing wanted yet: the movies swiped right on most show up here.'">No matches yet.</div>
+        <div class="movie-row">
+            <a class="movie-card" th:each="result : ${round.results}" th:href="@{/movie/{id}(id=${result.movie.id})}">
+                <div th:replace="~{fragments/cards :: posterThumb(${result.movie.id}, ${result.movie.primaryTitle})}"></div>
+                <div class="movie-card-info">
+                    <div class="movie-card-title" th:text="${result.movie.primaryTitle}">Heat</div>
+                    <div class="movie-card-year" th:text="${round.match.mode.name() == 'FRIEND'} ? ${result.movie.startYear} : |Wanted by ${result.wantedBy.size()}|">Wanted by 3</div>
+                </div>
+            </a>
+        </div>
+        <form class="round-night" th:if="${round.match.mode.name() == 'CLUB' and !round.results.isEmpty()}"
+              th:action="@{/play/matches/{id}/night(id=${round.match.id})}" method="post">
+            <button type="submit" class="button button-primary">🍿 Plan a movie night with these</button>
+        </form>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Who Swiped</h2>
+        </div>
+        <div class="stat-card quiz-board hl-board">
+            <div class="quiz-board-row" th:each="player : ${round.players}">
+                <span th:replace="~{fragments/community :: avatar(${player.user}, '')}"></span>
+                <span class="quiz-board-name" th:text="${player.user.name}">Alice</span>
+                <span class="quiz-board-score" th:text="|${round.swipedBy(player)}/${round.deckSize}|">12/30</span>
+            </div>
+            <p class="stat-note hl-board-note" th:if="${round.match.mode.name() == 'CLUB' and !round.over}">Every member can swipe this round until it closes; they join as they swipe.</p>
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

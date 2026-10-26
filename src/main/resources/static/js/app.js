@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupQuiz();
     setupCinema();
     setupNightVotes();
+    setupSwipeDecks();
 });
 
 // Under the mouse a poster gives a little: it tilts toward the cursor, a light follows the cursor
@@ -1719,4 +1720,77 @@ function setupNightVotes() {
             form.submit();
         }
     });
+}
+
+// A deck of posters to swipe: drag the top poster right to want it, left to pass on it, up when
+// seen, or tap the buttons, or use the arrow keys. Each swipe is posted as it goes ([data-swipe-action])
+// and the poster flies off; at the end of the stack the page offers another.
+function setupSwipeDecks() {
+    document.querySelectorAll('[data-swipe-deck]').forEach(deck => {
+        const action = deck.dataset.swipeAction;
+        const remaining = () => [...deck.querySelectorAll('.swipe-card:not(.gone)')];
+        const update = () => {
+            const cards = remaining();
+            cards.forEach((card, i) => card.style.setProperty('--i', String(i)));
+            if (cards.length === 0) {
+                deck.querySelector('[data-swipe-done]').hidden = false;
+                deck.querySelector('[data-swipe-buttons]').hidden = true;
+            }
+        };
+        const send = (card, way) => {
+            if (!card) return;
+            card.style.transform = '';
+            card.classList.add('gone', 'gone-' + way.toLowerCase());
+            fetch(action, { method: 'POST', body: new URLSearchParams({ movie: card.dataset.movieId, way }) }).catch(() => {});
+            setTimeout(() => card.remove(), 400);
+            update();
+        };
+        deck.querySelectorAll('[data-swipe-way]').forEach(button => button.addEventListener('click', () => send(remaining()[0], button.dataset.swipeWay)));
+        deck.querySelector('[data-swipe-again]').addEventListener('click', () => location.reload());
+        document.addEventListener('keydown', event => {
+            if (event.target.closest?.('input, textarea, select')) return;
+            const way = { ArrowRight: 'WANT', ArrowLeft: 'PASS', ArrowUp: 'SEEN' }[event.key];
+            if (!way || remaining().length === 0) return;
+            event.preventDefault();
+            send(remaining()[0], way);
+        });
+
+        // Dragging the top poster: it follows the pointer, tilting, its stamp showing the way it would go.
+        let drag = null;
+        deck.addEventListener('pointerdown', event => {
+            const card = event.target.closest('.swipe-card');
+            if (!card || card !== remaining()[0] || event.target.closest('a')) return;
+            drag = { card, x: event.clientX, y: event.clientY, dx: 0, dy: 0 };
+            card.setPointerCapture(event.pointerId);
+            card.classList.add('dragging');
+        });
+        deck.addEventListener('pointermove', event => {
+            if (!drag) return;
+            drag.dx = event.clientX - drag.x;
+            drag.dy = event.clientY - drag.y;
+            drag.card.style.transform = `translate(${drag.dx}px, ${drag.dy}px) rotate(${drag.dx / 18}deg)`;
+            const way = wayOf(drag.dx, drag.dy, 40);
+            drag.card.dataset.leaning = way ? way.toLowerCase() : '';
+        });
+        const release = () => {
+            if (!drag) return;
+            const { card, dx, dy } = drag;
+            drag = null;
+            card.classList.remove('dragging');
+            card.dataset.leaning = '';
+            const way = wayOf(dx, dy, 110);
+            if (way) send(card, way); else card.style.transform = '';
+        };
+        deck.addEventListener('pointerup', release);
+        deck.addEventListener('pointercancel', release);
+        update();
+    });
+}
+
+// The way a drag points, once it has gone [far] enough: up for seen, else right or left.
+function wayOf(dx, dy, far) {
+    if (-dy > far && -dy > Math.abs(dx)) return 'SEEN';
+    if (dx > far) return 'WANT';
+    if (dx < -far) return 'PASS';
+    return null;
 }

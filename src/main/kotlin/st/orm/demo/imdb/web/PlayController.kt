@@ -17,6 +17,12 @@ import st.orm.demo.imdb.service.ChainMove
 import st.orm.demo.imdb.service.ChainService
 import st.orm.demo.imdb.service.DraftMove
 import st.orm.demo.imdb.service.DraftService
+import st.orm.demo.imdb.service.MovieNightService
+import st.orm.demo.imdb.service.SwipeService
+import st.orm.demo.imdb.model.SwipeWay
+import java.time.DayOfWeek
+import java.time.LocalDate
+import java.time.temporal.TemporalAdjusters
 import st.orm.demo.imdb.service.HigherLowerService
 import st.orm.demo.imdb.service.Opponents
 import st.orm.demo.imdb.service.PlayService
@@ -35,7 +41,7 @@ private fun Parameters.opponents(): Opponents = when (this["mode"]) {
  * to the match. Playing with others needs a signed-in account, as they see
  * the players' names; anyone plays on their own.
  */
-fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerService, chainService: ChainService, draftService: DraftService) {
+fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerService, chainService: ChainService, draftService: DraftService, swipeService: SwipeService, movieNightService: MovieNightService) {
     get("/play") {
         call.respondPage(ThymeleafContent("play", mapOf("play" to playService.playOf(call.currentUser()))))
     }
@@ -43,7 +49,8 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
     for ((path, start) in listOf<Pair<String, suspend (User, Opponents) -> GameMatch?>>(
         "/play/higher-lower" to { user, opponents -> higherLowerService.start(user, opponents) },
         "/play/chain" to { user, opponents -> chainService.start(user, opponents) },
-        "/play/draft" to { user, opponents -> draftService.start(user, opponents) }
+        "/play/draft" to { user, opponents -> draftService.start(user, opponents) },
+        "/play/swipe" to { user, opponents -> swipeService.startRound(user, opponents) }
     )) {
         post(path) {
             val opponents = call.receiveParameters().opponents()
@@ -59,6 +66,9 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
         val matchId = call.parameters.getOrFail<Long>("id")
         higherLowerService.matchOf(user, matchId)?.let {
             return@get call.respondPage(ThymeleafContent("higher-lower", mapOf("game" to it)))
+        }
+        swipeService.roundOf(user, matchId)?.let {
+            return@get call.respondPage(ThymeleafContent("swipe-round", mapOf("round" to it)))
         }
         draftService.draftOf(user, matchId)?.let {
             return@get call.respondPage(ThymeleafContent("draft", mapOf("draft" to it, "problem" to call.request.queryParameters["problem"])))
@@ -100,6 +110,27 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
             DraftMove.OFF_THEME -> "theme"
         }
         call.respondRedirect("/play/matches/$matchId" + (problem?.let { "?problem=$it" } ?: ""))
+    }
+
+    // A swipe in a round: the deck posts each swipe and moves on to the next poster itself.
+    post("/play/matches/{id}/swipe") {
+        val matchId = call.parameters.getOrFail<Long>("id")
+        val form = call.receiveParameters()
+        val way = form["way"]?.let { runCatching { SwipeWay.valueOf(it) }.getOrNull() } ?: return@post call.respond(HttpStatusCode.BadRequest)
+        swipeService.swipeInRound(call.currentUser(), matchId, form.getOrFail("movie"), way)
+        call.respond(HttpStatusCode.NoContent)
+    }
+
+    // A club round's most wanted, straight onto the ballot of a movie night, next Friday.
+    post("/play/matches/{id}/night") {
+        val matchId = call.parameters.getOrFail<Long>("id")
+        val user = call.currentUser()
+        val round = swipeService.roundOf(user, matchId)?.takeIf { it.match.mode == GameMode.CLUB } ?: return@post call.respond(HttpStatusCode.NotFound)
+        val friday = LocalDate.now().with(TemporalAdjusters.nextOrSame(DayOfWeek.FRIDAY))
+        val night = movieNightService.planWith(user, round.match.club!!.id, "Movie night", friday,
+            round.results.map { it.movie to (if (it.wantedBy.size == 1) "Swiped right by 1" else "Swiped right by ${it.wantedBy.size}") })
+            ?: return@post call.respondRedirect("/play/matches/$matchId")
+        call.respondRedirect("/nights/${night.id}")
     }
 
     post("/play/matches/{id}/hint") {

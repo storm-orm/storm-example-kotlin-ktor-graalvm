@@ -84,6 +84,15 @@
             <form th:replace="~{fragments/games :: startForm('/play/chain', 'Start a chain', 'Start a chain')}"></form>
         </div>
 
+        <!-- Swipe: posters to swipe on one's own, or a round with a friend or a club. -->
+        <a class="game-card game-swipe" th:href="@{/swipe}">
+            <span class="game-art game-art-swipe" aria-hidden="true"><span class="game-art-poster"></span><span class="game-art-poster"></span></span>
+            <span class="game-title">Swipe</span>
+            <span class="game-text">Posters, one at a time: right for a movie you want to see, left to pass. On your own it teaches For You your taste; with a friend you find your matches, with a club the next movie night.</span>
+            <span class="game-modes">On your own · with a friend · with a club</span>
+            <span class="button button-primary game-button">Start swiping</span>
+        </a>
+
         <!-- Movie Draft: a theme, picks in turn, the IMDb ratings told at the end. -->
         <div class="game-card game-draft">
             <span class="game-art game-art-draft" aria-hidden="true">
