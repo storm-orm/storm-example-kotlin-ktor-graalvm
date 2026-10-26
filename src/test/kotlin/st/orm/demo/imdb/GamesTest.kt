@@ -176,7 +176,8 @@ class GamesTest {
         runBlocking { service.giveUp(alice, match.id, now) }
         chain = runBlocking { service.chainOf(alice, match.id, now) }!!
         assertTrue(chain.over)
-        assertEquals(1, chain.housePoints)
+        // The house went through Keanu Reeves again, as Alice did: an escape, without points.
+        assertEquals(0, chain.housePoints)
 
         val quiz = QuizService(
             orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(),
@@ -247,5 +248,42 @@ class GamesTest {
         draft = runBlocking { service.draftOf(alice, match.id, later) }!!
         assertTrue(draft.over)
         assertEquals(2, draft.lineUps.size)
+    }
+
+    /** A friend chain from The Matrix Reloaded, Alice through The Matrix, by Keanu Reeves, the best billed both share. */
+    private fun chainToTheMatrix(orm: ORMTemplate, vararg pulpFictionCast: Pair<String, Int>): Pair<ChainService, Long> {
+        castOfThree(orm)
+        val service = chains(orm)
+        val alice = orm.insertUser("alice-escape", name = "Alice")
+        val bob = orm.insertUser("bob-escape", name = "Bob")
+        orm.repository<FriendshipRepository>().befriend(alice, bob, now)
+        val match = runBlocking { service.start(alice, Opponents(GameMode.FRIEND, friendId = bob.id), now) }!!
+        // Pulp Fiction's cast added once the chain started, so it does not start there.
+        val pulp = orm.repository<MovieRepository>().getById("tt0110912").ref()
+        pulpFictionCast.forEach { (person, ordering) ->
+            orm.repository<PrincipalRepository>().insert(Principal(pulp, ordering, orm.repository<PersonRepository>().getById(person), "actor", "Somebody"))
+        }
+        assertEquals(ChainMove.ADDED, runBlocking { service.move(alice, match.id, "tt0133093", now) })
+        assertEquals(ChainMove.ADDED, runBlocking { service.move(bob, match.id, "tt0110912", now) })
+        return service to match.id
+    }
+
+    @Test
+    fun `a link through the same actor as the link before is an escape, without points`(orm: ORMTemplate) {
+        // Keanu Reeves is all Pulp Fiction shares with The Matrix.
+        val (service, matchId) = chainToTheMatrix(orm, "nm0000206" to 2)
+        val chain = runBlocking { service.chainOf(orm.repository<UserRepository>().getById("alice-escape"), matchId, now) }!!
+        assertEquals(listOf("Keanu Reeves", "Keanu Reeves"), chain.links.drop(1).map { it.via!!.primaryName })
+        assertEquals(listOf(1, 0), chain.links.drop(1).map { it.points })
+        assertEquals(mapOf("Alice" to 1, "Bob" to 0), chain.players.associate { it.user.name to it.score })
+    }
+
+    @Test
+    fun `a link goes through another actor than the link before where it can, and scores`(orm: ORMTemplate) {
+        // Pulp Fiction has Keanu Reeves and Laurence Fishburne: the link goes through Laurence Fishburne.
+        val (service, matchId) = chainToTheMatrix(orm, "nm0000206" to 2, "nm0000401" to 3)
+        val chain = runBlocking { service.chainOf(orm.repository<UserRepository>().getById("bob-escape"), matchId, now) }!!
+        assertEquals("Laurence Fishburne", chain.last.via!!.primaryName)
+        assertEquals(1, chain.last.points)
     }
 }

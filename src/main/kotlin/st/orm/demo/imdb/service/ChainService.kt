@@ -62,8 +62,10 @@ enum class ChainMove { ADDED, NOT_YOUR_TURN, ALREADY_IN, NO_SHARED_ACTOR, OVER }
 
 /**
  * Movie Chain: the players build one chain of movies, each sharing an
- * actor with the one before, no movie twice. A link scores a point, two
- * when it leaps twenty years or more. The players take turns, a day each:
+ * actor with the one before, no movie twice. A link through another actor
+ * than the link before scores a point, two when it leaps twenty years or
+ * more; one through the same actor is an escape, which keeps the chain
+ * going without points. The players take turns, a day each:
  * a turn not taken passes to the next player, worked out when the chain is
  * looked at, so nobody holds the game up; after a week without a move it
  * is over. The players see the movies only; a player who needs a hint is
@@ -215,11 +217,14 @@ class ChainService(
         if (turn.player.user.id != user.id) return@transaction ChainMove.NOT_YOUR_TURN
         val movie = movieRepository.findById(movieId) ?: return@transaction ChainMove.NO_SHARED_ACTOR
         if (links.any { it.movie.id == movie.id }) return@transaction ChainMove.ALREADY_IN
-        val via = sharedActor(links.last().movie, movie) ?: return@transaction ChainMove.NO_SHARED_ACTOR
-        val points = pointsFor(links.last().movie, movie)
+        val previous = links.last()
+        val via = sharedActor(previous.movie, movie, avoid = previous.via) ?: return@transaction ChainMove.NO_SHARED_ACTOR
+        val points = pointsFor(previous, movie, via)
         chainLinkRepository.insert(ChainLink(match, links.size, movie, turn.player.user, via, points, now))
         gamePlayerRepository.update(turn.player.copy(score = turn.player.score + points, updatedAt = now))
-        if (match.mode == GameMode.SOLO) houseMove(match, links.map { it.movie.id }.toSet() + movie.id, movie, links.size + 1, now)
+        if (match.mode == GameMode.SOLO) {
+            houseMove(match, links.map { it.movie.id }.toSet() + movie.id, ChainLink(match, links.size, movie, turn.player.user, via, points, now), links.size + 1, now)
+        }
         ChainMove.ADDED
     }
 
@@ -234,21 +239,25 @@ class ChainService(
 
     /**
      * The house's answer, on one's own: a well-known movie that shares an
-     * actor with the player's and is not in the chain yet, picked at random;
-     * when there is none, the house is stuck and the chain is over.
+     * actor with the player's and is not in the chain yet, picked at random,
+     * through another actor than the player's link where it can; when there
+     * is none, the house is stuck and the chain is over.
      */
-    private fun houseMove(match: GameMatch, used: Set<String>, after: Movie, position: Int, now: Instant) {
-        val actors = actorsOf(after)
+    private fun houseMove(match: GameMatch, used: Set<String>, after: ChainLink, position: Int, now: Instant) {
+        val actors = actorsOf(after.movie)
         val candidates = principalRepository.findActingLinks(actors.map { refById<Person>(it) }, HOUSE_VOTES)
             .filter { it.movie.entityId() !in used }
-        val pick = candidates.randomOrNull()
-        if (pick == null) {
+            .groupBy { it.movie.entityId() }
+        val movieId = candidates.keys.randomOrNull()
+        if (movieId == null) {
             gameMatchRepository.update(match.copy(endedAt = now))
             return
         }
-        val movie = movieRepository.getById(pick.movie.entityId())
-        val via = personRepository.getById(pick.person.entityId())
-        chainLinkRepository.insert(ChainLink(match, position, movie, player = null, via = via, points = pointsFor(after, movie), addedAt = now))
+        val through = candidates.getValue(movieId).map { it.person.entityId() }
+        val viaId = through.firstOrNull { it != after.via?.id } ?: through.first()
+        val movie = movieRepository.getById(movieId)
+        val via = personRepository.getById(viaId)
+        chainLinkRepository.insert(ChainLink(match, position, movie, player = null, via = via, points = pointsFor(after, movie, via), addedAt = now))
     }
 
     /** The people with these ids, in this order. */
@@ -261,15 +270,25 @@ class ChainService(
     private fun actorsOf(movie: Movie): List<String> =
         principalRepository.findCast(movie).filter { it.category in ACTING_CATEGORIES }.map { it.person.id }.distinct()
 
-    /** An actor of both movies, the best billed of the second: the one the link goes through. */
-    private fun sharedActor(previous: Movie, next: Movie): Person? {
+    /**
+     * An actor of both movies, the one the link goes through: the best billed
+     * of the second other than [avoid], the actor the last link went through,
+     * so a link that can switch actors scores; [avoid] when no other is shared.
+     */
+    private fun sharedActor(previous: Movie, next: Movie, avoid: Person?): Person? {
         val before = actorsOf(previous).toSet()
-        return principalRepository.findCast(next).firstOrNull { it.category in ACTING_CATEGORIES && it.person.id in before }?.person
+        val shared = principalRepository.findCast(next).filter { it.category in ACTING_CATEGORIES && it.person.id in before }.map { it.person }
+        return shared.firstOrNull { it.id != avoid?.id } ?: shared.firstOrNull()
     }
 
-    /** A point a link, two for a leap of twenty years or more. */
-    private fun pointsFor(previous: Movie, next: Movie): Int {
-        val leap = previous.startYear?.let { from -> next.startYear?.let { abs(it - from) } } ?: 0
+    /**
+     * The points of a link after [previous]: none through the same actor as
+     * [previous]'s link, an escape that keeps the chain going; else a point,
+     * two for a leap of twenty years or more.
+     */
+    private fun pointsFor(previous: ChainLink, next: Movie, via: Person): Int {
+        if (previous.via?.id == via.id) return 0
+        val leap = previous.movie.startYear?.let { from -> next.startYear?.let { abs(it - from) } } ?: 0
         return if (leap >= LEAP_YEARS) 2 else 1
     }
 

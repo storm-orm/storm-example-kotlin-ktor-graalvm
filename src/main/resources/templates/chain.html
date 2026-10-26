@@ -12,7 +12,8 @@
             <th:block th:case="'SOLO'">Against the house: it answers every movie with one of its own.</th:block>
             <th:block th:case="'FRIEND'">Against a friend, a day per turn.</th:block>
             <th:block th:case="*" th:text="|With ${chain.match.club.name}, a day per turn.|">With the club.</th:block>
-            Each movie shares an actor with the one before; a leap of twenty years scores double.
+            Each movie shares an actor with the one before. Switching to another actor scores a point, a leap of twenty
+            years two; the same actor again is an escape: allowed, but no points.
         </p>
     </div>
 </header>
@@ -118,6 +119,7 @@
                     <th:block th:if="${!step.first and link.player == null}">The house</th:block>
                     <th:block th:if="${link.player != null}" th:text="${link.player.name} ?: 'You'">Alice</th:block>
                     <span class="chain-points" th:if="${link.points > 0}" th:text="|+${link.points}|">+1</span>
+                    <span class="chain-escape" th:if="${!step.first and link.points == 0}" title="The same actor as the link before: no points">escape</span>
                 </span>
             </li>
         </ol>
