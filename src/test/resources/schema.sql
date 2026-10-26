@@ -397,6 +397,9 @@ CREATE TABLE game_player (
     score      INTEGER NOT NULL,
     finished   BOOLEAN NOT NULL,
     updated_at TIMESTAMP NOT NULL,
+    hints      INTEGER NOT NULL DEFAULT 0,
+    hint_at    INTEGER,
+    hint_shown INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (match_id, user_id)
 );
 CREATE INDEX idx_game_player_user_id ON game_player (user_id);
@@ -416,4 +419,21 @@ CREATE TABLE chain_link (
     points    INTEGER NOT NULL,
     added_at  TIMESTAMP NOT NULL,
     PRIMARY KEY (match_id, position)
+);
+
+-- V33: Movie Draft.
+CREATE TABLE draft_theme (
+    match_id BIGINT PRIMARY KEY REFERENCES game_match (id) ON DELETE CASCADE,
+    genre_id INTEGER NOT NULL REFERENCES genre (id),
+    decade   INTEGER NOT NULL
+);
+CREATE TABLE draft_pick (
+    match_id  BIGINT NOT NULL REFERENCES game_match (id) ON DELETE CASCADE,
+    position  INTEGER NOT NULL,
+    movie_id  VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
+    player_id VARCHAR REFERENCES app_user (id) ON DELETE SET NULL,
+    auto      BOOLEAN NOT NULL,
+    picked_at TIMESTAMP NOT NULL,
+    PRIMARY KEY (match_id, position),
+    UNIQUE (match_id, movie_id)
 );

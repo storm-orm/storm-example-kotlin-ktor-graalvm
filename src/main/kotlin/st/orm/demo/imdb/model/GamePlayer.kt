@@ -14,8 +14,8 @@ data class GamePlayerPk(
 
 /**
  * A player of a match, keyed by the pair: their place in the turns, where
- * a game takes turns, their score, and whether they played their part to
- * the end. The match and the user come with the row: the lists of one's
+ * a game takes turns, their score, whether they played their part to the
+ * end, and the hints they took. The match and the user come with the row: the lists of one's
  * games show the match, and the boards name the players.
  */
 data class GamePlayer(
@@ -25,7 +25,12 @@ data class GamePlayer(
     val turnOrder: Int,
     val score: Int,
     val finished: Boolean,
-    val updatedAt: Instant
+    val updatedAt: Instant,
+    /** The hints the player took, in all: a Movie Chain counts them beside the points. */
+    val hints: Int = 0,
+    /** The link the player's latest hints are for, and how many of its actors they showed. */
+    val hintAt: Int? = null,
+    val hintShown: Int = 0
 ) : Entity<GamePlayerPk> {
     constructor(match: GameMatch, user: User, turnOrder: Int, now: Instant) : this(
         id = GamePlayerPk(matchId = match.id, userId = user.id),

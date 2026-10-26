@@ -31,7 +31,7 @@
         <div class="game-list">
             <a class="game-entry" th:each="entry : ${play.games}" th:href="@{/play/matches/{id}(id=${entry.match.id})}"
                th:classappend="${entry.yourMove} ? 'your-move'">
-                <span class="game-entry-icon" th:text="${entry.match.game.name() == 'CHAIN'} ? '🎞️' : '🎬'" aria-hidden="true">🎬</span>
+                <span class="game-entry-icon" th:text="${entry.icon}" aria-hidden="true">🎬</span>
                 <span class="game-entry-text">
                     <span class="game-entry-title" th:text="${entry.title}">Higher or Lower</span>
                     <span class="game-entry-with" th:text="${entry.with}">With Alice</span>
@@ -48,8 +48,20 @@
             <span class="game-art game-art-quiz" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></span>
             <span class="game-title">Daily Quiz</span>
             <span class="game-text">One movie a day, six clues, six guesses. Play on your own, and see how your clubs did.</span>
-            <span class="game-modes">On your own · clubs see the scores</span>
+            <span class="game-modes">On your own · your friends and clubs see the scores</span>
             <span class="button button-primary game-button">Play today's quiz</span>
+            <!-- Yesterday's movie, now it can be told: its poster, and how many got it. -->
+            <span class="quiz-yesterday" th:if="${play.yesterday != null}">
+                <span class="poster quiz-yesterday-poster">
+                    <img th:src="@{/api/poster/{id}(id=${play.yesterday.movie.id})}" alt="" loading="lazy" onerror="this.classList.add('failed')">
+                </span>
+                <span class="quiz-yesterday-text">
+                    <span class="quiz-yesterday-label">Yesterday</span>
+                    <span class="quiz-yesterday-title" th:text="${play.yesterday.movie.primaryTitle}">The Transporter</span>
+                    <span class="quiz-yesterday-score" th:if="${play.yesterday.played > 0}"
+                          th:text="|${play.yesterday.solved} of ${play.yesterday.played} got it|">3 of 5 got it</span>
+                </span>
+            </span>
         </a>
 
         <!-- Higher or Lower: started here, on one's own, against a friend, or as a round for a club. -->
@@ -70,6 +82,16 @@
             <span class="game-title">Movie Chain</span>
             <span class="game-text">Take turns adding a movie that shares an actor with the last one. A day per turn; whoever misses theirs is skipped.</span>
             <form th:replace="~{fragments/games :: startForm('/play/chain', 'Start a chain', 'Start a chain')}"></form>
+        </div>
+
+        <!-- Movie Draft: a theme, picks in turn, the IMDb ratings told at the end. -->
+        <div class="game-card game-draft">
+            <span class="game-art game-art-draft" aria-hidden="true">
+                <span class="game-art-poster"></span><span class="game-art-poster"></span><span class="game-art-poster"></span>
+            </span>
+            <span class="game-title">Movie Draft</span>
+            <span class="game-text">A theme, like Sci-Fi of the 1990s. Take turns picking three movies each; the ratings stay hidden until the end, and the best line-up wins.</span>
+            <form th:replace="~{fragments/games :: startForm('/play/draft', 'Start a draft', 'Start a draft')}"></form>
         </div>
 
         <a class="game-card game-degrees" th:href="@{/six-degrees}">

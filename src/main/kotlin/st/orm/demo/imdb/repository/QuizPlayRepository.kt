@@ -1,5 +1,6 @@
 package st.orm.demo.imdb.repository
 
+import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.QuizPlay
 import st.orm.demo.imdb.model.QuizPlayPk
 import st.orm.demo.imdb.model.QuizPlay_
@@ -23,4 +24,12 @@ interface QuizPlayRepository : EntityRepository<QuizPlay, QuizPlayPk> {
             .orderByDescending(QuizPlay_.id.quizOn)
             .resultList
             .map { it.day }
+
+    /** How many played a day's quiz of a movie to the end. */
+    fun countFinished(day: LocalDate, movie: Movie): Long =
+        count((QuizPlay_.id.quizOn eq day) and (QuizPlay_.movie eq movie) and QuizPlay_.finished.isTrue())
+
+    /** How many guessed a day's quiz of a movie. */
+    fun countSolved(day: LocalDate, movie: Movie): Long =
+        count((QuizPlay_.id.quizOn eq day) and (QuizPlay_.movie eq movie) and QuizPlay_.solved.isTrue())
 }

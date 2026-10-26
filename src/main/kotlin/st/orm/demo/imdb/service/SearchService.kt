@@ -70,6 +70,11 @@ class SearchService(
      * waits for the slower one instead of for both in turn. The two lists
      * need no common snapshot.
      */
+    /** Movies by their titles alone, for the games' boxes: no movie suggested for its cast. */
+    suspend fun findTitleSuggestions(query: String): List<Movie> = transaction(readOnly = true) {
+        movieRepository.findTitleSuggestions(query, MOVIE_SUGGESTION_LIMIT)
+    }
+
     suspend fun findSuggestions(query: String): Suggestions = coroutineScope {
         val movies = async {
             transaction(readOnly = true) {

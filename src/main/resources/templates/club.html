@@ -70,6 +70,41 @@
     </div>
 </section>
 
+<!-- The club's games: its rounds and chains of the last weeks, and the ways to start one. -->
+<section class="section" id="club-games-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Games</h2>
+            <a class="section-link" th:href="@{/play}">Play</a>
+        </div>
+        <div class="game-list" th:unless="${games.isEmpty()}">
+            <a class="game-entry" th:each="entry : ${games}" th:href="@{/play/matches/{id}(id=${entry.match.id})}"
+               th:classappend="${entry.yourMove} ? 'your-move'">
+                <span class="game-entry-icon" th:text="${entry.icon}" aria-hidden="true">🎬</span>
+                <span class="game-entry-text">
+                    <span class="game-entry-title" th:text="${entry.title}">Higher or Lower</span>
+                    <span class="game-entry-with" th:text="|Started by ${entry.match.host.name}|">Started by Alice</span>
+                </span>
+                <span class="game-entry-status" th:text="${entry.status}">Your turn</span>
+            </a>
+        </div>
+        <div class="club-game-starts">
+            <form th:action="@{/play/higher-lower}" method="post">
+                <input type="hidden" name="mode" value="club"><input type="hidden" name="club" th:value="${view.club.id}">
+                <button type="submit" class="button">🎬 Start a round of Higher or Lower</button>
+            </form>
+            <form th:action="@{/play/chain}" method="post">
+                <input type="hidden" name="mode" value="club"><input type="hidden" name="club" th:value="${view.club.id}">
+                <button type="submit" class="button">🎞️ Start a Movie Chain</button>
+            </form>
+            <form th:action="@{/play/draft}" method="post">
+                <input type="hidden" name="mode" value="club"><input type="hidden" name="club" th:value="${view.club.id}">
+                <button type="submit" class="button">🎟️ Start a Movie Draft</button>
+            </form>
+        </div>
+    </div>
+</section>
+
 <!-- How the members did on today's quiz, once anyone finished it. -->
 <section class="section" id="club-quiz-section">
     <div class="container">

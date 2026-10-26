@@ -28,10 +28,14 @@ import kotlin.random.Random
 /** Whose turn it is in a chain, and until when; a turn not taken by then passes to the next player. */
 data class Turn(val player: GamePlayer, val until: Instant, val skipped: Int, val hoursLeft: Long)
 
+/** A way a chain could have gone on: a movie, and the actor it shares with the chain's last movie. */
+data class ChainAnswer(val movie: Movie, val actor: Person)
+
 /**
  * A Movie Chain for a player: its movies so far, the players with their
- * points, whose turn it is, and the cast of the last movie, where the next
- * one is found.
+ * points and hints, whose turn it is, the actors of the last movie the
+ * visitor took as hints on their turn, whether there are more to take,
+ * and, once over, the best-known ways the chain could have gone on.
  */
 data class ChainView(
     val match: GameMatch,
@@ -40,11 +44,13 @@ data class ChainView(
     val turn: Turn?,
     val yourTurn: Boolean,
     val over: Boolean,
-    val cast: List<Person>
+    val revealed: List<Person>,
+    val moreHints: Boolean,
+    val answers: List<ChainAnswer>
 ) {
     val last: ChainLink get() = links.last()
-    /** The players by their points, the most first: the board, and once over, the winner first. */
-    val standings: List<GamePlayer> get() = players.sortedByDescending { it.score }
+    /** The players by their points, the most first, and of the same points the fewest hints: the board, and once over, the winner first. */
+    val standings: List<GamePlayer> get() = players.sortedWith(compareByDescending<GamePlayer> { it.score }.thenBy { it.hints })
     /** Whether the house is in the game, on one's own: it answers each movie with one of its own. */
     val againstTheHouse: Boolean get() = match.mode == GameMode.SOLO
     /** The house's points, on one's own: its links. */
@@ -60,7 +66,10 @@ enum class ChainMove { ADDED, NOT_YOUR_TURN, ALREADY_IN, NO_SHARED_ACTOR, OVER }
  * when it leaps twenty years or more. The players take turns, a day each:
  * a turn not taken passes to the next player, worked out when the chain is
  * looked at, so nobody holds the game up; after a week without a move it
- * is over. A player who finds nothing ends it, and the most points win.
+ * is over. The players see the movies only; a player who needs a hint is
+ * shown one actor of the last movie at a time, in billing order and three
+ * at most, each counted among their hints. A player who finds nothing ends it; the most points win, and of
+ * the same points the fewest hints.
  * On one's own the house plays the other turns, at once, with a movie of
  * its own, and loses when it finds none. The chain starts from one of the
  * best-known movies the host's movie filter lets through.
@@ -101,6 +110,11 @@ class ChainService(
         val players = gamePlayerRepository.findPlayers(match)
         val over = isOver(match, links, now)
         val turn = if (over) null else turnOf(players, links.last(), now)
+        val me = players.firstOrNull { it.user.id == user.id }
+        val lastPosition = links.last().position
+        // The actors shown as hints: the visitor's, for the last movie, on their turn.
+        val shown = if (turn?.player?.user?.id == user.id && me?.hintAt == lastPosition) me.hintShown else 0
+        val actors = if (over) emptyList() else actorsOf(links.last().movie)
         ChainView(
             match = match,
             links = links,
@@ -108,8 +122,49 @@ class ChainService(
             turn = turn,
             yourTurn = turn?.player?.user?.id == user.id,
             over = over,
-            cast = if (over) emptyList() else castOf(links.last().movie)
+            revealed = people(actors.take(shown)),
+            moreHints = shown < minOf(actors.size, HINTS_PER_MOVIE),
+            answers = if (over) answersOf(links) else emptyList()
         )
+    }
+
+    /**
+     * A hint for the player whose turn it is: one more actor of the last
+     * movie, in billing order, [HINTS_PER_MOVIE] at most, each counted among
+     * their hints.
+     */
+    suspend fun hint(user: User, matchId: Long, now: Instant = Instant.now()) = transaction {
+        val match = matchService.visibleMatch(user, matchId)?.takeIf { it.game == Game.CHAIN } ?: return@transaction
+        val links = chainLinkRepository.findLinks(match)
+        if (isOver(match, links, now)) return@transaction
+        val turn = turnOf(gamePlayerRepository.findPlayers(match), links.last(), now)
+        if (turn.player.user.id != user.id) return@transaction
+        val player = turn.player
+        val lastPosition = links.last().position
+        val shown = if (player.hintAt == lastPosition) player.hintShown else 0
+        if (shown >= minOf(actorsOf(links.last().movie).size, HINTS_PER_MOVIE)) return@transaction
+        gamePlayerRepository.update(player.copy(hints = player.hints + 1, hintAt = lastPosition, hintShown = shown + 1, updatedAt = now))
+    }
+
+    /**
+     * The best-known movies that share an actor with the chain's last movie
+     * and are not in it, each with that actor: where the chain could have
+     * gone on, shown once it is over.
+     */
+    private fun answersOf(links: List<ChainLink>): List<ChainAnswer> {
+        val actors = actorsOf(links.last().movie)
+        if (actors.isEmpty()) return emptyList()
+        val used = links.map { it.movie.id }.toSet()
+        val credits = principalRepository.findActingLinks(actors.map { refById<Person>(it) }, ANSWER_VOTES)
+            .filter { it.movie.entityId() !in used }
+        // Each movie through its best-billed actor of the last movie.
+        val actorOf = credits.groupBy { it.movie.entityId() }
+            .mapValues { (_, links) -> links.minBy { link -> actors.indexOf(link.person.entityId()) }.person.entityId() }
+        val ratings = ratingRepository.findByMovies(actorOf.keys.map { refById<Movie>(it) })
+            .sortedByDescending { it.voteCount }
+            .take(ANSWERS)
+        val people = personRepository.findAllById(ratings.map { actorOf.getValue(it.movie.id) }).associateBy { it.id }
+        return ratings.map { ChainAnswer(it.movie, people.getValue(actorOf.getValue(it.movie.id))) }
     }
 
     /**
@@ -189,9 +244,8 @@ class ChainService(
         chainLinkRepository.insert(ChainLink(match, position, movie, player = null, via = via, points = pointsFor(after, movie), addedAt = now))
     }
 
-    /** The top-billed cast of a movie, the hint where the next movie is found. */
-    private fun castOf(movie: Movie): List<Person> {
-        val ids = actorsOf(movie).take(HINT_CAST)
+    /** The people with these ids, in this order. */
+    private fun people(ids: List<String>): List<Person> {
         val people = personRepository.findAllById(ids).associateBy { it.id }
         return ids.mapNotNull(people::get)
     }
@@ -223,7 +277,10 @@ class ChainService(
         private const val MINIMUM_CAST = 3
         /** The house plays well-known movies too. */
         private const val HOUSE_VOTES = 50_000
-        /** The cast of the last movie shown as a hint. */
-        private const val HINT_CAST = 8
+        /** The actors of a movie a player can be shown as hints, in billing order. */
+        const val HINTS_PER_MOVIE = 3
+        /** The ways the chain could have gone on, shown once it is over. */
+        private const val ANSWERS = 5
+        private const val ANSWER_VOTES = 1_000
     }
 }

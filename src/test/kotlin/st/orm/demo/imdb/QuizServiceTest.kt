@@ -14,6 +14,7 @@ import st.orm.demo.imdb.model.MovieLanguage
 import st.orm.demo.imdb.model.Principal
 import st.orm.demo.imdb.repository.ClubMemberRepository
 import st.orm.demo.imdb.repository.ClubRepository
+import st.orm.demo.imdb.repository.FriendshipRepository
 import st.orm.demo.imdb.repository.MovieCountryRepository
 import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieLanguageRepository
@@ -45,6 +46,7 @@ class QuizServiceTest {
         orm.repository<MovieCountryRepository>(),
         orm.repository<PrincipalRepository>(),
         orm.repository<ClubMemberRepository>(),
+        orm.repository<FriendshipRepository>(),
         orm.repository<UserRepository>()
     )
 
@@ -131,5 +133,27 @@ class QuizServiceTest {
         assertEquals("2001", frenchQuiz.clues.first().text)
         val everyone = runBlocking { service.quizOf(orm.insertUser("anyone-quiz"), day) }
         assertEquals("1999 · Action, Sci-Fi", everyone.clues.first().text)
+    }
+
+    @Test
+    fun `friends see each other's scores, and yesterday's movie is told the next day`(orm: ORMTemplate) {
+        fullCast(orm)
+        val service = service(orm)
+        val alice = orm.insertUser("alice-friends-quiz", name = "Alice")
+        val bob = orm.insertUser("bob-friends-quiz", name = "Bob")
+        orm.repository<FriendshipRepository>().befriend(alice, bob, Instant.parse("2026-10-01T00:00:00Z"))
+        runBlocking { service.guess(bob, "tt0133093", day) }
+        runBlocking { service.guess(alice, null, day) }
+        runBlocking { service.guess(alice, "tt0133093", day) }
+
+        val board = runBlocking { service.quizOf(alice, day) }.boards.single()
+        assertEquals("Your friends", board.club)
+        assertEquals(listOf("Bob" to 1, "You" to 2), board.rows.map { it.name to it.guesses })
+
+        assertNull(runBlocking { service.yesterdayOf(alice, day) })
+        val yesterday = runBlocking { service.yesterdayOf(alice, day.plusDays(1)) }!!
+        assertEquals("The Matrix", yesterday.movie.primaryTitle)
+        assertEquals(2L, yesterday.played)
+        assertEquals(2L, yesterday.solved)
     }
 }

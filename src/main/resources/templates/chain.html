@@ -29,6 +29,8 @@
                 <p class="quiz-verdict">The chain is over</p>
                 <h2 class="chain-status-title" th:if="${chain.againstTheHouse}"
                     th:text="${chain.last.player != null} ? 'The house is stuck: you win!' : |The house wins, ${chain.housePoints} to ${chain.standings[0].score}|">You win!</h2>
+                <p class="stat-note" th:if="${chain.againstTheHouse}"
+                   th:text="|Your chain: ${chain.standings[0].score} points with ${chain.standings[0].hints == 1 ? '1 hint' : chain.standings[0].hints + ' hints'}.|">Your chain: 7 points with 5 hints.</p>
                 <h2 class="chain-status-title" th:unless="${chain.againstTheHouse}"
                     th:text="${chain.standings.size() > 1 and chain.standings[0].score == chain.standings[1].score} ? 'A tie!' : |${chain.standings[0].user.name} wins!|">Alice wins!</h2>
                 <form th:if="${chain.againstTheHouse}" th:action="@{/play/chain}" method="post">
@@ -46,8 +48,8 @@
                 <!-- The visitor's move: a movie picked from the suggestions goes in at once. -->
                 <div class="chain-move" th:if="${chain.yourTurn}">
                     <form th:action="@{/play/matches/{id}/move(id=${chain.match.id})}" method="post" data-pick-submits>
-                        <div class="picker search-box quiz-picker" data-picker="movie">
-                            <input type="search" placeholder="A movie with one of them…" autocomplete="off" aria-label="Your movie" data-picker-input>
+                        <div class="picker search-box quiz-picker" data-picker="movie" data-picker-source="/api/search/titles">
+                            <input type="search" placeholder="A movie title…" autocomplete="off" aria-label="Your movie" data-picker-input>
                             <input type="hidden" name="movie" data-picker-value>
                             <div class="search-suggestions" data-picker-suggestions hidden></div>
                         </div>
@@ -56,17 +58,40 @@
                         <button type="submit" class="button">I'm stuck</button>
                     </form>
                 </div>
-                <!-- The cast of the last movie: where the next one is found. -->
-                <div class="chain-cast" th:unless="${chain.cast.isEmpty()}">
-                    <a class="chain-cast-member" th:each="person : ${chain.cast}" th:href="@{/person/{id}(id=${person.id})}" target="_blank" rel="noopener">
+                <!-- Hints: one actor of the last movie at a time, each counted beside the points. -->
+                <div class="chain-hints" th:if="${chain.yourTurn}">
+                    <a class="chain-cast-member" th:each="person : ${chain.revealed}" th:href="@{/person/{id}(id=${person.id})}" target="_blank" rel="noopener">
                         <span class="avatar">
                             <span th:text="${#strings.substring(person.primaryName, 0, 1)}">K</span>
                             <img th:src="@{/api/photo/{id}(id=${person.id})}" alt="" loading="lazy" onerror="this.classList.add('failed')">
                         </span>
                         <span th:text="${person.primaryName}">Keanu Reeves</span>
                     </a>
+                    <form th:if="${chain.moreHints}" th:action="@{/play/matches/{id}/hint(id=${chain.match.id})}" method="post">
+                        <button type="submit" class="link-button chain-hint-button"
+                                th:text="${chain.revealed.isEmpty()} ? 'Stuck? Show an actor (counts as a hint, 3 at most)' : 'Show another actor'">Stuck? Show an actor</button>
+                    </form>
                 </div>
             </th:block>
+        </div>
+    </div>
+</section>
+
+<!-- Once over: the best-known movies that could have come next, and through whom. -->
+<section class="section" th:if="${chain.over and !chain.answers.isEmpty()}" id="chain-answers">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">It Could Have Gone On</h2>
+            <span class="section-note" th:text="|from ${chain.last.movie.primaryTitle}|">from xXx</span>
+        </div>
+        <div class="movie-row">
+            <a class="movie-card" th:each="answer : ${chain.answers}" th:href="@{/movie/{id}(id=${answer.movie.id})}">
+                <div th:replace="~{fragments/cards :: posterThumb(${answer.movie.id}, ${answer.movie.primaryTitle})}"></div>
+                <div class="movie-card-info">
+                    <div class="movie-card-title" th:text="${answer.movie.primaryTitle}">Fast X</div>
+                    <div class="movie-card-year" th:text="|via ${answer.actor.primaryName}|">via Vin Diesel</div>
+                </div>
+            </a>
         </div>
     </div>
 </section>
@@ -110,6 +135,7 @@
                 <span th:replace="~{fragments/community :: avatar(${player.user}, '')}"></span>
                 <span class="quiz-board-name" th:text="${player.user.name}">Alice</span>
                 <span class="hl-playing" th:if="${chain.turn != null and player.user.id == chain.turn.player.user.id}">to play</span>
+                <span class="chain-board-hints" th:if="${player.hints > 0}" th:text="${player.hints == 1} ? '1 hint' : |${player.hints} hints|">2 hints</span>
                 <span class="quiz-board-score" th:text="${player.score}">4</span>
             </div>
         </div>

@@ -32,6 +32,12 @@ fun Route.searchRoutes(searchService: SearchService) {
         )
     }
 
+    // Movies by their titles alone, for the games, in the shape of the suggestions.
+    get("/api/search/titles") {
+        val query = call.request.queryParameters.getOrFail("query")
+        call.respond(SearchSuggestions(movies = searchService.findTitleSuggestions(query).map { it.toSearchItem() }, persons = emptyList()))
+    }
+
     get("/api/search/movies") {
         val query = call.request.queryParameters.getOrFail("query")
         val cursor = call.request.queryParameters["cursor"]

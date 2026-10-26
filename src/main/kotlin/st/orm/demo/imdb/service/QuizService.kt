@@ -11,6 +11,7 @@ import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.repository.ACTING_CATEGORIES
 import st.orm.demo.imdb.repository.ClubMemberRepository
 import st.orm.demo.imdb.repository.DIRECTOR
+import st.orm.demo.imdb.repository.FriendshipRepository
 import st.orm.demo.imdb.repository.MovieCountryRepository
 import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieLanguageRepository
@@ -36,6 +37,9 @@ data class Guess(val movie: Movie?, val correct: Boolean)
 
 /** How a club's members did on a day's quiz: a row each, the ones who got it first, in fewest guesses. */
 data class QuizBoard(val club: String, val rows: List<QuizScore>)
+
+/** Yesterday's quiz for a taste: its movie, and how many played it and got it. */
+data class YesterdayQuiz(val movie: Movie, val played: Long, val solved: Long)
 
 /** A member's game on a club's board: their name, as far as they share it, how many guesses, and whether they got it. */
 data class QuizScore(val name: String, val avatarUrl: String?, val guesses: Int, val solved: Boolean, val you: Boolean)
@@ -87,6 +91,7 @@ class QuizService(
     private val movieCountryRepository: MovieCountryRepository,
     private val principalRepository: PrincipalRepository,
     private val clubMemberRepository: ClubMemberRepository,
+    private val friendshipRepository: FriendshipRepository,
     private val userRepository: UserRepository
 ) {
 
@@ -188,13 +193,27 @@ class QuizService(
 
     /** How the members of the player's clubs did today, a board per club with anyone else on it. */
     private fun boardsOf(user: User, today: LocalDate): List<QuizBoard> {
+        val friends = friendshipRepository.findFriends(user).map { it.friend }
         val clubs = clubMemberRepository.findClubs(user).map { it.club }
         val members = clubMemberRepository.findMembers(clubs)
-        val plays = quizPlayRepository.findFinished(members.map { it.user }.distinctBy { it.id }, today).associateBy { it.user.id }
-        return members.groupBy { it.club }.mapNotNull { (club, inClub) ->
+        val plays = quizPlayRepository.findFinished((friends + members.map { it.user } + user).distinctBy { it.id }, today).associateBy { it.user.id }
+        // The friends' board first: one on one, every friend by name, as friends see each other.
+        val friendRows = (friends + user).mapNotNull { person -> plays[person.id]?.let { scoreOf(person, it, user, person.name) } }.sortedWith(BEST_FIRST)
+        val friendBoard = QuizBoard("Your friends", friendRows).takeIf { friendRows.any { !it.you } }
+        return listOfNotNull(friendBoard) + members.groupBy { it.club }.mapNotNull { (club, inClub) ->
             val rows = scores(inClub, plays, user)
             QuizBoard(club.name, rows).takeIf { rows.any { !it.you } }
         }.sortedBy { it.club }
+    }
+
+    /**
+     * Yesterday's quiz of the visitor's taste, for the Play page: its movie,
+     * and how many played it and got it; null before the first quiz.
+     */
+    suspend fun yesterdayOf(user: User, today: LocalDate = today()): YesterdayQuiz? = transaction(readOnly = true) {
+        val day = today.minusDays(1)
+        val quiz = quizDayRepository.findById(QuizDayPk(quizOn = day, filterKey = user.movieFilter?.key.orEmpty())) ?: return@transaction null
+        YesterdayQuiz(quiz.movie, quizPlayRepository.countFinished(day, quiz.movie), quizPlayRepository.countSolved(day, quiz.movie))
     }
 
     /** How the club's members did today, for its page: empty while nobody finished, or for someone not in the club. */
@@ -208,17 +227,20 @@ class QuizService(
     /** The members who finished the day's quiz, each named as far as they share it in the club; the ones who got it first, in fewest guesses. */
     private fun scores(members: List<ClubMember>, plays: Map<String, QuizPlay>, user: User): List<QuizScore> =
         members.mapNotNull { member ->
-            plays[member.user.id]?.let { play ->
-                val you = member.user.id == user.id
-                QuizScore(
-                    name = if (you) "You" else member.user.name.takeIf { member.sharesName } ?: "A member",
-                    avatarUrl = member.user.avatarUrl.takeIf { you || member.sharesName },
-                    guesses = play.guesses.size,
-                    solved = play.solved,
-                    you = you
-                )
-            }
-        }.sortedWith(compareByDescending<QuizScore> { it.solved }.thenBy { it.guesses })
+            plays[member.user.id]?.let { scoreOf(member.user, it, user, member.user.name.takeIf { member.sharesName } ?: "A member") }
+        }.sortedWith(BEST_FIRST)
+
+    /** A player's row on a board: "You" for the visitor, else the [name] the board gives them. */
+    private fun scoreOf(player: User, play: QuizPlay, user: User, name: String?): QuizScore {
+        val you = player.id == user.id
+        return QuizScore(
+            name = if (you) "You" else name ?: "Someone",
+            avatarUrl = player.avatarUrl.takeIf { you || name == player.name },
+            guesses = play.guesses.size,
+            solved = play.solved,
+            you = you
+        )
+    }
 
     /** The quiz's number: the first, on launch day, is #1. */
     private fun numberOf(day: LocalDate): Long = ChronoUnit.DAYS.between(FIRST_DAY, day) + 1
@@ -227,6 +249,8 @@ class QuizService(
 
     companion object {
         const val MAX_GUESSES = 6
+        /** The ones who got it first, in fewest guesses. */
+        private val BEST_FIRST = compareByDescending<QuizScore> { it.solved }.thenBy { it.guesses }
         /**
          * The movies the quiz picks from: the four hundred best known of a
          * taste, over a year of quizzes; for every movie, the ones with half

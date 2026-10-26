@@ -123,6 +123,21 @@ interface MovieRepository : EntityRepository<Movie, String> {
             .limit(limit)
             .resultList
 
+    /**
+     * Movies whose titles match what is typed, ranked as [findMovieSuggestions]
+     * ranks them, by their titles alone: the games' boxes, where a movie
+     * suggested for its actor would give the answer away.
+     */
+    fun findTitleSuggestions(query: String, limit: Int): List<Movie> =
+        select()
+            .innerJoin<Rating>().on<Movie>()
+            .where(suggest(query, TITLE_NOISE, Movie_.primaryTitleFolded, Movie_.originalTitleFolded))
+            .orderFirst(titleEquals(query))
+            .orderFirst(titleStartsWith(query))
+            .orderByDescending(Rating_.voteCount)
+            .limit(limit)
+            .resultList
+
     /** How many movies of a genre [filter] lets through: the count the browse page shows. */
     fun countByGenre(genre: Genre, filter: MovieFilter?): Long =
         inGenre(genre, filter).resultCount

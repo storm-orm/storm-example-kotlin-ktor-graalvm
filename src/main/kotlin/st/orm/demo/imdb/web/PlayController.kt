@@ -15,6 +15,8 @@ import st.orm.demo.imdb.model.GameMode
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.service.ChainMove
 import st.orm.demo.imdb.service.ChainService
+import st.orm.demo.imdb.service.DraftMove
+import st.orm.demo.imdb.service.DraftService
 import st.orm.demo.imdb.service.HigherLowerService
 import st.orm.demo.imdb.service.Opponents
 import st.orm.demo.imdb.service.PlayService
@@ -33,14 +35,15 @@ private fun Parameters.opponents(): Opponents = when (this["mode"]) {
  * to the match. Playing with others needs a signed-in account, as they see
  * the players' names; anyone plays on their own.
  */
-fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerService, chainService: ChainService) {
+fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerService, chainService: ChainService, draftService: DraftService) {
     get("/play") {
         call.respondPage(ThymeleafContent("play", mapOf("play" to playService.playOf(call.currentUser()))))
     }
 
     for ((path, start) in listOf<Pair<String, suspend (User, Opponents) -> GameMatch?>>(
         "/play/higher-lower" to { user, opponents -> higherLowerService.start(user, opponents) },
-        "/play/chain" to { user, opponents -> chainService.start(user, opponents) }
+        "/play/chain" to { user, opponents -> chainService.start(user, opponents) },
+        "/play/draft" to { user, opponents -> draftService.start(user, opponents) }
     )) {
         post(path) {
             val opponents = call.receiveParameters().opponents()
@@ -56,6 +59,9 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
         val matchId = call.parameters.getOrFail<Long>("id")
         higherLowerService.matchOf(user, matchId)?.let {
             return@get call.respondPage(ThymeleafContent("higher-lower", mapOf("game" to it)))
+        }
+        draftService.draftOf(user, matchId)?.let {
+            return@get call.respondPage(ThymeleafContent("draft", mapOf("draft" to it, "problem" to call.request.queryParameters["problem"])))
         }
         chainService.chainOf(user, matchId)?.let {
             return@get call.respondPage(ThymeleafContent("chain", mapOf("chain" to it, "problem" to call.request.queryParameters["problem"])))
@@ -81,6 +87,25 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
             ChainMove.OVER -> null
         }
         call.respondRedirect("/play/matches/$matchId" + (problem?.let { "?problem=$it" } ?: ""))
+    }
+
+    // A pick for the draft: back to the draft, saying what was wrong with it, if anything.
+    post("/play/matches/{id}/pick") {
+        val matchId = call.parameters.getOrFail<Long>("id")
+        val movieId = call.receiveParameters()["movie"]?.takeIf { it.isNotBlank() } ?: return@post call.respondRedirect("/play/matches/$matchId")
+        val problem = when (draftService.pick(call.currentUser(), matchId, movieId)) {
+            DraftMove.PICKED, DraftMove.OVER -> null
+            DraftMove.NOT_YOUR_TURN -> "turn"
+            DraftMove.TAKEN -> "taken"
+            DraftMove.OFF_THEME -> "theme"
+        }
+        call.respondRedirect("/play/matches/$matchId" + (problem?.let { "?problem=$it" } ?: ""))
+    }
+
+    post("/play/matches/{id}/hint") {
+        val matchId = call.parameters.getOrFail<Long>("id")
+        chainService.hint(call.currentUser(), matchId)
+        call.respondRedirect("/play/matches/$matchId")
     }
 
     post("/play/matches/{id}/give-up") {

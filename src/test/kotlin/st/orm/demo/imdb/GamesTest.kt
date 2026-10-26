@@ -25,10 +25,13 @@ import st.orm.demo.imdb.repository.RatingRepository
 import st.orm.demo.imdb.repository.UserRepository
 import st.orm.demo.imdb.service.ChainMove
 import st.orm.demo.imdb.service.ChainService
+import st.orm.demo.imdb.service.DraftMove
+import st.orm.demo.imdb.service.DraftService
 import st.orm.demo.imdb.service.HigherLowerService
 import st.orm.demo.imdb.service.MatchService
 import st.orm.demo.imdb.service.Opponents
 import st.orm.demo.imdb.service.PlayService
+import st.orm.demo.imdb.service.QuizService
 import st.orm.repository.repository
 import st.orm.template.ORMTemplate
 import st.orm.template.ref
@@ -129,7 +132,8 @@ class GamesTest {
         assertEquals("The Matrix Reloaded", chain.last.movie.primaryTitle)
         // Alice, the host, plays first.
         assertTrue(chain.yourTurn)
-        assertEquals(listOf("Keanu Reeves", "Laurence Fishburne", "Morgan Freeman"), chain.cast.map { it.primaryName })
+        // The players see the movies only, until one takes a hint.
+        assertTrue(chain.revealed.isEmpty())
 
         assertEquals(ChainMove.NOT_YOUR_TURN, runBlocking { service.move(bob, match.id, "tt0133093", now) })
         assertEquals(ChainMove.NO_SHARED_ACTOR, runBlocking { service.move(alice, match.id, "tt0110912", now) })
@@ -174,7 +178,74 @@ class GamesTest {
         assertTrue(chain.over)
         assertEquals(1, chain.housePoints)
 
-        val play = PlayService(matches(orm), orm.repository(), orm.repository(), service, orm.repository())
+        val quiz = QuizService(
+            orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(),
+            orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository()
+        )
+        val play = PlayService(matches(orm), orm.repository(), orm.repository(), service, drafts(orm), orm.repository(), quiz)
         assertEquals(listOf("Over: 1 point"), runBlocking { play.playOf(alice, now) }.games.map { it.status })
+    }
+
+    @Test
+    fun `a hint shows one actor of the last movie at a time, three at most, and once over the chain shows where it could have gone`(orm: ORMTemplate) {
+        castOfThree(orm)
+        orm.repository<PrincipalRepository>().insert(
+            Principal(orm.repository<MovieRepository>().getById("tt0110912").ref(), 2, orm.repository<PersonRepository>().getById("nm0000206"), "actor", "Somebody")
+        )
+        val service = chains(orm)
+        val alice = orm.insertUser("alice-hints", name = "Alice")
+        val match = runBlocking { service.start(alice, Opponents(GameMode.SOLO), now) }!!
+        assertTrue(runBlocking { service.chainOf(alice, match.id, now) }!!.revealed.isEmpty())
+        repeat(4) { runBlocking { service.hint(alice, match.id, now) } }
+        var chain = runBlocking { service.chainOf(alice, match.id, now) }!!
+        assertEquals(listOf("Keanu Reeves", "Laurence Fishburne", "Morgan Freeman"), chain.revealed.map { it.primaryName })
+        assertFalse(chain.moreHints)
+        assertEquals(3, chain.players.single().hints)
+
+        runBlocking { service.giveUp(alice, match.id, now) }
+        chain = runBlocking { service.chainOf(alice, match.id, now) }!!
+        assertEquals(listOf("The Shawshank Redemption" to "Morgan Freeman", "Pulp Fiction" to "Keanu Reeves", "The Matrix" to "Keanu Reeves"),
+            chain.answers.map { it.movie.primaryTitle to it.actor.primaryName })
+    }
+
+    private fun drafts(orm: ORMTemplate) = DraftService(
+        matches(orm), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(),
+        orm.repository(), orm.repository(), orm.repository(), rounds = 1, margin = 1
+    )
+
+    @Test
+    fun `a draft on one's own has the house pick after the player, and the best total wins`(orm: ORMTemplate) {
+        val service = drafts(orm)
+        val alice = orm.insertUser("alice-draft", name = "Alice")
+        val match = runBlocking { service.start(alice, Opponents(GameMode.SOLO), now) }!!
+        var draft = runBlocking { service.draftOf(alice, match.id, now) }!!
+        // The one theme of the fixture with a movie for each drafter: Shawshank and Pulp Fiction.
+        assertEquals("Drama of the 1990s", draft.theme.label)
+        assertTrue(draft.yourTurn)
+        assertEquals(DraftMove.OFF_THEME, runBlocking { service.pick(alice, match.id, "tt0133093", now) })
+        assertEquals(DraftMove.PICKED, runBlocking { service.pick(alice, match.id, "tt0110912", now) })
+        draft = runBlocking { service.draftOf(alice, match.id, now) }!!
+        assertTrue(draft.over)
+        assertEquals(listOf("The house" to "9.3", "Alice" to "8.9"), draft.standings.map { it.drafter.name to it.total.toString() })
+    }
+
+    @Test
+    fun `a draft with a friend picks for a player who lets their turn go by`(orm: ORMTemplate) {
+        val service = drafts(orm)
+        val alice = orm.insertUser("alice-draft-friend", name = "Alice")
+        val bob = orm.insertUser("bob-draft-friend", name = "Bob")
+        orm.repository<FriendshipRepository>().befriend(alice, bob, now)
+        val match = runBlocking { service.start(alice, Opponents(GameMode.FRIEND, friendId = bob.id), now) }!!
+        assertEquals(DraftMove.NOT_YOUR_TURN, runBlocking { service.pick(bob, match.id, "tt0110912", now) })
+        // A day later Alice's pick was made for her, and it is Bob's turn.
+        val later = now.plus(Duration.ofHours(25))
+        var draft = runBlocking { service.draftOf(bob, match.id, later) }!!
+        assertTrue(draft.picks.single().auto)
+        assertTrue(draft.yourTurn)
+        val left = draft.board.single()
+        assertEquals(DraftMove.PICKED, runBlocking { service.pick(bob, match.id, left.id, later) })
+        draft = runBlocking { service.draftOf(alice, match.id, later) }!!
+        assertTrue(draft.over)
+        assertEquals(2, draft.lineUps.size)
     }
 }

@@ -1508,7 +1508,8 @@ function setupPickers() {
             const query = input.value.trim();
             if (query.length < 2) { hide(); return; }
             timer = setTimeout(async () => {
-                const response = await fetch('/api/search/suggestions?query=' + encodeURIComponent(query));
+                // A game's box asks for movies by their titles alone ([data-picker-source]).
+                const response = await fetch((picker.dataset.pickerSource || '/api/search/suggestions') + '?query=' + encodeURIComponent(query));
                 if (!response.ok || input.value.trim() !== query) return;
                 const suggestions = await response.json();
                 const items = kind === 'person'

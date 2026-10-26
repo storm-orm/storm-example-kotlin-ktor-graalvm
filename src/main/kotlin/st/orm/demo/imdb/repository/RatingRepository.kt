@@ -18,6 +18,7 @@ import st.orm.repository.EntityRepository
 import st.orm.template.and
 import st.orm.template.eq
 import st.orm.template.greaterEq
+import st.orm.template.less
 import st.orm.template.inRefs
 import st.orm.template.isNotNull
 
@@ -63,6 +64,22 @@ interface RatingRepository : EntityRepository<Rating, Movie> {
     fun findBestKnown(filter: MovieFilter?, minimumVoteCount: Int, limit: Int): List<Rating> =
         select {
             where(Rating_.voteCount greaterEq minimumVoteCount)
+            keepTo(filter)
+            orderByDescending(Rating_.voteCount)
+            limit(limit)
+        }.resultList
+
+    /**
+     * The best-known movies of a genre from [fromYear] up to [untilYear]
+     * that [filter] lets through: the [limit] most voted on, none with fewer
+     * than [minimumVoteCount] votes, the most voted first. A Movie Draft's
+     * board, and how its themes are found.
+     */
+    fun findBestKnownIn(genre: Genre, fromYear: Int, untilYear: Int, filter: MovieFilter?, minimumVoteCount: Int, limit: Int): List<Rating> =
+        select {
+            innerJoin<MovieGenre, Movie>()
+            where((MovieGenre_.genre eq genre) and (Rating_.voteCount greaterEq minimumVoteCount)
+                and (Rating_.movie.startYear greaterEq fromYear) and (Rating_.movie.startYear less untilYear))
             keepTo(filter)
             orderByDescending(Rating_.voteCount)
             limit(limit)
