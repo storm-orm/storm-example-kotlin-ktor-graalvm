@@ -19,6 +19,17 @@ data class MovieFilter(
     val showsUntagged: Boolean = true,
     val languages: Set<String> = emptySet()
 ) {
+    /**
+     * The filter as a short text, the same for the same choices, empty for
+     * none: what keeps a day's quiz apart for each taste.
+     */
+    val key: String
+        get() = if (isNone) "" else listOf(
+            hiddenTags.map { it.name }.sorted().joinToString(","),
+            if (showsUntagged) "untagged" else "",
+            languages.sorted().joinToString(",")
+        ).joinToString("|")
+
     /** Whether this filter lets every movie through. */
     val isNone: Boolean
         get() = this == NONE

@@ -359,12 +359,15 @@ CREATE TABLE movie_night_vote (
 
 -- V29: the daily quiz.
 CREATE TABLE quiz_day (
-    quiz_on  DATE PRIMARY KEY,
-    movie_id VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE
+    quiz_on    DATE NOT NULL,
+    filter_key VARCHAR NOT NULL,
+    movie_id   VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
+    PRIMARY KEY (quiz_on, filter_key)
 );
 CREATE TABLE quiz_play (
     user_id    VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
     quiz_on    DATE NOT NULL,
+    movie_id   VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
     guesses    VARCHAR NOT NULL,
     solved     BOOLEAN NOT NULL,
     finished   BOOLEAN NOT NULL,
@@ -372,3 +375,45 @@ CREATE TABLE quiz_play (
     PRIMARY KEY (user_id, quiz_on)
 );
 CREATE INDEX idx_quiz_play_quiz_on ON quiz_play (quiz_on);
+
+-- V30: games played as matches.
+CREATE TABLE game_match (
+    id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    game       VARCHAR NOT NULL,
+    mode       VARCHAR NOT NULL,
+    club_id    BIGINT REFERENCES club (id) ON DELETE CASCADE,
+    host_id    VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    created_at TIMESTAMP NOT NULL,
+    closes_at  TIMESTAMP,
+    ended_at   TIMESTAMP,
+    CHECK ((mode = 'CLUB') = (club_id IS NOT NULL))
+);
+CREATE INDEX idx_game_match_club_id ON game_match (club_id, created_at DESC);
+CREATE INDEX idx_game_match_host_id ON game_match (host_id, created_at DESC);
+CREATE TABLE game_player (
+    match_id   BIGINT NOT NULL REFERENCES game_match (id) ON DELETE CASCADE,
+    user_id    VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    turn_order INTEGER NOT NULL,
+    score      INTEGER NOT NULL,
+    finished   BOOLEAN NOT NULL,
+    updated_at TIMESTAMP NOT NULL,
+    PRIMARY KEY (match_id, user_id)
+);
+CREATE INDEX idx_game_player_user_id ON game_player (user_id);
+CREATE TABLE game_card (
+    match_id BIGINT NOT NULL REFERENCES game_match (id) ON DELETE CASCADE,
+    position INTEGER NOT NULL,
+    movie_id VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
+    rating   NUMERIC(3, 1) NOT NULL,
+    PRIMARY KEY (match_id, position)
+);
+CREATE TABLE chain_link (
+    match_id  BIGINT NOT NULL REFERENCES game_match (id) ON DELETE CASCADE,
+    position  INTEGER NOT NULL,
+    movie_id  VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
+    player_id VARCHAR REFERENCES app_user (id) ON DELETE SET NULL,
+    via_id    VARCHAR REFERENCES person (id),
+    points    INTEGER NOT NULL,
+    added_at  TIMESTAMP NOT NULL,
+    PRIMARY KEY (match_id, position)
+);

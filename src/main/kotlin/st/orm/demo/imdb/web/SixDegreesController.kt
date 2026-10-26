@@ -13,11 +13,6 @@ import st.orm.demo.imdb.service.SixDegreesService
  * to share.
  */
 fun Route.sixDegreesRoutes(sixDegreesService: SixDegreesService) {
-    // The games, one card each.
-    get("/play") {
-        call.respondPage(ThymeleafContent("play", emptyMap()))
-    }
-
     get("/six-degrees") {
         val parameters = call.request.queryParameters
         val from = parameters["from"]?.takeIf { it.isNotBlank() }
@@ -34,7 +29,7 @@ fun Route.sixDegreesRoutes(sixDegreesService: SixDegreesService) {
     }
 
     get("/six-degrees/surprise") {
-        val (from, to) = sixDegreesService.randomPair()
+        val (from, to) = sixDegreesService.randomPair(call.currentUser().movieFilter)
         call.respondRedirect("/six-degrees?from=${from.encodeURLParameter()}&to=${to.encodeURLParameter()}")
     }
 }

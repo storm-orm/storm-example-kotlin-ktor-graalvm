@@ -3,7 +3,11 @@ package st.orm.demo.imdb
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import st.orm.demo.imdb.model.CheckIn
+import st.orm.demo.imdb.model.ChainLink
 import st.orm.demo.imdb.model.Club
+import st.orm.demo.imdb.model.GameCard
+import st.orm.demo.imdb.model.GameMatch
+import st.orm.demo.imdb.model.GamePlayer
 import st.orm.demo.imdb.model.ClubMember
 import st.orm.demo.imdb.model.FriendRequest
 import st.orm.demo.imdb.model.MovieSource
@@ -52,7 +56,7 @@ import st.orm.test.TestDatabase
  * container starts once per test run; the class receives a database of its
  * own inside it.
  */
-@StormTest(database = TestDatabase.POSTGRESQL, scripts = ["/db/migration/V1__create_schema.sql", "/db/migration/V2__store_folded_titles.sql", "/db/migration/V3__record_movie_additions.sql", "/db/migration/V4__personal_accounts.sql", "/db/migration/V5__recommendations.sql", "/db/migration/V6__recommendation_fatigue.sql", "/db/migration/V7__fold_old_views.sql", "/db/migration/V8__movie_view_day_natural_key.sql", "/db/migration/V9__personal_recently_viewed.sql", "/db/migration/V10__friends.sql", "/db/migration/V11__public_friend_invites.sql", "/db/migration/V12__seen_history.sql", "/db/migration/V13__check_ins.sql", "/db/migration/V14__clubs.sql", "/db/migration/V15__friend_requests.sql", "/db/migration/V16__movie_sources.sql", "/db/migration/V17__watch_providers.sql", "/db/migration/V18__refetch_watch_providers.sql", "/db/migration/V19__user_watch_providers.sql", "/db/migration/V20__movie_tags.sql", "/db/migration/V21__languages_from_tmdb.sql", "/db/migration/V22__ask_languages_again.sql", "/db/migration/V23__invite_accepted_count.sql", "/db/migration/V24__movie_countries.sql", "/db/migration/V25__ask_countries.sql", "/db/migration/V26__year_shares.sql", "/db/migration/V27__movie_lists.sql", "/db/migration/V28__movie_nights.sql", "/db/migration/V29__quiz.sql"])
+@StormTest(database = TestDatabase.POSTGRESQL, scripts = ["/db/migration/V1__create_schema.sql", "/db/migration/V2__store_folded_titles.sql", "/db/migration/V3__record_movie_additions.sql", "/db/migration/V4__personal_accounts.sql", "/db/migration/V5__recommendations.sql", "/db/migration/V6__recommendation_fatigue.sql", "/db/migration/V7__fold_old_views.sql", "/db/migration/V8__movie_view_day_natural_key.sql", "/db/migration/V9__personal_recently_viewed.sql", "/db/migration/V10__friends.sql", "/db/migration/V11__public_friend_invites.sql", "/db/migration/V12__seen_history.sql", "/db/migration/V13__check_ins.sql", "/db/migration/V14__clubs.sql", "/db/migration/V15__friend_requests.sql", "/db/migration/V16__movie_sources.sql", "/db/migration/V17__watch_providers.sql", "/db/migration/V18__refetch_watch_providers.sql", "/db/migration/V19__user_watch_providers.sql", "/db/migration/V20__movie_tags.sql", "/db/migration/V21__languages_from_tmdb.sql", "/db/migration/V22__ask_languages_again.sql", "/db/migration/V23__invite_accepted_count.sql", "/db/migration/V24__movie_countries.sql", "/db/migration/V25__ask_countries.sql", "/db/migration/V26__year_shares.sql", "/db/migration/V27__movie_lists.sql", "/db/migration/V28__movie_nights.sql", "/db/migration/V29__quiz.sql", "/db/migration/V30__games.sql", "/db/migration/V31__quiz_per_taste.sql"])
 class EntitySchemaValidationTest {
 
     @Test
@@ -91,7 +95,11 @@ class EntitySchemaValidationTest {
             MovieNightCandidate::class,
             MovieNightVote::class,
             QuizDay::class,
-            QuizPlay::class
+            QuizPlay::class,
+            GameMatch::class,
+            GamePlayer::class,
+            GameCard::class,
+            ChainLink::class
         )
         assertTrue(errors.isEmpty()) { "Schema validation errors: $errors" }
     }

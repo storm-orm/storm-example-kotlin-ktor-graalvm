@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- The ways to start a match: on one's own, against one of the visitor's friends, or with one of their clubs. -->
+<form th:fragment="startForm(action, friendLabel, clubLabel)" class="game-start" th:action="${action}" method="post">
+    <button type="submit" name="mode" value="solo" class="button button-primary">On your own</button>
+    <span class="game-with" th:unless="${play.company.friends.isEmpty()}">
+        <select name="friend" aria-label="Friend">
+            <option th:each="friend : ${play.company.friends}" th:value="${friend.id}" th:text="${friend.name}">Alice</option>
+        </select>
+        <button type="submit" name="mode" value="friend" class="button" th:text="${friendLabel}">Challenge</button>
+    </span>
+    <span class="game-with" th:unless="${play.company.clubs.isEmpty()}">
+        <select name="club" aria-label="Club">
+            <option th:each="club : ${play.company.clubs}" th:value="${club.id}" th:text="${club.name}">Office film club</option>
+        </select>
+        <button type="submit" name="mode" value="club" class="button" th:text="${clubLabel}">Start a round</button>
+    </span>
+    <span class="game-modes" th:if="${play.company.friends.isEmpty() and play.company.clubs.isEmpty()}">
+        <th:block th:if="${account.name == null}"><a th:href="@{/signin(rd='/play')}">Sign in</a> to play with friends and clubs.</th:block>
+        <th:block th:unless="${account.name == null}">Add friends or join a club to play together.</th:block>
+    </span>
+</form>
+
+</body>
+</html>

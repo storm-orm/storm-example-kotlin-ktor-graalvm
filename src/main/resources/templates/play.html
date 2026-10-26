@@ -4,12 +4,43 @@
 <body>
 <nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
 
-<header class="page-header">
-    <div class="container">
+<!-- A wall of posters of the visitor's taste behind the title: three rows drifting each its own way. -->
+<header class="play-hero">
+    <div class="play-wall" aria-hidden="true">
+        <div class="play-wall-row" th:each="row, line : ${play.posterRows}" th:classappend="|row-${line.count}|">
+            <th:block th:each="round : ${#numbers.sequence(1, 2)}">
+                <div class="poster" th:each="movie : ${row}">
+                    <img th:src="@{/api/poster/{id}(id=${movie.id})}" alt="" loading="lazy" onerror="this.classList.add('failed')">
+                </div>
+            </th:block>
+        </div>
+    </div>
+    <div class="container play-hero-content">
         <h1 class="page-title">Play</h1>
-        <p class="page-subtitle">Games made of the whole catalogue: its movies, and everyone who played in them.</p>
+        <p class="page-subtitle">Games made of the whole catalogue. Play on your own, against a friend, or with your club:
+            everyone takes their turn in their own time.</p>
     </div>
 </header>
+
+<!-- The visitor's games, the ones waiting on them first. -->
+<section class="section" th:unless="${play.games.isEmpty()}" id="your-games">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Your Games</h2>
+        </div>
+        <div class="game-list">
+            <a class="game-entry" th:each="entry : ${play.games}" th:href="@{/play/matches/{id}(id=${entry.match.id})}"
+               th:classappend="${entry.yourMove} ? 'your-move'">
+                <span class="game-entry-icon" th:text="${entry.match.game.name() == 'CHAIN'} ? '🎞️' : '🎬'" aria-hidden="true">🎬</span>
+                <span class="game-entry-text">
+                    <span class="game-entry-title" th:text="${entry.title}">Higher or Lower</span>
+                    <span class="game-entry-with" th:text="${entry.with}">With Alice</span>
+                </span>
+                <span class="game-entry-status" th:text="${entry.status}">Your turn</span>
+            </a>
+        </div>
+    </div>
+</section>
 
 <section class="section">
     <div class="container game-grid">
@@ -17,14 +48,37 @@
             <span class="game-art game-art-quiz" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></span>
             <span class="game-title">Daily Quiz</span>
             <span class="game-text">One movie a day, six clues, six guesses. Play on your own, and see how your clubs did.</span>
+            <span class="game-modes">On your own · clubs see the scores</span>
             <span class="button button-primary game-button">Play today's quiz</span>
         </a>
+
+        <!-- Higher or Lower: started here, on one's own, against a friend, or as a round for a club. -->
+        <div class="game-card game-higher-lower">
+            <span class="game-art game-art-cards" aria-hidden="true">
+                <span class="game-art-card"><span>7.8</span></span><span class="game-art-card back"><span>?</span></span>
+            </span>
+            <span class="game-title">Higher or Lower</span>
+            <span class="game-text">Two posters: is the second rated higher or lower on IMDb? Keep it going as long as you can.</span>
+            <form th:replace="~{fragments/games :: startForm('/play/higher-lower', 'Challenge', 'Start a round')}"></form>
+        </div>
+
+        <!-- Movie Chain: each movie shares an actor with the one before; against the house, a friend, or a club. -->
+        <div class="game-card game-chain">
+            <span class="game-art game-art-chain" aria-hidden="true">
+                <span class="game-art-poster"></span><span class="game-line"></span><span class="game-art-poster"></span><span class="game-line"></span><span class="game-art-poster"></span>
+            </span>
+            <span class="game-title">Movie Chain</span>
+            <span class="game-text">Take turns adding a movie that shares an actor with the last one. A day per turn; whoever misses theirs is skipped.</span>
+            <form th:replace="~{fragments/games :: startForm('/play/chain', 'Start a chain', 'Start a chain')}"></form>
+        </div>
+
         <a class="game-card game-degrees" th:href="@{/six-degrees}">
             <span class="game-art" aria-hidden="true">
                 <span class="game-dot"></span><span class="game-line"></span><span class="game-dot"></span><span class="game-line"></span><span class="game-dot"></span>
             </span>
             <span class="game-title">Six Degrees</span>
             <span class="game-text">Pick any two actors and see the shortest chain of movies between them. Is anyone more than six steps from Kevin Bacon?</span>
+            <span class="game-modes">On your own</span>
             <span class="button button-primary game-button">Connect two actors</span>
         </a>
     </div>

@@ -1,11 +1,14 @@
 package st.orm.demo.imdb.service
 
 import st.orm.demo.imdb.model.Movie
+import st.orm.demo.imdb.model.MovieFilter
 import st.orm.demo.imdb.model.Person
 import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.PersonRepository
 import st.orm.demo.imdb.repository.PrincipalRepository
+import st.orm.demo.imdb.repository.RatingRepository
 import st.orm.template.entityId
+import st.orm.template.ref
 import st.orm.template.refById
 import st.orm.template.transaction
 
@@ -34,7 +37,8 @@ data class Connection(val from: Person, val to: Person, val links: List<Link>?) 
 class SixDegreesService(
     private val principalRepository: PrincipalRepository,
     private val personRepository: PersonRepository,
-    private val movieRepository: MovieRepository
+    private val movieRepository: MovieRepository,
+    private val ratingRepository: RatingRepository
 ) {
 
     /** How well known a movie must be to be part of a chain, for the page to say. */
@@ -51,9 +55,13 @@ class SixDegreesService(
         Connection(from, to, chain?.let(::links))
     }
 
-    /** Two actors everybody knows, the leads of the most voted movies, picked at random, for "Surprise me". */
-    suspend fun randomPair(): Pair<String, String> = transaction(readOnly = true) {
-        val leads = principalRepository.findLeadLinks(SURPRISE_VOTES)
+    /**
+     * Two actors the visitor knows, the leads of the best-known movies their
+     * [filter] lets through, picked at random, for "Surprise me".
+     */
+    suspend fun randomPair(filter: MovieFilter?): Pair<String, String> = transaction(readOnly = true) {
+        val movies = ratingRepository.findBestKnown(filter, MINIMUM_VOTES, SURPRISE_MOVIES).ifEmpty { ratingRepository.findBestKnown(null, MINIMUM_VOTES, SURPRISE_MOVIES) }
+        val leads = principalRepository.findLeadLinks(movies.map { it.movie.ref() })
         val byMovie = leads.groupBy({ it.movie.entityId() }, { it.person.entityId() })
         val people = leads.map { it.person.entityId() }.distinct().shuffled()
         val first = people.first()
@@ -147,6 +155,7 @@ class SixDegreesService(
         private const val MAX_PEOPLE = 250_000
         /** How many ids a query takes at once, well within what a statement may bind. */
         private const val CHUNK = 1000
-        private const val SURPRISE_VOTES = 400_000
+        /** "Surprise me" picks among the leads of this many of the best-known movies. */
+        private const val SURPRISE_MOVIES = 200
     }
 }

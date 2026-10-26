@@ -1,0 +1,229 @@
+package st.orm.demo.imdb.service
+
+import st.orm.demo.imdb.model.ChainLink
+import st.orm.demo.imdb.model.Game
+import st.orm.demo.imdb.model.GameMatch
+import st.orm.demo.imdb.model.GameMode
+import st.orm.demo.imdb.model.GamePlayer
+import st.orm.demo.imdb.model.Movie
+import st.orm.demo.imdb.model.Person
+import st.orm.demo.imdb.model.User
+import st.orm.demo.imdb.repository.ACTING_CATEGORIES
+import st.orm.demo.imdb.repository.ChainLinkRepository
+import st.orm.demo.imdb.repository.GameMatchRepository
+import st.orm.demo.imdb.repository.GamePlayerRepository
+import st.orm.demo.imdb.repository.MovieRepository
+import st.orm.demo.imdb.repository.PersonRepository
+import st.orm.demo.imdb.repository.PrincipalRepository
+import st.orm.demo.imdb.repository.RatingRepository
+import st.orm.demo.imdb.repository.UserRepository
+import st.orm.template.entityId
+import st.orm.template.refById
+import st.orm.template.transaction
+import java.time.Duration
+import java.time.Instant
+import kotlin.math.abs
+import kotlin.random.Random
+
+/** Whose turn it is in a chain, and until when; a turn not taken by then passes to the next player. */
+data class Turn(val player: GamePlayer, val until: Instant, val skipped: Int, val hoursLeft: Long)
+
+/**
+ * A Movie Chain for a player: its movies so far, the players with their
+ * points, whose turn it is, and the cast of the last movie, where the next
+ * one is found.
+ */
+data class ChainView(
+    val match: GameMatch,
+    val links: List<ChainLink>,
+    val players: List<GamePlayer>,
+    val turn: Turn?,
+    val yourTurn: Boolean,
+    val over: Boolean,
+    val cast: List<Person>
+) {
+    val last: ChainLink get() = links.last()
+    /** The players by their points, the most first: the board, and once over, the winner first. */
+    val standings: List<GamePlayer> get() = players.sortedByDescending { it.score }
+    /** Whether the house is in the game, on one's own: it answers each movie with one of its own. */
+    val againstTheHouse: Boolean get() = match.mode == GameMode.SOLO
+    /** The house's points, on one's own: its links. */
+    val housePoints: Int get() = links.drop(1).filter { it.player == null }.sumOf { it.points }
+}
+
+/** What came of a move. */
+enum class ChainMove { ADDED, NOT_YOUR_TURN, ALREADY_IN, NO_SHARED_ACTOR, OVER }
+
+/**
+ * Movie Chain: the players build one chain of movies, each sharing an
+ * actor with the one before, no movie twice. A link scores a point, two
+ * when it leaps twenty years or more. The players take turns, a day each:
+ * a turn not taken passes to the next player, worked out when the chain is
+ * looked at, so nobody holds the game up; after a week without a move it
+ * is over. A player who finds nothing ends it, and the most points win.
+ * On one's own the house plays the other turns, at once, with a movie of
+ * its own, and loses when it finds none. The chain starts from one of the
+ * best-known movies the host's movie filter lets through.
+ */
+class ChainService(
+    private val matchService: MatchService,
+    private val gameMatchRepository: GameMatchRepository,
+    private val gamePlayerRepository: GamePlayerRepository,
+    private val chainLinkRepository: ChainLinkRepository,
+    private val principalRepository: PrincipalRepository,
+    private val ratingRepository: RatingRepository,
+    private val movieRepository: MovieRepository,
+    private val personRepository: PersonRepository,
+    private val userRepository: UserRepository
+) {
+
+    /** Starts a chain with the opponents, from a well-known movie; null when the friend or the club is not the host's. */
+    suspend fun start(host: User, opponents: Opponents, now: Instant = Instant.now()): GameMatch? = transaction {
+        val stored = userRepository.touch(host, now)
+        val (club, players) = matchService.playersOf(stored, opponents) ?: return@transaction null
+        val (match, _) = matchService.start(
+            GameMatch(game = Game.CHAIN, mode = opponents.mode, club = club, host = stored, createdAt = now, closesAt = null, endedAt = null),
+            players,
+            now
+        )
+        val pool = ratingRepository.findBestKnown(stored.movieFilter, MINIMUM_VOTES, START_POOL)
+            .ifEmpty { ratingRepository.findBestKnown(null, MINIMUM_VOTES, START_POOL) }
+            .map { it.movie }
+        val first = pool.shuffled(Random(now.toEpochMilli())).firstOrNull { actorsOf(it).size >= MINIMUM_CAST } ?: pool.first()
+        chainLinkRepository.insert(ChainLink(match, 0, first, player = null, via = null, points = 0, addedAt = now))
+        match
+    }
+
+    /** The chain for the visitor, or null when they may not look at it. */
+    suspend fun chainOf(user: User, matchId: Long, now: Instant = Instant.now()): ChainView? = transaction(readOnly = true) {
+        val match = matchService.visibleMatch(user, matchId)?.takeIf { it.game == Game.CHAIN } ?: return@transaction null
+        val links = chainLinkRepository.findLinks(match)
+        val players = gamePlayerRepository.findPlayers(match)
+        val over = isOver(match, links, now)
+        val turn = if (over) null else turnOf(players, links.last(), now)
+        ChainView(
+            match = match,
+            links = links,
+            players = players,
+            turn = turn,
+            yourTurn = turn?.player?.user?.id == user.id,
+            over = over,
+            cast = if (over) emptyList() else castOf(links.last().movie)
+        )
+    }
+
+    /**
+     * Whose turn it is in a chain at [now], or null once it is over: for the
+     * lists of one's games, inside their transaction.
+     */
+    fun turnIn(match: GameMatch, players: List<GamePlayer>, now: Instant): Turn? {
+        val links = chainLinkRepository.findLinks(match)
+        return if (isOver(match, links, now)) null else turnOf(players, links.last(), now)
+    }
+
+    /**
+     * Whose turn it is after [last]: the player after the one who added it,
+     * the first player after the first movie or the house's, moved on by
+     * one for every day that went by without a move.
+     */
+    private fun turnOf(players: List<GamePlayer>, last: ChainLink, now: Instant): Turn {
+        val after = last.player?.let { player -> players.indexOfFirst { it.user.id == player.id } + 1 } ?: 0
+        val skipped = (Duration.between(last.addedAt, now).toMillis() / TURN.toMillis()).toInt()
+        // On one's own nothing passes: the player is the only one, and the house plays at once.
+        val index = if (players.size == 1) 0 else (after + skipped) % players.size
+        val until = last.addedAt.plus(TURN.multipliedBy(skipped + 1L))
+        return Turn(players[index], until, if (players.size == 1) 0 else skipped, Duration.between(now, until).toHours().coerceAtLeast(0))
+    }
+
+    /** Over once ended, or after a week without a move. */
+    private fun isOver(match: GameMatch, links: List<ChainLink>, now: Instant): Boolean =
+        match.endedAt != null || Duration.between(links.last().addedAt, now) > IDLE
+
+    /**
+     * Adds a movie to the chain, for the player whose turn it is: one not
+     * in it yet that shares an actor with the last. On one's own the house
+     * answers at once; when it finds nothing, the chain is over.
+     */
+    suspend fun move(user: User, matchId: Long, movieId: String, now: Instant = Instant.now()): ChainMove = transaction {
+        val match = matchService.visibleMatch(user, matchId)?.takeIf { it.game == Game.CHAIN } ?: return@transaction ChainMove.OVER
+        val links = chainLinkRepository.findLinks(match)
+        if (isOver(match, links, now)) return@transaction ChainMove.OVER
+        val players = gamePlayerRepository.findPlayers(match)
+        val turn = turnOf(players, links.last(), now)
+        if (turn.player.user.id != user.id) return@transaction ChainMove.NOT_YOUR_TURN
+        val movie = movieRepository.findById(movieId) ?: return@transaction ChainMove.NO_SHARED_ACTOR
+        if (links.any { it.movie.id == movie.id }) return@transaction ChainMove.ALREADY_IN
+        val via = sharedActor(links.last().movie, movie) ?: return@transaction ChainMove.NO_SHARED_ACTOR
+        val points = pointsFor(links.last().movie, movie)
+        chainLinkRepository.insert(ChainLink(match, links.size, movie, turn.player.user, via, points, now))
+        gamePlayerRepository.update(turn.player.copy(score = turn.player.score + points, updatedAt = now))
+        if (match.mode == GameMode.SOLO) houseMove(match, links.map { it.movie.id }.toSet() + movie.id, movie, links.size + 1, now)
+        ChainMove.ADDED
+    }
+
+    /** The player whose turn it is finds nothing: the chain is over, and the points stand. */
+    suspend fun giveUp(user: User, matchId: Long, now: Instant = Instant.now()) = transaction {
+        val match = matchService.visibleMatch(user, matchId)?.takeIf { it.game == Game.CHAIN } ?: return@transaction
+        val links = chainLinkRepository.findLinks(match)
+        if (isOver(match, links, now)) return@transaction
+        if (turnOf(gamePlayerRepository.findPlayers(match), links.last(), now).player.user.id != user.id) return@transaction
+        gameMatchRepository.update(match.copy(endedAt = now))
+    }
+
+    /**
+     * The house's answer, on one's own: a well-known movie that shares an
+     * actor with the player's and is not in the chain yet, picked at random;
+     * when there is none, the house is stuck and the chain is over.
+     */
+    private fun houseMove(match: GameMatch, used: Set<String>, after: Movie, position: Int, now: Instant) {
+        val actors = actorsOf(after)
+        val candidates = principalRepository.findActingLinks(actors.map { refById<Person>(it) }, HOUSE_VOTES)
+            .filter { it.movie.entityId() !in used }
+        val pick = candidates.randomOrNull()
+        if (pick == null) {
+            gameMatchRepository.update(match.copy(endedAt = now))
+            return
+        }
+        val movie = movieRepository.getById(pick.movie.entityId())
+        val via = personRepository.getById(pick.person.entityId())
+        chainLinkRepository.insert(ChainLink(match, position, movie, player = null, via = via, points = pointsFor(after, movie), addedAt = now))
+    }
+
+    /** The top-billed cast of a movie, the hint where the next movie is found. */
+    private fun castOf(movie: Movie): List<Person> {
+        val ids = actorsOf(movie).take(HINT_CAST)
+        val people = personRepository.findAllById(ids).associateBy { it.id }
+        return ids.mapNotNull(people::get)
+    }
+
+    /** The acting credits of a movie, by the people's ids, in billing order. */
+    private fun actorsOf(movie: Movie): List<String> =
+        principalRepository.findCast(movie).filter { it.category in ACTING_CATEGORIES }.map { it.person.id }.distinct()
+
+    /** An actor of both movies, the best billed of the second: the one the link goes through. */
+    private fun sharedActor(previous: Movie, next: Movie): Person? {
+        val before = actorsOf(previous).toSet()
+        return principalRepository.findCast(next).firstOrNull { it.category in ACTING_CATEGORIES && it.person.id in before }?.person
+    }
+
+    /** A point a link, two for a leap of twenty years or more. */
+    private fun pointsFor(previous: Movie, next: Movie): Int {
+        val leap = previous.startYear?.let { from -> next.startYear?.let { abs(it - from) } } ?: 0
+        return if (leap >= LEAP_YEARS) 2 else 1
+    }
+
+    companion object {
+        /** A day a turn. */
+        val TURN: Duration = Duration.ofHours(24)
+        /** A chain without a move for a week is over. */
+        private val IDLE: Duration = Duration.ofDays(7)
+        private const val LEAP_YEARS = 20
+        private const val START_POOL = 300
+        private const val MINIMUM_VOTES = 25_000
+        private const val MINIMUM_CAST = 3
+        /** The house plays well-known movies too. */
+        private const val HOUSE_VOTES = 50_000
+        /** The cast of the last movie shown as a hint. */
+        private const val HINT_CAST = 8
+    }
+}

@@ -2,7 +2,9 @@ package st.orm.demo.imdb.service
 
 import st.orm.demo.imdb.model.ClubMember
 import st.orm.demo.imdb.model.Movie
+import st.orm.demo.imdb.model.MovieFilter
 import st.orm.demo.imdb.model.QuizDay
+import st.orm.demo.imdb.model.QuizDayPk
 import st.orm.demo.imdb.model.QuizPlay
 import st.orm.demo.imdb.model.QuizPlayPk
 import st.orm.demo.imdb.model.User
@@ -65,11 +67,12 @@ data class QuizView(
 }
 
 /**
- * The daily quiz: one movie a day, the same for everyone, to guess from six
+ * The daily quiz: one movie a day, the same for everyone of a taste, to guess from six
  * clues revealed one at a time: the year and genres, where it was made,
  * the director, then the cast from the third billed to the lead. Each miss
  * or skip reveals the next clue; six misses, and the game is over. The
- * movie is a well-known one, picked at random the first time anyone opens
+ * movie is one of the best known among those the player's movie filter
+ * lets through, picked at random the first time anyone of that taste opens
  * the day's quiz and kept for the day ([QuizDay]); a movie is the answer
  * once. Anyone plays, signed in or not; a club's members see how the
  * others did.
@@ -89,8 +92,8 @@ class QuizService(
 
     /** The player's game of the day's quiz, as the page shows it. */
     suspend fun quizOf(user: User, today: LocalDate = today()): QuizView = transaction {
-        val movie = movieOf(today)
         val play = quizPlayRepository.findById(QuizPlayPk(userId = user.id, quizOn = today))
+        val movie = play?.movie ?: movieOf(today, user.movieFilter)
         val guesses = play?.guesses.orEmpty()
         val finished = play?.finished == true
         val guessed = movieRepository.findAllById(guesses.filter { it.isNotEmpty() }).associateBy { it.id }
@@ -108,34 +111,37 @@ class QuizService(
 
     /** Guesses the day's movie; a skip with no [movieId]. Nothing once the game is over. */
     suspend fun guess(user: User, movieId: String?, today: LocalDate = today(), now: Instant = Instant.now()) = transaction {
-        val movie = movieOf(today)
         val stored = userRepository.touch(user, now)
         val id = QuizPlayPk(userId = stored.id, quizOn = today)
         val play = quizPlayRepository.findById(id)
+        val movie = play?.movie ?: movieOf(today, user.movieFilter)
         if (play?.finished == true) return@transaction
         val guess = movieId?.takeIf { movieRepository.existsById(it) }.orEmpty()
         if (movieId != null && guess.isEmpty()) return@transaction
         val guesses = play?.guesses.orEmpty() + guess
         val solved = guess == movie.id
-        val next = QuizPlay(id, stored, guesses, solved, finished = solved || guesses.size >= MAX_GUESSES, updatedAt = now)
+        val next = QuizPlay(id, stored, movie, guesses, solved, finished = solved || guesses.size >= MAX_GUESSES, updatedAt = now)
         if (play == null) quizPlayRepository.insert(next) else quizPlayRepository.update(next)
     }
 
     /**
-     * The day's movie: the one picked for the day, or, the first time the
-     * day's quiz is opened, a well-known movie not picked before, at random
-     * by the day, with a director and three actors to give as clues where
-     * one has them.
+     * The day's movie for a taste: the one picked for the day, or, the first
+     * time someone of that taste opens the day's quiz, one of the best-known
+     * movies their [filter] lets through, not picked before, at random by
+     * the day and the taste, with a director and three actors to give as
+     * clues where one has them. A taste with nothing left to pick gets one
+     * of everybody's.
      */
-    private fun movieOf(day: LocalDate): Movie {
-        quizDayRepository.findById(day)?.let { return it.movie }
+    private fun movieOf(day: LocalDate, filter: MovieFilter?): Movie {
+        val key = filter?.key.orEmpty()
+        quizDayRepository.findById(QuizDayPk(quizOn = day, filterKey = key))?.let { return it.movie }
         val answered = quizDayRepository.findAnswered()
-        val pool = ratingRepository.findWellKnown(MINIMUM_VOTES).map { it.movie }.filter { it.id !in answered }
-        val random = Random(day.toEpochDay())
-        val shuffled = pool.shuffled(random)
+        fun poolOf(filter: MovieFilter?) = ratingRepository.findBestKnown(filter, MINIMUM_VOTES, POOL).map { it.movie }.filter { it.id !in answered }
+        val pool = poolOf(filter).ifEmpty { poolOf(null) }
+        val shuffled = pool.shuffled(Random(day.toEpochDay() * 31 + key.hashCode()))
         val movie = shuffled.firstOrNull { cast(it).let { (directors, actors) -> directors.isNotEmpty() && actors.size >= 3 } } ?: shuffled.first()
-        // Two players opening the day's quiz at once pick the same movie, so the second write changes nothing.
-        quizDayRepository.upsert(QuizDay(day = day, movie = movie))
+        // Two players of a taste opening the day's quiz at once pick the same movie, so the second write changes nothing.
+        quizDayRepository.upsert(QuizDay(QuizDayPk(quizOn = day, filterKey = key), movie))
         return movie
     }
 
@@ -221,8 +227,13 @@ class QuizService(
 
     companion object {
         const val MAX_GUESSES = 6
-        /** The movies the quiz picks from: known to nearly everyone, some four hundred of them, over a year of quizzes. */
-        private const val MINIMUM_VOTES = 500_000
+        /**
+         * The movies the quiz picks from: the four hundred best known of a
+         * taste, over a year of quizzes; for every movie, the ones with half
+         * a million votes and more. None with fewer votes than the floor.
+         */
+        private const val POOL = 400
+        private const val MINIMUM_VOTES = 25_000
         private val FIRST_DAY: LocalDate = LocalDate.of(2026, 10, 26)
         /** A clue the catalogue has nothing for: the movies picked first have all of them. */
         private const val UNKNOWN = "Nobody knows"

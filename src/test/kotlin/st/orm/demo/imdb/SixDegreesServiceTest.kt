@@ -10,6 +10,7 @@ import st.orm.demo.imdb.model.Principal
 import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.PersonRepository
 import st.orm.demo.imdb.repository.PrincipalRepository
+import st.orm.demo.imdb.repository.RatingRepository
 import st.orm.demo.imdb.service.SixDegreesService
 import st.orm.repository.repository
 import st.orm.template.ORMTemplate
@@ -22,7 +23,8 @@ class SixDegreesServiceTest {
     private fun service(orm: ORMTemplate) = SixDegreesService(
         orm.repository<PrincipalRepository>(),
         orm.repository<PersonRepository>(),
-        orm.repository<MovieRepository>()
+        orm.repository<MovieRepository>(),
+        orm.repository<RatingRepository>()
     )
 
     @Test

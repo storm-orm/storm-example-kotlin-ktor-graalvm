@@ -57,7 +57,7 @@
 
             <!-- A guess: a movie picked from the suggestions goes in at once; a skip shows the next clue. -->
             <div class="quiz-guess" th:unless="${quiz.finished}">
-                <form th:action="@{/play/quiz/guess}" method="post" data-quiz-form>
+                <form th:action="@{/play/quiz/guess}" method="post" data-pick-submits>
                     <div class="picker search-box quiz-picker" data-picker="movie">
                         <input type="search" placeholder="Which movie is it?" autocomplete="off" aria-label="Your guess" data-picker-input>
                         <input type="hidden" name="movie" data-picker-value>

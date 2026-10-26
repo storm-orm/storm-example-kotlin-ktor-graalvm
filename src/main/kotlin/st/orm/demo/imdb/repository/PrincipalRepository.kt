@@ -312,10 +312,9 @@ interface PrincipalRepository : EntityRepository<Principal, PrincipalPk> {
             .where((Principal_.movie inRefs movies) and (Principal_.category inList ACTING_CATEGORIES))
             .resultList
 
-    /** The leads, the top three billed, of the movies at least [minimumVotes] voted on: the actors everybody knows. */
-    fun findLeadLinks(minimumVotes: Int): List<CreditLink> =
+    /** The leads, the top three billed, of several movies: the actors of the best-known movies are the ones everybody knows. */
+    fun findLeadLinks(movies: Collection<Ref<Movie>>): List<CreditLink> =
         select<CreditLink, _, _> { "${Principal_.person}, ${Principal_.movie}" }
-            .innerJoin<Rating>().on<Movie>()
-            .where((Principal_.category inList ACTING_CATEGORIES) and (Principal_.ordering lessEq 3) and (Rating_.voteCount greaterEq minimumVotes))
+            .where((Principal_.movie inRefs movies) and (Principal_.category inList ACTING_CATEGORIES) and (Principal_.ordering lessEq 3))
             .resultList
 }

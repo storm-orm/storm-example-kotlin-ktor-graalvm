@@ -1632,10 +1632,11 @@ function setupLists() {
     }));
 }
 
-// The daily quiz: a movie picked from the suggestions is the guess, sent at once; the score shares
-// through the device's share sheet where there is one, and is copied otherwise.
+// The games: a movie picked from the suggestions is the move, the quiz's guess or the chain's next
+// movie, sent at once; the quiz's score shares through the device's share sheet where there is one,
+// and is copied otherwise.
 function setupQuiz() {
-    document.querySelectorAll('[data-quiz-form]').forEach(form => form.addEventListener('pick', () => form.submit()));
+    document.querySelectorAll('[data-pick-submits]').forEach(form => form.addEventListener('pick', () => form.submit()));
     document.querySelectorAll('[data-quiz-share]').forEach(button => button.addEventListener('click', async () => {
         const text = button.dataset.quizShare + '\n' + location.origin + '/play/quiz';
         if (navigator.share) {

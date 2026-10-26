@@ -9,6 +9,8 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import st.orm.demo.imdb.model.Club
 import st.orm.demo.imdb.model.ClubMember
+import st.orm.demo.imdb.model.MovieFilter
+import st.orm.demo.imdb.model.MovieLanguage
 import st.orm.demo.imdb.model.Principal
 import st.orm.demo.imdb.repository.ClubMemberRepository
 import st.orm.demo.imdb.repository.ClubRepository
@@ -114,5 +116,20 @@ class QuizServiceTest {
         val board = runBlocking { service.quizOf(alice, day) }.boards.single()
         assertEquals("Office", board.club)
         assertEquals(listOf("You" to 1, "Bob" to 6), board.rows.map { it.name to it.guesses })
+    }
+
+    @Test
+    fun `each taste gets its own movie of the day, among the movies its filter lets through`(orm: ORMTemplate) {
+        fullCast(orm)
+        val amelie = orm.repository<MovieRepository>().getById("tt0211915")
+        orm.repository<MovieLanguageRepository>().insert(MovieLanguage(amelie.ref(), "fr"))
+        val french = orm.insertUser("french-quiz", name = "Amélie fan")
+        orm.repository<UserRepository>().update(french.copy(movieFilter = MovieFilter(languages = setOf("fr"))))
+        val service = service(orm)
+
+        val frenchQuiz = runBlocking { service.quizOf(orm.repository<UserRepository>().getById("french-quiz"), day) }
+        assertEquals("2001", frenchQuiz.clues.first().text)
+        val everyone = runBlocking { service.quizOf(orm.insertUser("anyone-quiz"), day) }
+        assertEquals("1999 · Action, Sci-Fi", everyone.clues.first().text)
     }
 }

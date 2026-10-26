@@ -55,13 +55,18 @@ interface RatingRepository : EntityRepository<Rating, Movie> {
         }.resultList
 
     /**
-     * The movies at least [minimumVoteCount] voted on, in the order of their
-     * ids, which does not change: the daily quiz picks its movie from them.
+     * The best-known movies among those [filter] lets through: the [limit]
+     * most voted on, none with fewer than [minimumVoteCount] votes, the most
+     * voted first. What the games pick from, so a movie is one the player
+     * knows, in the kinds of cinema and the languages they watch.
      */
-    fun findWellKnown(minimumVoteCount: Int): List<Rating> =
-        select(Rating_.voteCount greaterEq minimumVoteCount)
-            .orderBy(Rating_.movie)
-            .resultList
+    fun findBestKnown(filter: MovieFilter?, minimumVoteCount: Int, limit: Int): List<Rating> =
+        select {
+            where(Rating_.voteCount greaterEq minimumVoteCount)
+            keepTo(filter)
+            orderByDescending(Rating_.voteCount)
+            limit(limit)
+        }.resultList
 
     /** The ratings of several movies at once, each carrying its movie. */
     fun findByMovies(movies: List<Ref<Movie>>) =
