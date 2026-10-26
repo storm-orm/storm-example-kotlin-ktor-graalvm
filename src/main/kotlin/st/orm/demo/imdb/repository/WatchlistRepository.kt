@@ -1,5 +1,6 @@
 package st.orm.demo.imdb.repository
 
+import st.orm.GenerateMetamodel
 import st.orm.Page
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.User
@@ -7,9 +8,21 @@ import st.orm.demo.imdb.model.Watchlist
 import st.orm.demo.imdb.model.WatchlistPk
 import st.orm.demo.imdb.model.Watchlist_
 import st.orm.repository.EntityRepository
+import st.orm.repository.select
 import st.orm.template.and
 import st.orm.template.eq
 import st.orm.template.inList
+
+/**
+ * Query result shape: a movie and on how many of several users' watchlists
+ * it is. Not backed by a database table or view, so it is a plain data
+ * class — deliberately not a Data type.
+ */
+@GenerateMetamodel
+data class WatchlistCount(
+    val movie: Movie,
+    val users: Long
+)
 
 interface WatchlistRepository : EntityRepository<Watchlist, WatchlistPk> {
 
@@ -24,6 +37,17 @@ interface WatchlistRepository : EntityRepository<Watchlist, WatchlistPk> {
     /** Everything on the user's watchlist, in no particular order: the seeds of the recommendations. */
     fun findAll(user: User): List<Watchlist> =
         findAll(Watchlist_.user eq user)
+
+    /**
+     * The movies on several users' watchlists, each with on how many: what
+     * a club would like to see. One grouped query, joined to the movie it
+     * shows.
+     */
+    fun countListedBy(users: List<User>): List<WatchlistCount> =
+        if (users.isEmpty()) emptyList() else select<WatchlistCount, _, _> { "${Movie::class}, COUNT(*)" }
+            .where(Watchlist_.user inList users)
+            .groupBy(Watchlist_.movie)
+            .resultList
 
     /** Takes the movie off the user's watchlist, if it is on it. */
     fun remove(user: User, movie: Movie) {

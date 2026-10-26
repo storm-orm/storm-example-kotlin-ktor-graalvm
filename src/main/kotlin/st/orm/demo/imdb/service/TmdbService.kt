@@ -138,6 +138,36 @@ class TmdbService(
         return providers
     }
 
+    /** The movies in a country's cinemas, the same for everyone there: kept in memory, and asked again after half a day. */
+    private class NowPlaying(val fetchedAt: Instant, val movieIds: List<String>)
+
+    private val nowPlaying = ConcurrentHashMap<String, NowPlaying>()
+
+    /**
+     * The movies of the catalogue in a country's cinemas now, by id, the
+     * most popular first, for a movie night at the cinema: TMDB names them by
+     * its ids, which become the catalogue's as an import's do, each stored
+     * as the movie's TMDB source. A movie the catalogue does not keep yet is
+     * left out. None when TMDB is off; as answered before when it cannot be reached.
+     */
+    suspend fun nowPlayingIn(country: String, now: Instant = Instant.now()): List<String> {
+        if (!enabled) return emptyList()
+        val cached = nowPlaying[country]
+        if (cached != null && cached.fetchedAt.isAfter(now.minus(KEEP_NOW_PLAYING))) return cached.movieIds
+        val tmdbIds = try {
+            withContext(Dispatchers.IO) { client.nowPlaying(country) }.map { it.toString() }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            logger.warn("Asking TMDB what plays in the cinemas of {} failed: {}", country, e.message)
+            return cached?.movieIds.orEmpty()
+        }
+        val byTmdbId = movieIds(tmdbIds.toSet(), askTmdb = true, now = now)
+        val movieIds = tmdbIds.mapNotNull { byTmdbId[it] }
+        nowPlaying[country] = NowPlaying(now, movieIds)
+        return movieIds
+    }
+
     /** Whether a source names the platforms, as TMDB answered within the week. */
     private fun freshWatchProviders(now: Instant): (TmdbSource) -> Boolean =
         { it.watchProviders != null && it.fetchedAt.isAfter(now.minus(keepWatchProviders)) }
@@ -245,5 +275,6 @@ class TmdbService(
         private const val PARALLEL_CALLS = 6
         private const val LOOKUP_STRIPES = 64
         private val KEEP_REGION: Duration = Duration.ofDays(1)
+        private val KEEP_NOW_PLAYING: Duration = Duration.ofHours(12)
     }
 }

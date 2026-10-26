@@ -115,6 +115,15 @@ class TmdbClient(
             .map(::watchProviderOf)
             .filter(::isOwnService)
 
+    /**
+     * The TMDB ids of the movies in a country's cinemas now (ISO 3166-1
+     * alpha-2), the most popular first: the first [pages] pages of twenty.
+     */
+    fun nowPlaying(country: String, pages: Int = NOW_PLAYING_PAGES): List<Int> =
+        (1..pages).flatMap { page ->
+            get("/3/movie/now_playing?region=$country&page=$page")?.path("results")?.map { it.path("id").asInt() }.orEmpty()
+        }.distinct()
+
     private fun watchProviderOf(json: JsonNode) =
         WatchProvider(json.path("provider_id").asInt(), json.path("provider_name").asString(""), json.path("logo_path").asString(null))
 
@@ -145,5 +154,6 @@ class TmdbClient(
         val OFFER_TYPES = listOf("flatrate", "free", "ads")
         const val NO_LANGUAGE = "xx"
         const val CANTONESE = "cn"
+        const val NOW_PLAYING_PAGES = 3
     }
 }

@@ -18,6 +18,7 @@ import st.orm.demo.imdb.service.ImdbDataSync
 import st.orm.demo.imdb.service.ImdbDatasets
 import st.orm.demo.imdb.service.ImdbSyncProperties
 import st.orm.demo.imdb.service.MovieFilterService
+import st.orm.demo.imdb.service.MovieNightService
 import st.orm.demo.imdb.service.MovieSeenService
 import st.orm.demo.imdb.service.MovieService
 import st.orm.demo.imdb.service.PersonGalleryService
@@ -97,6 +98,12 @@ fun Application.configureDependencies() {
         provide { FriendService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { ClubService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { InviteService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide {
+            MovieNightService(
+                resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(),
+                resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(),
+            )
+        }
         provide { ListService(resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { WatchlistService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { MovieSeenService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }

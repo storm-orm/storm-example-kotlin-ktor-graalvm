@@ -12,6 +12,7 @@ import st.orm.demo.imdb.service.GitSignIn
 import st.orm.demo.imdb.service.HomeService
 import st.orm.demo.imdb.service.ListService
 import st.orm.demo.imdb.service.MovieFilterService
+import st.orm.demo.imdb.service.MovieNightService
 import st.orm.demo.imdb.service.MovieSeenService
 import st.orm.demo.imdb.service.MovieService
 import st.orm.demo.imdb.service.PersonGalleryService
@@ -52,6 +53,7 @@ fun Application.configureRouting() {
     val friendService: FriendService by dependencies
     val communityService: CommunityService by dependencies
     val clubService: ClubService by dependencies
+    val movieNightService: MovieNightService by dependencies
     val inviteService: InviteService by dependencies
     val searchService: SearchService by dependencies
     val browseService: BrowseService by dependencies
@@ -82,7 +84,8 @@ fun Application.configureRouting() {
         wrappedRoutes(wrappedService)
         friendsRoutes(friendService)
         communityRoutes(communityService)
-        clubsRoutes(clubService, listService)
+        clubsRoutes(clubService, listService, movieNightService)
+        movieNightRoutes(movieNightService, movieSeenService)
         inviteRoutes(inviteService)
         searchRoutes(searchService)
         browseRoutes(browseService)

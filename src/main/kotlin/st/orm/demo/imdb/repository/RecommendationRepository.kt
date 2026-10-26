@@ -30,6 +30,10 @@ interface RecommendationRepository : EntityRepository<Recommendation, Recommenda
             .orderByDescending(Recommendation_.score)
             .resultList
 
+    /** The recommendations of several users, each row naming its user: what suits a club. */
+    fun findAllOf(users: List<User>): List<Recommendation> =
+        if (users.isEmpty()) emptyList() else findAll(Recommendation_.user inList users)
+
     /** The user's recommendations with keyset scrolling, for the For You page ([bestFirst]). */
     fun scroll(user: User, scrollable: Scrollable<Recommendation>): Window<Recommendation> =
         select(Recommendation_.user eq user)

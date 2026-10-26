@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${view.night.title})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('community')}"></nav>
+
+<header class="page-header night-header">
+    <div class="container">
+        <a class="back-link" th:href="@{/clubs/{id}(id=${view.night.club.id})}" th:text="|← ${view.night.club.name}|">← Office film club</a>
+        <p class="night-eyebrow" th:text="${view.day}">Friday 31 October</p>
+        <h1 class="page-title" th:text="${view.night.title}">Movie night</h1>
+        <div class="night-where">
+            <span class="night-chip" th:if="${view.night.cinema}">🍿 The cinema</span>
+            <span class="night-chip" th:if="${!view.night.cinema and view.services.isEmpty()}">🛋️ Anywhere</span>
+            <span class="night-chip" th:each="service : ${view.services}">
+                <img th:if="${service.logoPath != null}" th:src="|https://image.tmdb.org/t/p/w92${service.logoPath}|" alt="">
+                <span th:text="${service.name}">Netflix</span>
+            </span>
+            <span class="night-host" th:text="|Hosted by ${view.night.host.name}|">Hosted by Alice</span>
+        </div>
+    </div>
+</header>
+
+<!-- The movie of the night, once picked: the poster large, and the check-in for each member once the night has come. -->
+<section class="section" th:if="${view.decided}" id="night-winner">
+    <div class="container">
+        <div class="night-winner" th:with="winner=${view.winner}">
+            <a class="night-winner-poster" th:href="@{/movie/{id}(id=${view.night.winner.id})}">
+                <div th:replace="~{fragments/cards :: posterThumb(${view.night.winner.id}, ${view.night.winner.primaryTitle})}"></div>
+            </a>
+            <div class="night-winner-text">
+                <p class="night-eyebrow">The club picked</p>
+                <h2 class="night-winner-title" th:text="${view.night.winner.primaryTitle}">Inception</h2>
+                <p class="night-winner-detail">
+                    <th:block th:text="${view.night.winner.startYear}">2010</th:block><th:block th:if="${winner != null}"> ·
+                    <th:block th:text="${winner.candidate.reason}">On Netflix</th:block> ·
+                    <th:block th:text="${winner.voters.size() == 1} ? '1 vote' : |${winner.voters.size()} votes|">3 votes</th:block></th:block>
+                </p>
+                <div class="invite-buttons">
+                    <form th:if="${view.canCheckIn and !view.checkedIn}" th:action="@{/nights/{id}/check-in(id=${view.night.id})}" method="post">
+                        <button type="submit" class="button button-primary">I was there: check it in</button>
+                    </form>
+                    <span class="friend-badge" th:if="${view.checkedIn}">✓ Checked in</span>
+                    <span class="night-note" th:if="${!view.canCheckIn and !view.checkedIn}">Check it in here on the night itself.</span>
+                    <form th:if="${view.canDecide}" th:action="@{/nights/{id}/reopen(id=${view.night.id})}" method="post">
+                        <button type="submit" class="link-button">Vote again</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section" id="night-candidates">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title" th:text="${view.decided} ? 'The Ballot' : 'Vote'">Vote</h2>
+            <span class="section-note" th:text="|${view.voteCount} of ${view.memberCount} voted|">2 of 4 voted</span>
+        </div>
+        <p class="stat-note" th:unless="${view.decided}">One vote each: tap another movie to move yours, or yours again to take it back.</p>
+        <div class="night-grid">
+            <div class="night-candidate" th:each="option : ${view.candidates}"
+                 th:classappend="${option.movie.id == view.myVote} ? 'my-vote' : (${view.decided and option.movie.id != view.night.winner.id} ? 'lost')">
+                <a th:replace="~{fragments/cards :: movie(${option.movie.id}, ${option.movie.primaryTitle}, ${option.movie.startYear})}"></a>
+                <div class="night-reason" th:text="${option.candidate.reason}">On Netflix · on 2 watchlists</div>
+                <div class="night-votes">
+                    <div class="bar-track"><div class="bar-fill" th:style="|width: ${option.share}%|"></div></div>
+                    <span class="night-voters">
+                        <th:block th:each="voter : ${option.voters}"><span th:replace="~{fragments/community :: avatar(${voter}, 'night-voter')}"></span></th:block>
+                    </span>
+                </div>
+                <form th:unless="${view.decided}" th:action="@{/nights/{id}/vote/{movie}(id=${view.night.id}, movie=${option.movie.id})}" method="post">
+                    <button type="submit" class="button button-small night-vote"
+                            th:classappend="${option.movie.id == view.myVote} ? 'button-primary'"
+                            th:text="${option.movie.id == view.myVote} ? 'Your vote ✓' : 'Vote'">Vote</button>
+                </form>
+            </div>
+        </div>
+        <div class="invite-buttons night-actions" th:if="${view.canDecide}">
+            <form th:unless="${view.decided}" th:action="@{/nights/{id}/decide(id=${view.night.id})}" method="post">
+                <button type="submit" class="button button-primary">Pick the winner</button>
+            </form>
+            <form th:action="@{/nights/{id}/remove(id=${view.night.id})}" method="post" data-confirm-remove>
+                <button type="submit" class="link-button">Remove the night</button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

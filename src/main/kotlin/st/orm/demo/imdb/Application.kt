@@ -335,7 +335,8 @@ private fun Application.configureStorm() {
                     "db/migration/V24__movie_countries.sql",
                     "db/migration/V25__ask_countries.sql",
                     "db/migration/V26__year_shares.sql",
-                    "db/migration/V27__movie_lists.sql"
+                    "db/migration/V27__movie_lists.sql",
+                    "db/migration/V28__movie_nights.sql"
                 )))
                 .load()
                 .migrate()

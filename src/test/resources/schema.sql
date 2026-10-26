@@ -321,3 +321,38 @@ CREATE TABLE movie_list_item (
     PRIMARY KEY (list_id, movie_id)
 );
 CREATE INDEX idx_movie_list_item_movie_id ON movie_list_item (movie_id);
+
+-- V28: movie nights.
+CREATE TABLE movie_night (
+    id         BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    club_id    BIGINT NOT NULL REFERENCES club (id) ON DELETE CASCADE,
+    host_id    VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    title      VARCHAR NOT NULL,
+    night_on   DATE NOT NULL,
+    country    VARCHAR(2),
+    cinema     BOOLEAN NOT NULL,
+    list_id    BIGINT REFERENCES movie_list (id) ON DELETE SET NULL,
+    winner_id  VARCHAR REFERENCES movie (id) ON DELETE SET NULL,
+    created_at TIMESTAMP NOT NULL
+);
+CREATE INDEX idx_movie_night_club_id_night_on ON movie_night (club_id, night_on DESC);
+CREATE TABLE movie_night_provider (
+    night_id          BIGINT NOT NULL REFERENCES movie_night (id) ON DELETE CASCADE,
+    watch_provider_id INTEGER NOT NULL REFERENCES watch_provider (id),
+    PRIMARY KEY (night_id, watch_provider_id)
+);
+CREATE TABLE movie_night_candidate (
+    night_id BIGINT NOT NULL REFERENCES movie_night (id) ON DELETE CASCADE,
+    movie_id VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
+    position INTEGER NOT NULL,
+    reason   VARCHAR NOT NULL,
+    PRIMARY KEY (night_id, movie_id)
+);
+CREATE TABLE movie_night_vote (
+    night_id BIGINT NOT NULL REFERENCES movie_night (id) ON DELETE CASCADE,
+    user_id  VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    movie_id VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
+    voted_at TIMESTAMP NOT NULL,
+    PRIMARY KEY (night_id, user_id),
+    FOREIGN KEY (night_id, movie_id) REFERENCES movie_night_candidate (night_id, movie_id) ON DELETE CASCADE
+);

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Plan a Movie Night')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('community')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <a class="back-link" th:href="@{/clubs/{id}(id=${plan.club.id})}" th:text="|← ${plan.club.name}|">← Office film club</a>
+        <h1 class="page-title">Plan a Movie Night</h1>
+        <p class="page-subtitle">
+            Pick the day and where you will watch. Six movies nobody in the club has seen go to the vote:
+            the ones most of you want to see first.
+        </p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container">
+        <div class="notice notice-error" th:if="${nothingFound}">
+            Nothing to vote on there: the members have seen it all, or it plays somewhere else. Add a service, the
+            cinema, or pick from everyone's lists.
+        </div>
+        <form class="stat-card night-form" th:action="@{/clubs/{id}/nights(id=${plan.club.id})}" method="post">
+            <div class="night-form-row">
+                <label class="field">
+                    <span>Name</span>
+                    <input type="text" name="title" maxlength="60" value="Movie night">
+                </label>
+                <label class="field night-day">
+                    <span>Day</span>
+                    <input type="date" name="day" required th:value="${plan.day}">
+                </label>
+            </div>
+
+            <h3 class="choice-heading">Where you watch
+                <span class="choice-hint" th:if="${plan.country != null}" th:text="|in ${plan.country.name}|">in the Netherlands</span></h3>
+            <p class="stat-note" th:if="${plan.country == null}">
+                Set your country on <a th:href="@{/signin}">your account</a> to watch on streaming services or at the cinema.
+            </p>
+            <div class="choice-grid night-places" th:if="${plan.country != null}">
+                <!-- The cinema: what plays in the country's cinemas now. -->
+                <label class="choice-tile night-cinema">
+                    <input type="checkbox" name="cinema">
+                    <span class="night-cinema-icon" aria-hidden="true">🍿</span>
+                    <span class="night-place">
+                        <span>The cinema</span>
+                        <span class="night-place-who">what plays now</span>
+                    </span>
+                </label>
+                <!-- The members' services, the host's own ticked: the night is not always at the host's. -->
+                <label class="choice-tile" th:each="choice : ${plan.services}">
+                    <input type="checkbox" name="service" th:value="${choice.service.id}" th:checked="${choice.yours}">
+                    <img th:if="${choice.service.logoPath != null}" th:src="|https://image.tmdb.org/t/p/w92${choice.service.logoPath}|" alt="" loading="lazy">
+                    <span class="night-place">
+                        <span th:text="${choice.service.name}">Netflix</span>
+                        <span class="night-place-who"
+                              th:text="${choice.yours} ? (${choice.members.isEmpty()} ? 'yours' : |yours, ${#strings.listJoin(choice.members, ', ')}|) : ${#strings.listJoin(choice.members, ', ')}">yours</span>
+                    </span>
+                </label>
+            </div>
+            <p class="stat-note" th:if="${plan.country != null and plan.services.isEmpty()}">
+                Nobody in the club has ticked their services on their account yet: pick the cinema, or tick nothing and the
+                vote is on anything.
+            </p>
+
+            <label class="field">
+                <span>Pick from</span>
+                <select name="list" class="country-select">
+                    <option value="">Everyone's watchlists and recommendations</option>
+                    <option th:each="list : ${plan.lists}" th:value="${list.id}"
+                            th:text="${list.club != null} ? |The club's list: ${list.name}| : |Your list: ${list.name}|">Friday picks</option>
+                </select>
+            </label>
+            <div class="invite-buttons">
+                <button type="submit" class="button button-primary">Pick the movies</button>
+                <a class="link-button" th:href="@{/clubs/{id}(id=${plan.club.id})}">Cancel</a>
+            </div>
+        </form>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
