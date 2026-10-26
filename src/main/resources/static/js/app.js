@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupCinema();
     setupNightVotes();
     setupSwipeDecks();
+    setupMatchWatch();
 });
 
 // Under the mouse a poster gives a little: it tilts toward the cursor, a light follows the cursor
@@ -1793,4 +1794,24 @@ function wayOf(dx, dy, far) {
     if (dx > far) return 'WANT';
     if (dx < -far) return 'PASS';
     return null;
+}
+
+// A match page waiting on the other players asks every few seconds, while it is in view, whether
+// the match changed: a move, a pick, a swipe, a turn passing on. When it did, the page reloads, and
+// the browser keeps its scroll position.
+function setupMatchWatch() {
+    const watch = document.querySelector('[data-match-watch]');
+    if (!watch) return;
+    const url = '/api/play/matches/' + watch.dataset.matchId + '/version';
+    const check = async () => {
+        if (document.hidden) return;
+        try {
+            const response = await fetch(url, { cache: 'no-store' });
+            if (response.ok && (await response.text()) !== watch.dataset.matchVersion) location.reload();
+        } catch (e) {
+            // Offline for a moment: the next check tries again.
+        }
+    };
+    setInterval(check, 10000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
 }

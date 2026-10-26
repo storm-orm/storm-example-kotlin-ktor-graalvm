@@ -132,6 +132,10 @@ class DraftService(
         )
     }
 
+    /** What a draft looks like at [now], as a short text that changes whenever a pick is made or a turn passes on. */
+    fun versionOf(match: GameMatch, now: Instant): String =
+        "${draftPickRepository.findPicks(match).size}|${turnIn(match, now)?.player?.user?.id}"
+
     /** Whose turn it is in a draft, for the lists of one's games, inside their transaction; null once it is over. */
     fun turnIn(match: GameMatch, now: Instant): Drafter? {
         val drafters = draftersOf(match)

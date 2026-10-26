@@ -94,6 +94,9 @@
     </div>
 </section>
 
+<!-- Waiting on the others: the page asks now and then whether the match changed, and reloads when it did (app.js). -->
+<div hidden data-match-watch th:data-match-id="${game.match.id}" th:data-match-version="${version}" th:if="${game.match.mode.name() != 'SOLO' and game.finished and !game.over}"></div>
+
 <footer th:replace="~{fragments/layout :: footer}"></footer>
 </body>
 </html>

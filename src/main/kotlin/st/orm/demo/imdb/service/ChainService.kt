@@ -167,6 +167,13 @@ class ChainService(
         return ratings.map { ChainAnswer(it.movie, people.getValue(actorOf.getValue(it.movie.id))) }
     }
 
+    /** What a chain looks like at [now], as a short text that changes whenever a move is made or a turn passes on. */
+    fun versionOf(match: GameMatch, players: List<GamePlayer>, now: Instant): String {
+        val links = chainLinkRepository.findLinks(match)
+        val turn = if (isOver(match, links, now)) null else turnOf(players, links.last(), now)
+        return "${links.size}|${turn?.player?.user?.id}|${players.sumOf { it.hints }}"
+    }
+
     /**
      * Whose turn it is in a chain at [now], or null once it is over: for the
      * lists of one's games, inside their transaction.

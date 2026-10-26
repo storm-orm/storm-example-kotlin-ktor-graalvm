@@ -5,6 +5,7 @@ import io.ktor.http.Parameters
 import io.ktor.server.request.receiveParameters
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondRedirect
+import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
@@ -64,19 +65,23 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
     get("/play/matches/{id}") {
         val user = call.currentUser()
         val matchId = call.parameters.getOrFail<Long>("id")
-        higherLowerService.matchOf(user, matchId)?.let {
-            return@get call.respondPage(ThymeleafContent("higher-lower", mapOf("game" to it)))
-        }
-        swipeService.roundOf(user, matchId)?.let {
-            return@get call.respondPage(ThymeleafContent("swipe-round", mapOf("round" to it)))
-        }
-        draftService.draftOf(user, matchId)?.let {
-            return@get call.respondPage(ThymeleafContent("draft", mapOf("draft" to it, "problem" to call.request.queryParameters["problem"])))
-        }
-        chainService.chainOf(user, matchId)?.let {
-            return@get call.respondPage(ThymeleafContent("chain", mapOf("chain" to it, "problem" to call.request.queryParameters["problem"])))
-        }
-        call.respond(HttpStatusCode.NotFound)
+        val problem = call.request.queryParameters["problem"]
+        val (template, model) = higherLowerService.matchOf(user, matchId)?.let { "higher-lower" to mapOf("game" to it) }
+            ?: swipeService.roundOf(user, matchId)?.let { "swipe-round" to mapOf("round" to it) }
+            ?: draftService.draftOf(user, matchId)?.let { "draft" to mapOf("draft" to it, "problem" to problem) }
+            ?: chainService.chainOf(user, matchId)?.let { "chain" to mapOf("chain" to it, "problem" to problem) }
+            ?: return@get call.respond(HttpStatusCode.NotFound)
+        // The match as it is now, read after the game, which may have made a pick that was due: a page that
+        // waits on the others asks whether this changed.
+        val version = playService.versionOf(user, matchId) ?: return@get call.respond(HttpStatusCode.NotFound)
+        call.respondPage(ThymeleafContent(template, model + ("version" to version)))
+    }
+
+    // How the match stands, as a short text, for a page that waits on the others: it reloads when this changes.
+    get("/api/play/matches/{id}/version") {
+        val version = playService.versionOf(call.currentUser(), call.parameters.getOrFail<Long>("id"))
+            ?: return@get call.respond(HttpStatusCode.NotFound)
+        call.respondText(version)
     }
 
     post("/play/matches/{id}/answer") {

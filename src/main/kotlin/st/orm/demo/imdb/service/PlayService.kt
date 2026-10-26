@@ -78,6 +78,24 @@ class PlayService(
     }
 
     /**
+     * What a match looks like at [now], as a short text that changes
+     * whenever another player moves, or a turn passes on by time: a page
+     * that waits on the others asks for it now and then, and reloads when it
+     * changed. Null for a match the visitor may not look at.
+     */
+    suspend fun versionOf(user: User, matchId: Long, now: Instant = Instant.now()): String? = transaction(readOnly = true) {
+        val match = matchService.visibleMatch(user, matchId) ?: return@transaction null
+        val players = gamePlayerRepository.findPlayers(match)
+        val standing = players.joinToString(",") { "${it.user.id}:${it.score}:${it.finished}:${it.updatedAt.toEpochMilli()}" }
+        val game = when (match.game) {
+            Game.CHAIN -> chainService.versionOf(match, players, now)
+            Game.DRAFT -> draftService.versionOf(match, now)
+            Game.HIGHER_LOWER, Game.SWIPE -> ""
+        }
+        "${match.endedAt}|${match.isOver(now)}|$standing|$game"
+    }
+
+    /**
      * A club's games of the last weeks, for its page, each as it stands for
      * the visitor, a member, who may not have played it yet.
      */
