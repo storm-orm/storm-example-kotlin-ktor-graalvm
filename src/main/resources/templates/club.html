@@ -32,7 +32,7 @@
             <a class="section-link" th:unless="${nights.isEmpty()}" th:href="@{/clubs/{id}/nights/new(id=${view.club.id})}">Plan a movie night</a>
         </div>
         <a class="night-invite" th:if="${nights.isEmpty()}" th:href="@{/clubs/{id}/nights/new(id=${view.club.id})}">
-            <span class="night-invite-icon" aria-hidden="true">🍿</span>
+            <span class="line-icon icon-ticket night-invite-icon" aria-hidden="true"></span>
             <span>
                 <strong>Plan a movie night</strong>
                 <span class="night-note">Pick a day and where you watch; the club votes on six movies nobody has seen.</span>
@@ -42,7 +42,7 @@
             <a class="night-card" th:each="summary : ${nights}" th:href="@{/nights/{id}(id=${summary.night.id})}">
                 <span class="night-card-poster">
                     <img th:if="${summary.night.winner != null}" th:src="@{/api/poster/{id}(id=${summary.night.winner.id})}" alt="" loading="lazy" onerror="this.classList.add('failed')">
-                    <span th:unless="${summary.night.winner != null}" aria-hidden="true">🗳️</span>
+                    <span th:unless="${summary.night.winner != null}" class="line-icon icon-ballot" aria-hidden="true"></span>
                 </span>
                 <span class="night-card-text">
                     <span class="night-card-day" th:text="${summary.day}">Friday 31 October</span>

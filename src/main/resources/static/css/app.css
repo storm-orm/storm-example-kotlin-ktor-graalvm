@@ -2941,7 +2941,7 @@ body::after {
 
 .night-place-who { color: var(--text-muted); font-size: 11.5px; }
 
-.night-cinema-icon { font-size: 22px; width: 28px; text-align: center; }
+.night-cinema-icon { width: 24px; height: 24px; margin: 0 2px; color: var(--yellow); }
 
 .choice-tile.night-cinema:has(input:checked) { border-color: rgba(var(--yellow-rgb), 0.75); background: rgba(var(--yellow-rgb), 0.1); }
 
@@ -2962,6 +2962,8 @@ body::after {
 }
 
 .night-chip img { width: 22px; height: 22px; border-radius: 6px; }
+
+.night-chip .line-icon { margin-left: 4px; color: var(--yellow); }
 
 .night-host { color: var(--text-muted); font-size: 13.5px; }
 
@@ -3042,8 +3044,10 @@ body::after {
     border-radius: 6px;
     overflow: hidden;
     background: var(--surface-raised);
-    font-size: 22px;
+    color: var(--text-muted);
 }
+
+.night-card-poster .line-icon { width: 24px; height: 24px; }
 
 .night-card-poster img { width: 100%; height: 100%; object-fit: cover; }
 
@@ -3068,7 +3072,7 @@ body::after {
 
 .night-invite:hover { background: rgba(var(--yellow-rgb), 0.1); }
 
-.night-invite-icon { font-size: 34px; }
+.night-invite-icon { width: 34px; height: 34px; color: var(--yellow); }
 
 @media (max-width: 1024px) {
     .night-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -3084,98 +3088,131 @@ body::after {
 
 /* ── Daily quiz ────────────────────────────────────────────────────── */
 
-/* The quiz is the playful corner of the site: the poster face in sunny colours, round shapes,
-   clues that pop in, and confetti for a hit. */
+/* The quiz in the site's own look: the neon spectrum, line icons drawn in the text's colour, and
+   glass chips; a hit lights up in cyan, the colour of what the visitor has seen, a miss in pink. */
 .game-quiz { --tone: var(--yellow-rgb); }
 
-.game-art-quiz { gap: 10px; font-size: 34px; }
+/* The quiz's card shows six guesses as pips, lighting up one by one. */
+.game-art-quiz { gap: 8px; }
 
-.game-art-quiz span { display: inline-block; animation: quiz-bob 2.4s ease-in-out infinite; }
-.game-art-quiz span:nth-child(2) { animation-delay: 0.3s; }
-.game-art-quiz span:nth-child(3) { animation-delay: 0.6s; }
-
-@keyframes quiz-bob {
-    0%, 100% { transform: translateY(0) rotate(0deg); }
-    50% { transform: translateY(-6px) rotate(-6deg); }
+.game-art-quiz span {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid rgba(var(--tone), 0.5);
+    animation: quiz-pip-light 3.6s ease-in-out infinite;
 }
 
-.quiz-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.game-art-quiz span:nth-child(2) { animation-delay: 0.3s; }
+.game-art-quiz span:nth-child(3) { animation-delay: 0.6s; }
+.game-art-quiz span:nth-child(4) { animation-delay: 0.9s; }
+.game-art-quiz span:nth-child(5) { animation-delay: 1.2s; }
+.game-art-quiz span:nth-child(6) { animation-delay: 1.5s; }
 
-.quiz-title { margin: 0 0 6px; font-family: var(--font-display); font-size: 52px; font-weight: 400; line-height: 1; letter-spacing: 1px; text-transform: uppercase; }
+@keyframes quiz-pip-light {
+    0%, 30%, 100% { background: transparent; box-shadow: none; }
+    40%, 70% { background: rgb(var(--tone)); box-shadow: 0 0 12px rgba(var(--tone), 0.8); }
+}
 
-.quiz-title span:nth-child(1) { color: var(--yellow); text-shadow: 0 0 22px rgba(var(--yellow-rgb), 0.45); }
-.quiz-title span:nth-child(2) { color: var(--cyan); text-shadow: 0 0 22px rgba(var(--cyan-rgb), 0.45); }
-.quiz-title .quiz-number { color: var(--accent-strong); text-shadow: 0 0 22px rgba(var(--accent-rgb), 0.45); }
+/* An icon drawn as a mask in the text's colour, so it takes whatever tone it is in. */
+.line-icon { display: inline-block; width: 18px; height: 18px; flex-shrink: 0; background: currentColor;
+    -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat; }
+
+.icon-released, .clue-released::before { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M3 10h18M8 3v4M16 3v4'/%3E%3C/svg%3E"); }
+.icon-made, .clue-made::before { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z'/%3E%3C/svg%3E"); }
+.icon-director, .clue-director::before { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='9' width='18' height='12' rx='2'/%3E%3Cpath d='M3 9l2.5-5 15 3.5L21 9M8.5 4.7L7 8.5M14 6l-1.5 3.5'/%3E%3C/svg%3E"); }
+.icon-cast, .clue-cast::before { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='8' r='4'/%3E%3Cpath d='M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7'/%3E%3C/svg%3E"); }
+.icon-lead, .clue-lead::before { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z'/%3E%3C/svg%3E"); }
+.icon-unknown, .clue-unknown::before { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17.5h.01'/%3E%3C/svg%3E"); }
+.icon-ticket, .clue-ticket::before { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z'/%3E%3Cpath d='M13 6v2M13 11v2M13 16v2'/%3E%3C/svg%3E"); }
+.icon-home, .clue-home::before { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z'/%3E%3C/svg%3E"); }
+.icon-ballot, .clue-ballot::before { --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='4' y='10' width='16' height='11' rx='2'/%3E%3Cpath d='M9 10V4h6v6M8 15h8'/%3E%3C/svg%3E"); }
+
+.quiz-title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
+
+.quiz-title-row .page-title { margin-bottom: 6px; }
+
+.quiz-number { margin-left: 0.25em; color: var(--accent-strong); }
 
 .quiz-streak {
-    padding: 6px 14px;
+    padding: 5px 13px;
     border-radius: 999px;
-    background: linear-gradient(120deg, rgba(var(--orange-rgb), 0.3), rgba(var(--yellow-rgb), 0.18));
-    border: 1px solid rgba(var(--orange-rgb), 0.6);
+    border: 1px solid rgba(var(--orange-rgb), 0.55);
+    background: rgba(var(--orange-rgb), 0.1);
+    color: var(--orange);
+    font-size: 13px;
     font-weight: 700;
-    font-size: 14px;
+    letter-spacing: 0.4px;
 }
 
 .quiz-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 26px; align-items: start; }
 
 .quiz-layout:not(:has(.quiz-boards)) { grid-template-columns: minmax(0, 760px); }
 
-.quiz-stage {
-    position: relative;
-    padding: 26px;
-    border-radius: 24px;
-    border: 2px solid transparent;
-    background:
-        linear-gradient(var(--surface), var(--surface)) padding-box,
-        linear-gradient(120deg, var(--yellow), var(--orange) 35%, var(--accent) 65%, var(--cyan)) border-box;
-    box-shadow: 0 20px 60px rgba(var(--yellow-rgb), 0.08), 0 0 0 6px rgba(var(--yellow-rgb), 0.03);
-}
+.quiz-stage { padding: 24px; }
 
+/* The guesses as pips: cyan the hit, pink a miss, violet a skip, an empty ring what is left. */
 .quiz-pips { display: flex; gap: 8px; margin-bottom: 20px; }
 
-.quiz-pip { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--border); background: var(--surface-raised); }
-.quiz-pip.hit { background: var(--green); border-color: var(--green); box-shadow: 0 0 12px rgba(var(--green-rgb), 0.7); }
-.quiz-pip.miss { background: #ff4d6d; border-color: #ff4d6d; }
-.quiz-pip.skip { background: var(--text-muted); border-color: var(--text-muted); }
+.quiz-pip { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border); }
+.quiz-pip.hit { background: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 12px rgba(var(--cyan-rgb), 0.7); }
+.quiz-pip.miss { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.5); }
+.quiz-pip.skip { background: rgba(var(--violet-rgb), 0.55); border-color: rgba(var(--violet-rgb), 0.8); }
 
 .quiz-clues { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 
+/* A clue is a row of glass with its icon in its own neon, by its place, as the spectrum takes turns. */
 .quiz-clue {
     display: flex;
     align-items: center;
     gap: 14px;
     padding: 12px 16px;
-    border-radius: 16px;
-    background: linear-gradient(120deg, rgba(var(--yellow-rgb), 0.1), rgba(var(--cyan-rgb), 0.06));
-    border: 1px solid rgba(var(--yellow-rgb), 0.28);
+    border-radius: var(--radius);
+    border: 1px solid rgba(var(--tone), 0.3);
+    background: linear-gradient(120deg, rgba(var(--tone), 0.08), transparent 60%) rgba(255, 255, 255, 0.02);
 }
 
-.quiz-clue.newest { animation: quiz-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards; border-color: rgba(var(--yellow-rgb), 0.7); }
+.quiz-clue:nth-child(1) { --tone: var(--accent-rgb); }
+.quiz-clue:nth-child(2) { --tone: var(--cyan-rgb); }
+.quiz-clue:nth-child(3) { --tone: var(--green-rgb); }
+.quiz-clue:nth-child(4) { --tone: var(--orange-rgb); }
+.quiz-clue:nth-child(5) { --tone: var(--violet-rgb); }
+.quiz-clue:nth-child(6) { --tone: var(--yellow-rgb); }
+
+.quiz-clue.newest { animation: quiz-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) backwards; border-color: rgba(var(--tone), 0.75); box-shadow: 0 0 22px rgba(var(--tone), 0.15); }
 
 @keyframes quiz-pop {
-    from { transform: scale(0.85); opacity: 0; }
+    from { transform: scale(0.9); opacity: 0; }
 }
 
-.quiz-clue.hidden { background: none; border: 1.5px dashed var(--border); color: var(--text-muted); }
+.quiz-clue.hidden { background: none; border: 1px dashed var(--border); }
 
 .quiz-clue-icon {
-    width: 42px;
-    height: 42px;
+    width: 40px;
+    height: 40px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.07);
-    font-size: 21px;
-    font-weight: 800;
+    background: rgba(var(--tone), 0.12);
+    color: rgb(var(--tone));
 }
 
-.quiz-clue.hidden .quiz-clue-icon { font-family: var(--font-display); color: var(--text-muted); }
+.quiz-clue-icon::before {
+    content: "";
+    width: 20px;
+    height: 20px;
+    background: currentColor;
+    -webkit-mask: var(--icon) center / contain no-repeat;
+    mask: var(--icon) center / contain no-repeat;
+}
+
+.quiz-clue.hidden .quiz-clue-icon { background: var(--surface-raised); color: var(--text-muted); }
 
 .quiz-clue-body { display: flex; flex-direction: column; min-width: 0; }
 
-.quiz-clue-label { color: var(--yellow); font-size: 12px; font-weight: 700; letter-spacing: 0.9px; text-transform: uppercase; }
+.quiz-clue-label { color: rgb(var(--tone)); font-size: 12px; font-weight: 700; letter-spacing: 0.9px; text-transform: uppercase; }
 
 .quiz-clue.hidden .quiz-clue-label { color: var(--text-muted); }
 
@@ -3185,19 +3222,26 @@ body::after {
 
 .quiz-guess form:first-child { flex: 1; min-width: 0; }
 
-.quiz-picker input { padding-top: 14px; padding-bottom: 14px; font-size: 16px; border-color: rgba(var(--yellow-rgb), 0.45); }
+.quiz-picker input { padding-top: 13px; padding-bottom: 13px; font-size: 16px; }
 
-.quiz-picker input:focus { border-color: var(--yellow); box-shadow: 0 0 0 3px rgba(var(--yellow-rgb), 0.2); }
+.quiz-skip { padding: 12px 22px; }
 
-.quiz-skip { --from: var(--cyan-rgb); --to: var(--violet-rgb); padding: 13px 20px; }
-
+/* The guesses so far, as glass chips: a miss edged in pink, the hit in cyan, a skip faint. */
 .quiz-guesses { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 
-.quiz-guesses li { display: inline-flex; gap: 6px; padding: 5px 12px; border-radius: 999px; font-size: 13.5px; background: rgba(255, 255, 255, 0.05); }
-.quiz-guesses li.miss { background: rgba(255, 77, 109, 0.14); color: #ffb3c1; }
-.quiz-guesses li.hit { background: rgba(var(--green-rgb), 0.14); color: var(--green); }
+.quiz-guesses li {
+    padding: 5px 13px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.04);
+    font-size: 13.5px;
+}
 
-/* The game over: the movie, and a burst of confetti for a hit. */
+.quiz-guesses li.miss { border-color: rgba(var(--accent-rgb), 0.55); text-decoration: line-through; text-decoration-color: rgba(var(--accent-rgb), 0.7); }
+.quiz-guesses li.hit { border-color: rgba(var(--cyan-rgb), 0.7); color: var(--cyan); background: rgba(var(--cyan-rgb), 0.08); }
+.quiz-guesses li.skip { color: var(--text-muted); border-style: dashed; }
+
+/* The game over: the movie's poster and title, and for a hit a burst of confetti in the spectrum. */
 .quiz-result {
     position: relative;
     display: flex;
@@ -3205,55 +3249,60 @@ body::after {
     gap: 24px;
     margin-bottom: 22px;
     padding: 18px;
-    border-radius: 18px;
-    background: rgba(var(--accent-rgb), 0.08);
-    border: 1px solid rgba(var(--accent-rgb), 0.35);
-    animation: quiz-pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+    border-radius: var(--radius);
+    border: 1px solid rgba(var(--accent-rgb), 0.45);
+    background: radial-gradient(420px 220px at 0% 50%, rgba(var(--accent-rgb), 0.12), transparent 70%);
+    overflow: hidden;
+    animation: quiz-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
 }
 
-.quiz-result.won { background: rgba(var(--green-rgb), 0.08); border-color: rgba(var(--green-rgb), 0.5); }
+.quiz-result.won { border-color: rgba(var(--cyan-rgb), 0.55); background: radial-gradient(420px 220px at 0% 50%, rgba(var(--cyan-rgb), 0.14), transparent 70%); }
 
 .quiz-answer { width: 120px; flex-shrink: 0; }
 
-.quiz-verdict { margin: 0; font-size: 18px; font-weight: 700; }
+.quiz-verdict { margin: 0; color: var(--accent-strong); font-size: 13px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; }
 
-.quiz-answer-title { margin: 2px 0 6px; font-family: var(--font-display); font-size: 36px; font-weight: 400; line-height: 1.1; }
+.quiz-result.won .quiz-verdict { color: var(--cyan); }
 
-.quiz-squares { margin: 0 0 14px; font-size: 22px; letter-spacing: 3px; }
+.quiz-result .quiz-answer-title { margin: 4px 0 16px; font-family: var(--font-display); font-size: 40px; font-weight: 400; line-height: 1.05; }
 
 .quiz-tomorrow { color: var(--text-muted); font-size: 13.5px; }
 
-.quiz-confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.quiz-confetti { position: absolute; inset: 0; pointer-events: none; }
 
 .quiz-confetti span {
     position: absolute;
-    top: -30px;
-    font-size: 20px;
-    animation: quiz-fall 2.6s ease-in forwards;
+    top: -14px;
+    width: 7px;
+    height: 12px;
+    border-radius: 2px;
+    background: rgb(var(--tone));
+    box-shadow: 0 0 8px rgba(var(--tone), 0.7);
+    animation: quiz-fall 2.4s ease-in forwards;
 }
 
 @keyframes quiz-fall {
-    to { transform: translateY(260px) rotate(540deg); opacity: 0; }
+    to { transform: translateY(240px) rotate(600deg); opacity: 0; }
 }
 
-.quiz-confetti span:nth-child(1) { left: 4%; animation-delay: 0s; }
-.quiz-confetti span:nth-child(2) { left: 10%; animation-delay: 0.3s; }
-.quiz-confetti span:nth-child(3) { left: 16%; animation-delay: 0.1s; }
-.quiz-confetti span:nth-child(4) { left: 22%; animation-delay: 0.5s; }
-.quiz-confetti span:nth-child(5) { left: 28%; animation-delay: 0.2s; }
-.quiz-confetti span:nth-child(6) { left: 34%; animation-delay: 0.6s; }
-.quiz-confetti span:nth-child(7) { left: 40%; animation-delay: 0.15s; }
-.quiz-confetti span:nth-child(8) { left: 46%; animation-delay: 0.45s; }
-.quiz-confetti span:nth-child(9) { left: 52%; animation-delay: 0.05s; }
-.quiz-confetti span:nth-child(10) { left: 58%; animation-delay: 0.35s; }
-.quiz-confetti span:nth-child(11) { left: 64%; animation-delay: 0.25s; }
-.quiz-confetti span:nth-child(12) { left: 70%; animation-delay: 0.55s; }
-.quiz-confetti span:nth-child(13) { left: 76%; animation-delay: 0.1s; }
-.quiz-confetti span:nth-child(14) { left: 82%; animation-delay: 0.4s; }
-.quiz-confetti span:nth-child(15) { left: 88%; animation-delay: 0.2s; }
-.quiz-confetti span:nth-child(16) { left: 94%; animation-delay: 0.5s; }
-.quiz-confetti span:nth-child(17) { left: 13%; animation-delay: 0.7s; }
-.quiz-confetti span:nth-child(18) { left: 61%; animation-delay: 0.75s; }
+.quiz-confetti span:nth-child(1) { left: 4%; animation-delay: 0s; --tone: var(--accent-rgb); }
+.quiz-confetti span:nth-child(2) { left: 10%; animation-delay: 0.3s; --tone: var(--cyan-rgb); }
+.quiz-confetti span:nth-child(3) { left: 16%; animation-delay: 0.1s; --tone: var(--green-rgb); }
+.quiz-confetti span:nth-child(4) { left: 22%; animation-delay: 0.5s; --tone: var(--orange-rgb); }
+.quiz-confetti span:nth-child(5) { left: 28%; animation-delay: 0.2s; --tone: var(--violet-rgb); }
+.quiz-confetti span:nth-child(6) { left: 34%; animation-delay: 0.6s; --tone: var(--yellow-rgb); }
+.quiz-confetti span:nth-child(7) { left: 40%; animation-delay: 0.15s; --tone: var(--accent-rgb); }
+.quiz-confetti span:nth-child(8) { left: 46%; animation-delay: 0.45s; --tone: var(--cyan-rgb); }
+.quiz-confetti span:nth-child(9) { left: 52%; animation-delay: 0.05s; --tone: var(--green-rgb); }
+.quiz-confetti span:nth-child(10) { left: 58%; animation-delay: 0.35s; --tone: var(--orange-rgb); }
+.quiz-confetti span:nth-child(11) { left: 64%; animation-delay: 0.25s; --tone: var(--violet-rgb); }
+.quiz-confetti span:nth-child(12) { left: 70%; animation-delay: 0.55s; --tone: var(--yellow-rgb); }
+.quiz-confetti span:nth-child(13) { left: 76%; animation-delay: 0.1s; --tone: var(--accent-rgb); }
+.quiz-confetti span:nth-child(14) { left: 82%; animation-delay: 0.4s; --tone: var(--cyan-rgb); }
+.quiz-confetti span:nth-child(15) { left: 88%; animation-delay: 0.2s; --tone: var(--green-rgb); }
+.quiz-confetti span:nth-child(16) { left: 94%; animation-delay: 0.5s; --tone: var(--orange-rgb); }
+.quiz-confetti span:nth-child(17) { left: 13%; animation-delay: 0.7s; --tone: var(--violet-rgb); }
+.quiz-confetti span:nth-child(18) { left: 61%; animation-delay: 0.75s; --tone: var(--yellow-rgb); }
 
 @media (prefers-reduced-motion: reduce) {
     .quiz-confetti { display: none; }
@@ -3271,7 +3320,7 @@ body::after {
 
 .quiz-board-row .nav-account-icon { width: 26px; height: 26px; font-size: 11px; }
 
-.quiz-board-row.you .quiz-board-name { color: var(--yellow); font-weight: 600; }
+.quiz-board-row.you .quiz-board-name { color: var(--cyan); font-weight: 600; }
 
 .quiz-rank { width: 18px; color: var(--text-muted); font-weight: 700; }
 
@@ -3281,20 +3330,19 @@ body::after {
 .quiz-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .quiz-chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; font-size: 14px; border: 1px solid var(--border); }
-.quiz-chip.hit { border-color: rgba(var(--green-rgb), 0.5); background: rgba(var(--green-rgb), 0.08); }
-.quiz-chip.hit strong { color: var(--green); }
-.quiz-chip.miss strong { color: #ff8fa3; }
+.quiz-chip.hit { border-color: rgba(var(--cyan-rgb), 0.55); background: rgba(var(--cyan-rgb), 0.07); }
+.quiz-chip.hit strong { color: var(--cyan); }
+.quiz-chip.miss strong { color: var(--accent-strong); }
 
 @media (max-width: 860px) {
     .quiz-layout { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 640px) {
-    .quiz-title { font-size: 40px; }
-    .quiz-stage { padding: 18px 14px; border-radius: 20px; }
+    .quiz-stage { padding: 16px 14px; }
     .quiz-guess { flex-direction: column; }
     .quiz-skip { align-self: flex-start; }
     .quiz-result { flex-direction: column; align-items: flex-start; }
-    .quiz-answer-title { font-size: 30px; }
+    .quiz-result .quiz-answer-title { font-size: 32px; }
     .quiz-clue-text { font-size: 15.5px; }
 }

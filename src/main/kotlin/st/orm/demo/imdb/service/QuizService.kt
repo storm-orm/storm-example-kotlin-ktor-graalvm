@@ -26,8 +26,8 @@ import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import kotlin.random.Random
 
-/** A clue of the quiz: what it tells, and, once revealed, its [text]; null while it is still hidden. */
-data class Clue(val icon: String, val label: String, val text: String?)
+/** A clue of the quiz: what kind it is, for its icon, what it tells, and, once revealed, its [text]; null while it is still hidden. */
+data class Clue(val kind: String, val label: String, val text: String?)
 
 /** A guess as the quiz lists it: the movie guessed, or none for a clue skipped, and whether it was the one. */
 data class Guess(val movie: Movie?, val correct: Boolean)
@@ -153,16 +153,16 @@ class QuizService(
         val countries = movieCountryRepository.findByMovies(listOf(movie.ref())).mapNotNull { Countries.of(it.id.country)?.name }
         val languages = movieLanguageRepository.findLanguages(movie).map(Languages::nameOf)
         val clues = listOf(
-            Clue("📅", "Released", listOfNotNull(movie.startYear?.toString(), genres.joinToString(", ").ifEmpty { null }).joinToString(" · ")),
-            Clue("🌍", "Made", listOfNotNull(
+            Clue("released", "Released", listOfNotNull(movie.startYear?.toString(), genres.joinToString(", ").ifEmpty { null }).joinToString(" · ")),
+            Clue("made", "Made", listOfNotNull(
                 countries.joinToString(", ").ifEmpty { null }?.let { "in $it" },
                 languages.joinToString(", ").ifEmpty { null }?.let { "in $it" },
                 movie.runtimeMinutes?.let { "$it minutes" }
             ).joinToString(" · ").ifEmpty { "Somewhere" }),
-            Clue("🎬", "Directed by", directors.joinToString(", ").ifEmpty { UNKNOWN }),
-            Clue("🎭", "Also starring", actors.getOrNull(2) ?: UNKNOWN),
-            Clue("🎭", "Co-starring", actors.getOrNull(1) ?: UNKNOWN),
-            Clue("⭐", "Starring", actors.getOrNull(0) ?: UNKNOWN)
+            Clue("director", "Directed by", directors.joinToString(", ").ifEmpty { UNKNOWN }),
+            Clue("cast", "Also starring", actors.getOrNull(2) ?: UNKNOWN),
+            Clue("cast", "Co-starring", actors.getOrNull(1) ?: UNKNOWN),
+            Clue("lead", "Starring", actors.getOrNull(0) ?: UNKNOWN)
         )
         return clues.mapIndexed { i, clue -> if (i < revealed) clue else clue.copy(text = null) }
     }
@@ -221,8 +221,8 @@ class QuizService(
 
     companion object {
         const val MAX_GUESSES = 6
-        /** The movies the quiz picks from: known enough to guess from a few clues. */
-        private const val MINIMUM_VOTES = 250_000
+        /** The movies the quiz picks from: known to nearly everyone, some four hundred of them, over a year of quizzes. */
+        private const val MINIMUM_VOTES = 500_000
         private val FIRST_DAY: LocalDate = LocalDate.of(2026, 10, 26)
         /** A clue the catalogue has nothing for: the movies picked first have all of them. */
         private const val UNKNOWN = "Nobody knows"
