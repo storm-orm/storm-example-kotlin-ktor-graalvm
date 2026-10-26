@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupPickers();
     setupLists();
     setupQuiz();
+    setupCinema();
 });
 
 // Under the mouse a poster gives a little: it tilts toward the cursor, a light follows the cursor
@@ -1647,4 +1648,52 @@ function setupQuiz() {
             setTimeout(() => { button.textContent = 'Share your score'; }, 1500);
         }
     }));
+}
+
+// What plays in the visitor's country's cinemas now: a popcorn tag in the corner of every poster of
+// one, and of the movie on its own page, and the home page's row of them, kept to the visitor's
+// taste. Fetched once a page has loaded; the tags follow the cards a scroll adds.
+async function setupCinema() {
+    let cinema;
+    try {
+        const response = await fetch('/api/cinema');
+        if (!response.ok) return;
+        cinema = await response.json();
+    } catch (e) {
+        return;
+    }
+    if (cinema.movies.length === 0) return;
+    const playing = new Set(cinema.movies.map(movie => movie.id));
+    const label = 'In cinemas' + (cinema.country ? ' in ' + cinema.country : '');
+    const tag = () => {
+        document.querySelectorAll('a.movie-card:not([data-cinema-asked])').forEach(card => {
+            card.dataset.cinemaAsked = '';
+            const id = (card.getAttribute('href').match(/^\/movie\/(tt\d+)/) || [])[1];
+            const poster = card.querySelector('.poster');
+            if (!id || !poster || !playing.has(id)) return;
+            const mark = document.createElement('span');
+            mark.className = 'cinema-tag';
+            mark.textContent = '🍿';
+            mark.title = label;
+            poster.appendChild(mark);
+        });
+    };
+    tag();
+    new MutationObserver(tag).observe(document.body, { childList: true, subtree: true });
+
+    const genres = document.querySelector('[data-cinema-movie]');
+    if (genres && playing.has(genres.dataset.cinemaMovie)) {
+        const chip = document.createElement('span');
+        chip.className = 'genre-chip cinema-chip';
+        chip.textContent = '🍿 ' + label;
+        genres.prepend(chip);
+    }
+
+    const row = document.querySelector('[data-cinema-row]');
+    if (row && cinema.picks.length > 0) {
+        const movies = row.querySelector('[data-cinema-movies]');
+        cinema.picks.forEach(movie => movies.append(renderCard('movie', movie)));
+        if (cinema.country) row.querySelector('[data-cinema-country]').textContent = 'in ' + cinema.country;
+        row.hidden = false;
+    }
 }

@@ -104,6 +104,17 @@
 
 <!-- What friends saw lately, and the members of the visitor's clubs, as far as each shares it: with a
      community, the page is about them, and these rows follow what to watch next at twice the length. -->
+<!-- What plays in the visitor's country's cinemas now, filled in after the page loads (setupCinema in app.js). -->
+<section class="section" id="cinema-section" data-cinema-row hidden>
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">In Cinemas Now</h2>
+            <span class="section-note" data-cinema-country></span>
+        </div>
+        <div class="movie-row" data-cinema-movies></div>
+    </div>
+</section>
+
 <section class="section" th:if="${!view.friendsSeen.isEmpty()}" id="friends-seen-section">
     <div class="container">
         <div class="section-header">

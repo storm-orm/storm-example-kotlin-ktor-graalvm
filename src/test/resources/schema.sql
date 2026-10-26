@@ -353,7 +353,7 @@ CREATE TABLE movie_night_vote (
     user_id  VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
     movie_id VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
     voted_at TIMESTAMP NOT NULL,
-    PRIMARY KEY (night_id, user_id),
+    PRIMARY KEY (night_id, user_id, movie_id),
     FOREIGN KEY (night_id, movie_id) REFERENCES movie_night_candidate (night_id, movie_id) ON DELETE CASCADE
 );
 

@@ -35,6 +35,7 @@ import st.orm.demo.imdb.service.ClubService
 import st.orm.demo.imdb.service.CommunityService
 import st.orm.demo.imdb.service.InviteService
 import st.orm.demo.imdb.service.CatchUpService
+import st.orm.demo.imdb.service.CinemaService
 import st.orm.demo.imdb.service.InsightsService
 import st.orm.demo.imdb.service.StatisticsService
 import st.orm.demo.imdb.service.ViewLogProperties
@@ -133,6 +134,7 @@ fun Application.configureDependencies() {
         // TMDB, for the trailers and for imports of TMDB exports, with the key from application.conf (tmdb).
         provide { TmdbClient(tmdbApiKey, resolve()) }
         provide { TmdbService(resolve(), resolve(), resolve(), resolve()) }
+        provide { CinemaService(resolve(), resolve()) }
         provide { MovieSourceService(resolve(), resolve(), resolve()) }
         // Wikidata, for where each movie was made and in what language: its languages and tags.
         provide { WikidataClient(resolve()) }

@@ -61,7 +61,7 @@ data class CandidateView(val candidate: MovieNightCandidate, val voters: List<Us
 
 /**
  * A movie night's page: where it is watched, the candidates with their
- * votes, the visitor's own vote, and what they may do: pick the winner
+ * votes, the visitor's own votes, and what they may do: pick the winner
  * ([canDecide]), the host or one of the club's admins, and, the night come,
  * check the winner in ([canCheckIn]) unless they did ([checkedIn]).
  */
@@ -69,8 +69,10 @@ data class NightView(
     val night: MovieNight,
     val services: List<WatchProvider>,
     val candidates: List<CandidateView>,
-    val myVote: String?,
-    val voteCount: Int,
+    /** The candidates the visitor voted for, by movie id. */
+    val myVotes: Set<String>,
+    /** How many members voted, for one candidate or more. */
+    val voterCount: Int,
     val memberCount: Int,
     val canDecide: Boolean,
     val canCheckIn: Boolean,
@@ -105,8 +107,8 @@ sealed interface Planned {
  * none of the members has seen, from their watchlists and their picks, or
  * from one list, that play where the night is watched: the more members
  * have one on their watchlist, and the better it suits them, the higher it
- * ranks. The members vote, one vote each; the host, or a club admin, picks
- * the winner, which each member checks in once the night has come.
+ * ranks. The members vote, for as many as they like; the host, or a club
+ * admin, picks the winner, which each member checks in once the night has come.
  *
  * Planning asks TMDB where the candidates stream and what the cinemas
  * play, outside any transaction, between the read of the club's lists and
@@ -328,8 +330,8 @@ class MovieNightService(
                 val voters = byMovie[it.movie.id].orEmpty()
                 CandidateView(it, voters, 100.0 * voters.size / most)
             },
-            myVote = votes.firstOrNull { it.user.id == user.id }?.movie?.entityId(),
-            voteCount = votes.size,
+            myVotes = votes.filter { it.user.id == user.id }.map { it.movie.entityId() }.toSet(),
+            voterCount = votes.map { it.user.id }.distinct().size,
             memberCount = clubMemberRepository.countMembers(night.club).toInt(),
             canDecide = night.host.id == user.id || me.admin,
             canCheckIn = winner != null && !night.nightOn.isAfter(today) && !night.nightOn.isBefore(today.minusDays(CHECK_IN_DAYS)),
@@ -343,20 +345,16 @@ class MovieNightService(
     }
 
     /**
-     * Casts the member's vote for one of the night's candidates, moving it
-     * from the one they voted for before; voting for the same again takes
-     * it back. Nothing once the winner is picked, or for anyone not in the club.
+     * Votes for one of the night's candidates, or takes the vote back when
+     * the member voted for it already: a member votes for as many as they
+     * like. Nothing once the winner is picked, or for anyone not in the club.
      */
     suspend fun vote(user: User, nightId: Long, movieId: String, now: Instant = Instant.now()) = transaction {
         val night = movieNightRepository.findById(nightId)?.takeIf { it.winner == null } ?: return@transaction
         clubMemberRepository.findMember(night.club, user.id) ?: return@transaction
         val candidate = movieNightCandidateRepository.findCandidates(night).firstOrNull { it.movie.id == movieId } ?: return@transaction
-        val before = movieNightVoteRepository.findById(MovieNightVotePk(nightId = night.id, userId = user.id))
-        when {
-            before == null -> movieNightVoteRepository.insert(MovieNightVote(night, user, candidate.movie, now))
-            before.movie.entityId() == movieId -> movieNightVoteRepository.remove(before)
-            else -> movieNightVoteRepository.update(before.copy(movie = candidate.movie.ref(), votedAt = now))
-        }
+        val existing = movieNightVoteRepository.findById(MovieNightVotePk(nightId = night.id, userId = user.id, movieId = movieId))
+        if (existing != null) movieNightVoteRepository.remove(existing) else movieNightVoteRepository.insert(MovieNightVote(night, user, candidate.movie, now))
     }
 
     /**

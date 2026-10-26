@@ -55,12 +55,12 @@
     <div class="container">
         <div class="section-header">
             <h2 class="section-title" th:text="${view.decided} ? 'The Ballot' : 'Vote'">Vote</h2>
-            <span class="section-note" th:text="|${view.voteCount} of ${view.memberCount} voted|">2 of 4 voted</span>
+            <span class="section-note" th:text="|${view.voterCount} of ${view.memberCount} voted|">2 of 4 voted</span>
         </div>
-        <p class="stat-note" th:unless="${view.decided}">One vote each: tap another movie to move yours, or yours again to take it back.</p>
+        <p class="stat-note" th:unless="${view.decided}">Vote for every movie you would like to see; tap a vote again to take it back.</p>
         <div class="night-grid">
             <div class="night-candidate" th:each="option : ${view.candidates}"
-                 th:classappend="${option.movie.id == view.myVote} ? 'my-vote' : (${view.decided and option.movie.id != view.night.winner.id} ? 'lost')">
+                 th:classappend="${view.myVotes.contains(option.movie.id)} ? 'my-vote' : (${view.decided and option.movie.id != view.night.winner.id} ? 'lost')">
                 <a th:replace="~{fragments/cards :: movie(${option.movie.id}, ${option.movie.primaryTitle}, ${option.movie.startYear})}"></a>
                 <div class="night-reason" th:text="${option.candidate.reason}">On Netflix · on 2 watchlists</div>
                 <div class="night-votes">
@@ -71,8 +71,8 @@
                 </div>
                 <form th:unless="${view.decided}" th:action="@{/nights/{id}/vote/{movie}(id=${view.night.id}, movie=${option.movie.id})}" method="post">
                     <button type="submit" class="button button-small night-vote"
-                            th:classappend="${option.movie.id == view.myVote} ? 'button-primary'"
-                            th:text="${option.movie.id == view.myVote} ? 'Your vote ✓' : 'Vote'">Vote</button>
+                            th:classappend="${view.myVotes.contains(option.movie.id)} ? 'button-primary'"
+                            th:text="${view.myVotes.contains(option.movie.id)} ? 'Voted ✓' : 'Vote'">Vote</button>
                 </form>
             </div>
         </div>

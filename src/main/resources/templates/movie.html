@@ -37,7 +37,7 @@
                     <span class="meta-original" th:if="${detail.movie.originalTitle != detail.movie.primaryTitle}"
                           th:text="|Original title: ${detail.movie.originalTitle}|">Original title</span>
                 </div>
-                <div class="movie-genres">
+                <div class="movie-genres" th:data-cinema-movie="${detail.movie.id}">
                     <a class="genre-chip" th:each="genre : ${detail.genres}"
                        th:href="@{/browse(genre=${genre.name})}" th:text="${genre.name}">Genre</a>
                     <!-- Where it plays in the visitor's country, from TMDB: logos only, after the tags, shown once the page has found some. -->

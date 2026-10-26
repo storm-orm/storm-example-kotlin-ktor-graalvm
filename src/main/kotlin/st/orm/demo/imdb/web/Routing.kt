@@ -7,6 +7,7 @@ import io.ktor.server.routing.routing
 import st.orm.demo.imdb.service.AccountService
 import st.orm.demo.imdb.service.BrowseService
 import st.orm.demo.imdb.service.CatchUpService
+import st.orm.demo.imdb.service.CinemaService
 import st.orm.demo.imdb.service.FreepodSignIn
 import st.orm.demo.imdb.service.GitSignIn
 import st.orm.demo.imdb.service.HomeService
@@ -51,6 +52,7 @@ fun Application.configureRouting() {
     val listService: ListService by dependencies
     val movieSeenService: MovieSeenService by dependencies
     val catchUpService: CatchUpService by dependencies
+    val cinemaService: CinemaService by dependencies
     val statisticsService: StatisticsService by dependencies
     val insightsService: InsightsService by dependencies
     val wrappedService: WrappedService by dependencies
@@ -84,6 +86,7 @@ fun Application.configureRouting() {
 
         accountRoutes(accountService, streamingService, movieFilterService, gitSignIn, freepodSignIn)
         homeRoutes(homeService)
+        cinemaRoutes(cinemaService)
         watchlistRoutes(watchlistService)
         listsRoutes(listService)
         movieSeenRoutes(movieSeenService, catchUpService, friendService, clubService)

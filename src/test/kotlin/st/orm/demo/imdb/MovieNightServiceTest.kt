@@ -107,15 +107,19 @@ class MovieNightServiceTest {
         val day = LocalDate.parse("2026-10-24")
         val night = (runBlocking { service.plan(alice, club.id, "Friday", day, emptySet(), false, list.id, "NL", now) } as Planned.Night).night
 
+        // Bob votes for both, Alice for Amélie; Bob takes a vote back and gives it again.
         runBlocking { service.vote(alice, night.id, "tt0211915") }
         runBlocking { service.vote(bob, night.id, "tt0133093") }
         runBlocking { service.vote(bob, night.id, "tt0211915") }
+        runBlocking { service.vote(bob, night.id, "tt0133093") }
+        runBlocking { service.vote(bob, night.id, "tt0133093") }
         // Not a candidate: no vote.
         runBlocking { service.vote(bob, night.id, "tt0068646") }
         var view = runBlocking { service.nightOf(alice, night.id, day) }!!
-        assertEquals(2, view.voteCount)
-        assertEquals("tt0211915", view.myVote)
-        assertEquals(listOf(2, 0), view.candidates.sortedBy { it.movie.id != "tt0211915" }.map { it.voters.size })
+        assertEquals(2, view.voterCount)
+        assertEquals(setOf("tt0211915"), view.myVotes)
+        assertEquals(setOf("tt0211915", "tt0133093"), runBlocking { service.nightOf(bob, night.id, day) }!!.myVotes)
+        assertEquals(listOf(2, 1), view.candidates.sortedBy { it.movie.id != "tt0211915" }.map { it.voters.size })
         assertEquals("From Friday picks", view.candidates.first { it.movie.id == "tt0133093" }.candidate.reason)
 
         // Bob is no admin and not the host: he cannot decide. Alice hosts.
@@ -127,8 +131,8 @@ class MovieNightServiceTest {
         assertTrue(view.canCheckIn)
         assertFalse(view.checkedIn)
         // Voting is closed once decided; reopening opens it again.
-        runBlocking { service.vote(bob, night.id, "tt0133093") }
-        assertEquals("tt0211915", runBlocking { service.nightOf(bob, night.id, day) }!!.myVote)
+        runBlocking { service.vote(alice, night.id, "tt0133093") }
+        assertEquals(setOf("tt0211915"), runBlocking { service.nightOf(alice, night.id, day) }!!.myVotes)
         runBlocking { service.decide(alice, night.id, reopen = true) }
         assertFalse(runBlocking { service.nightOf(alice, night.id, day) }!!.decided)
         assertEquals(club.id, runBlocking { service.remove(alice, night.id) })

@@ -11,23 +11,25 @@ import java.time.Instant
 
 data class MovieNightVotePk(
     val nightId: Long,
-    val userId: String
+    val userId: String,
+    val movieId: String
 )
 
 /**
- * A member's vote for a movie night: one per member, keyed by the pair, so
- * voting again moves the vote. The member comes with the row, as the
- * candidates show who voted for them.
+ * A member's vote for one of a movie night's candidates: a member votes for
+ * as many as they like, once each, so the key is the night, the member and
+ * the movie. The member comes with the row, as the candidates show who
+ * voted for them.
  */
 data class MovieNightVote(
     @PK(generation = NONE) val id: MovieNightVotePk,
     @FK @Persist(insertable = false, updatable = false) val night: Ref<MovieNight>,
     @FK @Persist(insertable = false, updatable = false) val user: User,
-    @FK val movie: Ref<Movie>,
+    @FK @Persist(insertable = false, updatable = false) val movie: Ref<Movie>,
     val votedAt: Instant
 ) : Entity<MovieNightVotePk> {
     constructor(night: MovieNight, user: User, movie: Movie, votedAt: Instant) : this(
-        id = MovieNightVotePk(nightId = night.id, userId = user.id),
+        id = MovieNightVotePk(nightId = night.id, userId = user.id, movieId = movie.id),
         night = night.ref(),
         user = user,
         movie = movie.ref(),

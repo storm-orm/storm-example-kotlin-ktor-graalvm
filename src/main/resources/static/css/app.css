@@ -1544,6 +1544,7 @@ img { display: block; }
 /* The trailer behind a hero, over the backdrop image and under the hero's shading: a small player
    scaled to cover (--video-scale, set by the script), blurred and dimmed, that cannot be clicked. */
 .backdrop-video {
+    --behind-zoom: 1.4;
     position: absolute;
     inset: 0;
     overflow: hidden;
@@ -1562,7 +1563,9 @@ img { display: block; }
     width: 480px;
     height: 270px;
     border: 0;
-    transform: translate(-50%, -50%) scale(var(--video-scale, 3));
+    /* Behind, the frame is zoomed in past YouTube's title bar and control bar, which come back for a
+       few seconds every time the trailer starts over: they stay out of the picture. */
+    transform: translate(-50%, -50%) scale(calc(var(--video-scale, 3) * var(--behind-zoom)));
     filter: blur(2px) brightness(0.55) saturate(1.25);
     /* Coming forward and going back are instant: the framing is the same on both sides, and a size
        and a scale animated together would swell on the way. Only the sharpness fades. */
@@ -3620,3 +3623,27 @@ body::after {
     .chain-via { position: static; width: auto; flex-direction: row; gap: 4px; margin-bottom: 6px; }
     .chain-link:not(:first-child)::before { display: none; }
 }
+
+/* ── In cinemas ────────────────────────────────────────────────────── */
+
+/* A poster of a movie in the cinemas now: popcorn in its top corner, on glass. */
+.cinema-tag {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 3;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: 1px solid rgba(var(--yellow-rgb), 0.6);
+    background: rgba(13, 12, 22, 0.72);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    font-size: 15px;
+    box-shadow: 0 0 12px rgba(var(--yellow-rgb), 0.35);
+}
+
+.cinema-chip { border-color: rgba(var(--yellow-rgb), 0.6); color: var(--yellow); }
