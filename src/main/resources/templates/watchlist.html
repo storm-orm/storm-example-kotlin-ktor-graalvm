@@ -5,10 +5,16 @@
 <nav th:replace="~{fragments/layout :: navbar('watchlist')}"></nav>
 
 <header class="page-header">
-    <div class="container">
-        <h1 class="page-title">My Watchlist</h1>
-        <p class="page-subtitle"
-           th:text="|${#numbers.formatInteger(watchlistPage.totalCount(), 1, 'COMMA')} saved movies|">3 saved movies</p>
+    <div class="container page-header-row">
+        <div>
+            <h1 class="page-title">My Watchlist</h1>
+            <p class="page-subtitle"
+               th:text="|${#numbers.formatInteger(watchlistPage.totalCount(), 1, 'COMMA')} saved movies|">3 saved movies</p>
+        </div>
+        <!-- The lists picked by hand, the visitor's own and their clubs', beside the one list everybody has. -->
+        <div class="page-actions" th:if="${account.name != null}">
+            <a class="button" th:href="@{/lists}">Your lists</a>
+        </div>
     </div>
 </header>
 

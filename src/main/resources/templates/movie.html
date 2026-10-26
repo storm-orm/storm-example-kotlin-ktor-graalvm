@@ -103,6 +103,12 @@
                                 th:data-movie-id="${detail.movie.id}"
                                 th:classappend="${detail.lists.liked == false} ? 'active'">👎</button>
                     </div>
+                    <!-- The visitor's lists, their own and their clubs': ticked where the movie is on one, a tap to put it on or
+                         take it off, and a new list with the movie on it. The script fills it in when it opens (app.js). -->
+                    <div class="list-menu" th:if="${account.name != null}">
+                        <button class="button list-menu-button" th:data-list-menu="${detail.movie.id}">Lists</button>
+                        <div class="share-menu list-menu-options" data-list-menu-options hidden></div>
+                    </div>
                     <!-- Share: the device's share sheet where there is one, else a menu; the link unfurls into a card with the poster. -->
                     <div class="share">
                         <button class="button share-button" data-share

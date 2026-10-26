@@ -94,5 +94,19 @@
     <span class="chain-person-name" th:text="${person.primaryName}">Keanu Reeves</span>
 </a>
 
+<!-- A list as a card: the posters of its latest movies fanned out, its name, how many movies, and whose it is
+     ([owner]: a club's name, "by Alice", or nothing for the visitor's own). -->
+<a th:fragment="listCard(summary, owner)" class="list-card" th:href="@{/lists/{id}(id=${summary.list.id})}">
+    <span class="list-posters" th:classappend="|posters-${summary.posters.size()}|">
+        <span class="list-poster" th:each="movie : ${summary.posters}">
+            <img th:src="@{/api/poster/{id}(id=${movie.id})}" alt="" loading="lazy" onerror="this.classList.add('failed')">
+        </span>
+    </span>
+    <span class="list-card-name" th:text="${summary.list.name}">Best heist films</span>
+    <span class="list-card-meta">
+        <th:block th:text="${summary.movieCount == 1} ? '1 movie' : |${summary.movieCount} movies|">12 movies</th:block><th:block th:if="${owner != null}"> · <th:block th:text="${owner}">by Alice</th:block></th:block>
+    </span>
+</a>
+
 </body>
 </html>

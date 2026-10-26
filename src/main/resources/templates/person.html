@@ -19,8 +19,7 @@
                th:data-summary-endpoint="|/api/summary/person/${person.id}|"></p>
             <!-- Six degrees from Kevin Bacon, the game's namesake; on his own page, from him to anyone. -->
             <a class="button button-small degrees-from" th:with="bacon='nm0000102'"
-               th:href="${person.id == bacon} ? @{/six-degrees(from=${person.id})} : @{/six-degrees(from=${person.id}, to=${bacon})}"
->Six degrees from Kevin Bacon</a>
+               th:href="${person.id == bacon} ? @{/six-degrees(from=${person.id})} : @{/six-degrees(from=${person.id}, to=${bacon})}">Six degrees from Kevin Bacon</a>
         </div>
     </div>
 </header>

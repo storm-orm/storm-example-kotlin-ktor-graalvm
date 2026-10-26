@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${view.list.name})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('watchlist')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <a class="back-link" th:if="${view.list.club != null}" th:href="@{/clubs/{id}(id=${view.list.club.id})}" th:text="|← ${view.list.club.name}|">← Office film club</a>
+        <a class="back-link" th:if="${view.list.club == null}" th:href="@{/lists}">← Lists</a>
+        <div class="page-header-row">
+            <div>
+                <h1 class="page-title" th:text="${view.list.name}">Best heist films</h1>
+                <p class="page-subtitle list-byline">
+                    <span th:replace="~{fragments/community :: avatar(${view.list.owner}, '')}"></span>
+                    <span th:text="${view.list.club != null} ? |Started by ${view.list.owner.name} for the club| : |A list by ${view.list.owner.name}|">A list by Alice</span>
+                    · <span th:text="${view.items.size() == 1} ? '1 movie' : |${view.items.size()} movies|">12 movies</span>
+                </p>
+                <p class="list-description" th:if="${view.list.description != null}" th:text="${view.list.description}">Crews, vaults and one last job.</p>
+            </div>
+            <div class="page-actions">
+                <!-- A list of someone's own is public: the share sheet, or the menu on a desktop. -->
+                <div class="share" th:if="${share != null}">
+                    <button class="button share-button" data-share th:data-share-title="${share.title}"
+                            th:data-share-text="${share.description}" th:data-share-url="${share.url}">Share</button>
+                    <div class="share-menu" data-share-menu hidden>
+                        <button class="share-option" data-share-copy>Copy link</button>
+                        <a class="share-option" data-share-x target="_blank" rel="noopener">Post on X</a>
+                        <a class="share-option" data-share-mail>Email</a>
+                    </div>
+                </div>
+                <a class="button" th:if="${view.canManage and !editing}" th:href="@{/lists/{id}(id=${view.list.id}, edit='')}">Edit</a>
+            </div>
+        </div>
+    </div>
+</header>
+
+<section class="section" th:if="${editing}" id="edit-list">
+    <div class="container">
+        <form class="stat-card list-form" th:action="@{/lists/{id}/edit(id=${view.list.id})}" method="post">
+            <h2>Edit the list</h2>
+            <label class="field">
+                <span>Name</span>
+                <input type="text" name="name" required maxlength="80" th:value="${view.list.name}">
+            </label>
+            <label class="field">
+                <span>What it is about <span class="choice-hint">optional</span></span>
+                <textarea name="description" maxlength="400" rows="2" th:text="${view.list.description}"></textarea>
+            </label>
+            <div class="invite-buttons">
+                <button type="submit" class="button button-primary">Save</button>
+                <a class="link-button" th:href="@{/lists/{id}(id=${view.list.id})}">Cancel</a>
+            </div>
+        </form>
+        <form class="club-leave" th:action="@{/lists/{id}/remove(id=${view.list.id})}" method="post" data-confirm-remove>
+            <button type="submit" class="link-button">Remove the list</button>
+        </form>
+    </div>
+</section>
+
+<!-- Adding a movie: picked from the suggestions as its title is typed, then on the list at once. -->
+<section class="section" th:if="${view.canEdit}">
+    <div class="container">
+        <div class="picker search-box list-add" data-picker="movie" th:data-list-add="|/api/lists/${view.list.id}/movies/|">
+            <input type="search" placeholder="Add a movie…" autocomplete="off" aria-label="Add a movie" data-picker-input>
+            <input type="hidden" data-picker-value>
+            <div class="search-suggestions" data-picker-suggestions hidden></div>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="empty-state" th:if="${view.items.isEmpty()}">
+            Nothing on this list yet<th:block th:if="${view.canEdit}">: add a movie above, or with the Lists button on a movie's page</th:block>.
+        </div>
+        <div class="movie-grid" id="list-movies">
+            <div class="list-item" th:each="item : ${view.items}" th:data-movie-id="${item.movie.id}">
+                <a th:replace="~{fragments/cards :: movie(${item.movie.id}, ${item.movie.primaryTitle}, ${item.movie.startYear})}"></a>
+                <button type="button" class="dismiss-button" th:if="${view.canEdit}" title="Take off the list" aria-label="Take off the list"
+                        th:data-list-remove="|/api/lists/${view.list.id}/movies/${item.movie.id}|">×</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -40,6 +40,22 @@
     </div>
 </section>
 
+<!-- The club's lists, which every member adds to. -->
+<section class="section" id="club-lists-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Club Lists</h2>
+            <a class="section-link" th:href="@{/lists(create='', club=${view.club.id})}">New list</a>
+        </div>
+        <div class="empty-state" th:if="${lists.isEmpty()}">
+            No lists yet: start one for the club, and every member adds the movies they would pick.
+        </div>
+        <div class="list-grid">
+            <th:block th:each="summary : ${lists}"><a th:replace="~{fragments/cards :: listCard(${summary}, null)}"></a></th:block>
+        </div>
+    </div>
+</section>
+
 <!-- What most of the members have seen: at least two of them. -->
 <section class="section" th:unless="${view.mostSeen.isEmpty()}" id="most-seen-section">
     <div class="container">

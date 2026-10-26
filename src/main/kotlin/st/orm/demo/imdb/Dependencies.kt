@@ -12,6 +12,7 @@ import st.orm.demo.imdb.service.RecommendationService
 import st.orm.demo.imdb.service.GalleryRefreshProperties
 import st.orm.demo.imdb.service.GitSignIn
 import st.orm.demo.imdb.service.HomeService
+import st.orm.demo.imdb.service.ListService
 import st.orm.demo.imdb.service.CachedImdbDatasets
 import st.orm.demo.imdb.service.ImdbDataSync
 import st.orm.demo.imdb.service.ImdbDatasets
@@ -96,6 +97,7 @@ fun Application.configureDependencies() {
         provide { FriendService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { ClubService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { InviteService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { ListService(resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { WatchlistService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { MovieSeenService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { CatchUpService(resolve(), resolve()) }

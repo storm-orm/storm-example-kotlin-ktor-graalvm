@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupPosterTilt();
     setupCardTitles();
     setupPickers();
+    setupLists();
 });
 
 // Under the mouse a poster gives a little: it tilts toward the cursor, a light follows the cursor
@@ -1550,4 +1551,82 @@ function setupPickers() {
             picker.querySelector('[data-picker-input]').focus();
         });
     });
+}
+
+// Lists. On a movie's page, the Lists button opens a menu of the visitor's lists, fetched when it
+// opens: a tap on one puts the movie on it or takes it off, and the tick follows; the last option
+// starts a new list with the movie on it. On a list's page, a movie picked in the box goes on the
+// list and the page reloads to show it; the × on a card takes it off.
+function setupLists() {
+    const button = document.querySelector('[data-list-menu]');
+    if (button) {
+        const movieId = button.dataset.listMenu;
+        const menu = button.parentElement.querySelector('[data-list-menu-options]');
+        const option = (label, className) => {
+            const element = document.createElement('button');
+            element.type = 'button';
+            element.className = 'share-option ' + (className || '');
+            element.textContent = label;
+            return element;
+        };
+        button.addEventListener('click', async () => {
+            if (!menu.hidden) { menu.hidden = true; return; }
+            const response = await fetch('/api/lists/choices?movie=' + encodeURIComponent(movieId));
+            if (!response.ok) return;
+            const choices = await response.json();
+            menu.replaceChildren(...choices.map(choice => {
+                const element = option(choice.name, 'list-choice' + (choice.contains ? ' on-list' : ''));
+                if (choice.club) {
+                    const club = document.createElement('span');
+                    club.className = 'list-choice-club';
+                    club.textContent = choice.club;
+                    element.append(club);
+                }
+                element.addEventListener('click', async () => {
+                    const toggled = await fetch('/api/lists/' + choice.id + '/movies/' + encodeURIComponent(movieId), { method: 'POST' });
+                    if (toggled.ok) element.classList.toggle('on-list', (await toggled.json()).onList);
+                });
+                return element;
+            }));
+            const create = document.createElement('a');
+            create.className = 'share-option' + (choices.length ? ' share-option-apart' : '');
+            create.href = '/lists?create&movie=' + encodeURIComponent(movieId);
+            create.textContent = 'New list…';
+            menu.append(create);
+            // Fixed on the page's body, under the button, or over it where there is no room below:
+            // the movie's hero clips what reaches out of it.
+            document.body.append(menu);
+            menu.hidden = false;
+            const at = button.getBoundingClientRect();
+            menu.style.position = 'fixed';
+            menu.style.left = `${Math.round(Math.min(at.left, window.innerWidth - menu.offsetWidth - 8))}px`;
+            const below = at.bottom + 8 + menu.offsetHeight <= window.innerHeight;
+            menu.style.top = `${Math.round(below ? at.bottom + 8 : at.top - 8 - menu.offsetHeight)}px`;
+        });
+        document.addEventListener('click', event => {
+            const path = event.composedPath();
+            if (!path.includes(button) && !path.includes(menu)) menu.hidden = true;
+        });
+        window.addEventListener('scroll', () => { menu.hidden = true; }, { passive: true });
+    }
+
+    document.querySelectorAll('[data-list-add]').forEach(picker => picker.addEventListener('pick', async event => {
+        const response = await fetch(picker.dataset.listAdd + encodeURIComponent(event.detail.id), { method: 'POST' });
+        // Picking a movie already on the list takes it off, as the toggle does; put it back, as the box adds.
+        if (response.ok && !(await response.json()).onList) await fetch(picker.dataset.listAdd + encodeURIComponent(event.detail.id), { method: 'POST' });
+        location.reload();
+    }));
+
+    document.addEventListener('click', async event => {
+        const remove = event.target.closest('[data-list-remove]');
+        if (!remove) return;
+        remove.disabled = true;
+        const response = await fetch(remove.dataset.listRemove, { method: 'POST' });
+        if (response.ok) remove.closest('.list-item').remove();
+        else remove.disabled = false;
+    });
+
+    document.querySelectorAll('[data-confirm-remove]').forEach(form => form.addEventListener('submit', event => {
+        if (!confirm('Remove this list, and the movies on it?')) event.preventDefault();
+    }));
 }

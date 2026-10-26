@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Lists')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('watchlist')}"></nav>
+
+<header class="page-header">
+    <div class="container page-header-row">
+        <div>
+            <h1 class="page-title">Lists</h1>
+            <p class="page-subtitle">Movies picked by hand: your own lists, your clubs', and the ones others made.</p>
+        </div>
+        <div class="page-actions" th:unless="${creating}">
+            <a class="button button-primary" th:href="@{/lists(create='')}">New list</a>
+        </div>
+    </div>
+</header>
+
+<!-- A new list: the visitor's own, public, or one of their clubs', for its members; from a movie's page, with the movie on it. -->
+<section class="section" th:if="${creating}" id="new-list">
+    <div class="container">
+        <form class="stat-card list-form" th:action="@{/lists}" method="post">
+            <h2>New list</h2>
+            <p class="stat-note" th:if="${startMovie != null}">
+                It starts with <strong th:text="${startMovie.primaryTitle}">The Matrix</strong>.
+            </p>
+            <input type="hidden" name="movie" th:if="${startMovie != null}" th:value="${startMovie.id}">
+            <label class="field">
+                <span>Name</span>
+                <input type="text" name="name" required maxlength="80" placeholder="Best heist films" autofocus>
+            </label>
+            <label class="field">
+                <span>What it is about <span class="choice-hint">optional</span></span>
+                <textarea name="description" maxlength="400" rows="2" placeholder="Crews, vaults and one last job."></textarea>
+            </label>
+            <label class="field" th:unless="${view.clubs.isEmpty()}">
+                <span>For</span>
+                <select name="club" class="country-select">
+                    <option value="">Just me: public, anyone with the link sees it</option>
+                    <option th:each="club : ${view.clubs}" th:value="${club.id}" th:text="|${club.name}: for its members, who all add to it|"
+                            th:selected="${club.id == startClub}">Office film club</option>
+                </select>
+            </label>
+            <div class="invite-buttons">
+                <button type="submit" class="button button-primary">Make the list</button>
+                <a class="link-button" th:href="${startMovie != null} ? @{/movie/{id}(id=${startMovie.id})} : @{/lists}">Cancel</a>
+            </div>
+        </form>
+    </div>
+</section>
+
+<section class="section" id="own-lists">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Your Lists</h2>
+        </div>
+        <div class="empty-state" th:if="${view.own.isEmpty()}">
+            No lists yet. Start one here, or from a movie's page with its Lists button: a list of your own
+            is public, so it is a good way to share your favourites.
+        </div>
+        <div class="list-grid">
+            <th:block th:each="summary : ${view.own}"><a th:replace="~{fragments/cards :: listCard(${summary}, null)}"></a></th:block>
+        </div>
+    </div>
+</section>
+
+<section class="section" id="club-lists" th:unless="${view.clubLists.isEmpty()}">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Your Clubs' Lists</h2>
+        </div>
+        <div class="list-grid">
+            <th:block th:each="summary : ${view.clubLists}"><a th:replace="~{fragments/cards :: listCard(${summary}, ${summary.list.club.name})}"></a></th:block>
+        </div>
+    </div>
+</section>
+
+<section class="section" id="other-lists" th:unless="${view.others.isEmpty()}">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Lists to Discover</h2>
+            <span class="section-note">made by others, the latest changed first</span>
+        </div>
+        <div class="list-grid">
+            <th:block th:each="summary : ${view.others}"><a th:replace="~{fragments/cards :: listCard(${summary}, |by ${summary.list.owner.name}|)}"></a></th:block>
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
