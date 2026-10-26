@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupLists();
     setupQuiz();
     setupCinema();
+    setupNightVotes();
 });
 
 // Under the mouse a poster gives a little: it tilts toward the cursor, a light follows the cursor
@@ -1697,4 +1698,25 @@ async function setupCinema() {
         if (cinema.country) row.querySelector('[data-cinema-country]').textContent = 'in ' + cinema.country;
         row.hidden = false;
     }
+}
+
+// A movie night's votes: a tap posts the vote and swaps the ballot for the fresh one from the
+// page, in place, so the page keeps its place rather than start over at the top.
+function setupNightVotes() {
+    // On the document: the ballot is swapped for a new element with every vote.
+    document.addEventListener('submit', async event => {
+        const form = event.target;
+        const ballot = form.closest('[data-night-ballot]');
+        if (!ballot || !form.querySelector('.night-vote')) return;
+        event.preventDefault();
+        form.querySelector('.night-vote').disabled = true;
+        try {
+            const response = await fetch(form.action, { method: 'POST' });
+            if (!response.ok) { form.submit(); return; }
+            const fresh = new DOMParser().parseFromString(await response.text(), 'text/html').querySelector('[data-night-ballot]');
+            if (fresh) ballot.replaceWith(fresh); else form.submit();
+        } catch (e) {
+            form.submit();
+        }
+    });
 }

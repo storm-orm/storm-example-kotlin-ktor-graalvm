@@ -51,7 +51,9 @@
     </div>
 </section>
 
-<section class="section" id="night-candidates">
+<!-- A vote posts and the ballot alone is swapped for the fresh one (setupNightVotes in app.js), so
+     the page keeps its place; without the script the form posts and the page reloads. -->
+<section class="section" id="night-candidates" data-night-ballot>
     <div class="container">
         <div class="section-header">
             <h2 class="section-title" th:text="${view.decided} ? 'The Ballot' : 'Vote'">Vote</h2>
