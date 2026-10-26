@@ -49,6 +49,7 @@ import st.orm.demo.imdb.service.configuredProviders
 import st.orm.demo.imdb.service.freepodSignIn
 import st.orm.demo.imdb.service.galleryRefreshProperties
 import st.orm.demo.imdb.service.imdbSyncProperties
+import st.orm.demo.imdb.service.objectBucket
 import st.orm.demo.imdb.service.viewLogProperties
 import st.orm.demo.imdb.web.PosterController
 import tools.jackson.databind.ObjectMapper
@@ -67,6 +68,7 @@ fun Application.configureDependencies() {
     val configuredProviders = environment.config.configuredProviders()
     val freepodSignIn = environment.config.freepodSignIn()
     val tmdbApiKey = environment.config.propertyOrNull("tmdb.apiKey")?.getString()
+    val imageBucket = environment.config.objectBucket()
     dependencies {
         // With an ObservationRegistry in the container, the Storm plugin observes
         // every query (storm.query) and every transaction (storm.transaction); the
@@ -130,7 +132,8 @@ fun Application.configureDependencies() {
         provide { MovieFilterService(resolve(), resolve(), resolve()) }
         provide { StreamingService(resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PersonGalleryService(resolve(), resolve(), resolve(), resolve(), resolve<GalleryRefreshProperties>().maxAge) }
-        provide { PosterController(resolve()) }
+        // The images are kept in the deployment's bucket, where it has one; see application.conf (images).
+        provide { PosterController(resolve(), imageBucket) }
         provide<ImdbDatasets> { CachedImdbDatasets(syncProperties.cacheDirectory, syncProperties.datasetBaseUrl) }
         provide {
             ImdbDataSync(
