@@ -7,7 +7,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.slf4j.LoggerFactory
 import st.orm.Ref
-import st.orm.TransactionPropagation
 import st.orm.Window
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieFilter
@@ -75,6 +74,9 @@ data class HomeRecommendations(
  * window of the visitor's picks and the cursor to scroll on, or the
  * catalogue's picks.
  */
+/** A page's view, and the picks on it that count as shown once the page's read has closed. */
+private data class Shown<T>(val view: T, val picks: List<Recommendation>)
+
 data class ForYouView(
     val personal: Boolean,
     val newArrivals: List<RecommendedMovie>,
@@ -153,42 +155,55 @@ class RecommendationService(
      * opens with, and the row under it leaves it out. The picks shown count
      * as shown ([markShown]).
      */
-    suspend fun forHome(user: User): HomeRecommendations = transaction(readOnly = true) {
-        val recommendations = recommendationRepository.findAll(user)
-        if (recommendations.isEmpty()) {
-            refreshIfSeeded(user)
-            val picks = coldStartPicks(user.movieFilter)
-            val featured = picks.take(PAGE_SIZE).randomOrNull()
-            HomeRecommendations(
-                personal = false,
-                featured = featured,
-                watchNext = picks.filter { it != featured }.take(WATCH_NEXT_LIMIT),
-                shelves = emptyList()
-            )
-        } else {
-            val featured = recommendations.take(PAGE_SIZE).random()
-            val watchNext = (recommendations - featured).take(WATCH_NEXT_LIMIT)
-            val shelves = shelves(recommendations)
-            markShown(user, (listOf(featured) + watchNext + shelves.flatMap { it.picks }).distinctBy { it.movie.id }, Instant.now())
-            HomeRecommendations(
-                personal = true,
-                featured = featured.toRecommendedMovie(),
-                watchNext = watchNext.map { it.toRecommendedMovie() },
-                shelves = shelves.map { Shelf(it.seed, it.title, it.picks.map { pick -> pick.toRecommendedMovie() }) }
-            )
+    suspend fun forHome(user: User): HomeRecommendations {
+        val read = transaction(readOnly = true) {
+            val recommendations = recommendationRepository.findAll(user)
+            if (recommendations.isEmpty()) {
+                refreshIfSeeded(user)
+                val picks = coldStartPicks(user.movieFilter)
+                val featured = picks.take(PAGE_SIZE).randomOrNull()
+                Shown(
+                    HomeRecommendations(
+                        personal = false,
+                        featured = featured,
+                        watchNext = picks.filter { it != featured }.take(WATCH_NEXT_LIMIT),
+                        shelves = emptyList()
+                    ),
+                    picks = emptyList()
+                )
+            } else {
+                val featured = recommendations.take(PAGE_SIZE).random()
+                val watchNext = (recommendations - featured).take(WATCH_NEXT_LIMIT)
+                val shelves = shelves(recommendations)
+                Shown(
+                    HomeRecommendations(
+                        personal = true,
+                        featured = featured.toRecommendedMovie(),
+                        watchNext = watchNext.map { it.toRecommendedMovie() },
+                        shelves = shelves.map { Shelf(it.seed, it.title, it.picks.map { pick -> pick.toRecommendedMovie() }) }
+                    ),
+                    picks = (listOf(featured) + watchNext + shelves.flatMap { it.picks }).distinctBy { it.movie.id }
+                )
+            }
         }
+        markShown(user, read.picks, Instant.now())
+        return read.view
     }
 
     /**
      * Counts the picks as shown and the visitor as seen, in one batched
-     * update and one upsert. A page is a read, so the write gets a
-     * transaction of its own; a page that read inside a read-only
-     * transaction can still call this. A recomputation that replaces the
-     * rows between the page's read and this write is harmless: the update
-     * locks the rows that still exist and counts only those.
+     * update and one upsert, in a transaction of its own once the page's
+     * read has closed. Never inside the read: a write of its own there would
+     * hold a second connection while the first is held, and a burst of pages
+     * each holding one and waiting for a second takes every connection of
+     * the pool, so nothing gets one until they time out. A recomputation
+     * that replaces the rows between the page's read and this write is
+     * harmless: the update locks the rows that still exist and counts only
+     * those.
      */
     private suspend fun markShown(user: User, shown: List<Recommendation>, now: Instant) {
-        transaction(propagation = TransactionPropagation.REQUIRES_NEW) {
+        if (shown.isEmpty()) return
+        transaction {
             recommendationRepository.recordShown(user, shown, now)
             userRepository.touch(user, now)
         }
@@ -200,31 +215,40 @@ class RecommendationService(
      * scroll fetches after it ([scroll]) do not, so a long scroll is not a
      * long run of writes.
      */
-    suspend fun forYou(user: User): ForYouView = transaction(readOnly = true) {
-        val window = recommendationRepository.scroll(user, bestFirst(PAGE_SIZE))
-        if (window.content().isEmpty()) {
-            refreshIfSeeded(user)
-            val picks = coldStartPicks(user.movieFilter)
-            ForYouView(
-                personal = false,
-                newArrivals = picks.filter { pick -> pick.reasons.any { it.kind == ReasonKind.NEW } }.take(NEW_ARRIVALS_LIMIT),
-                newSince = NEW_ARRIVALS_FLOOR,
-                movies = picks,
-                nextCursor = null
-            )
-        } else {
-            val now = Instant.now()
-            val newSince = newArrivalsWindow(user, now)
-            val newArrivals = newArrivals(user, now.minus(newSince), now)
-            markShown(user, (newArrivals + window.content()).distinctBy { it.movie.id }, now)
-            ForYouView(
-                personal = true,
-                newArrivals = newArrivals.map { it.toRecommendedMovie() },
-                newSince = newSince,
-                movies = window.content().map { it.toRecommendedMovie() },
-                nextCursor = window.nextCursor()
-            )
+    suspend fun forYou(user: User): ForYouView {
+        val read = transaction(readOnly = true) {
+            val window = recommendationRepository.scroll(user, bestFirst(PAGE_SIZE))
+            if (window.content().isEmpty()) {
+                refreshIfSeeded(user)
+                val picks = coldStartPicks(user.movieFilter)
+                Shown(
+                    ForYouView(
+                        personal = false,
+                        newArrivals = picks.filter { pick -> pick.reasons.any { it.kind == ReasonKind.NEW } }.take(NEW_ARRIVALS_LIMIT),
+                        newSince = NEW_ARRIVALS_FLOOR,
+                        movies = picks,
+                        nextCursor = null
+                    ),
+                    picks = emptyList()
+                )
+            } else {
+                val now = Instant.now()
+                val newSince = newArrivalsWindow(user, now)
+                val newArrivals = newArrivals(user, now.minus(newSince), now)
+                Shown(
+                    ForYouView(
+                        personal = true,
+                        newArrivals = newArrivals.map { it.toRecommendedMovie() },
+                        newSince = newSince,
+                        movies = window.content().map { it.toRecommendedMovie() },
+                        nextCursor = window.nextCursor()
+                    ),
+                    picks = (newArrivals + window.content()).distinctBy { it.movie.id }
+                )
+            }
         }
+        markShown(user, read.picks, Instant.now())
+        return read.view
     }
 
     /**

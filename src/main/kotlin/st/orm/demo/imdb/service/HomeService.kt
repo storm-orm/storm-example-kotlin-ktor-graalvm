@@ -63,13 +63,19 @@ class HomeService(
      * All home page sections for the visitor, read in one read-only
      * transaction. A visitor with friends or clubs gets the community's rows
      * at twice the length, and not the seen list, the recently viewed or the
-     * top ten, which are then not read.
+     * top ten, which are then not read. The recommendations come first, on
+     * their own: they count the picks shown in a write after their read, which
+     * must not wait for a connection while this transaction holds one.
      */
-    suspend fun buildHomeView(user: User): HomeView = transaction(readOnly = true) {
+    suspend fun buildHomeView(user: User): HomeView {
         val recommendations = recommendationService.forHome(user)
+        return transaction(readOnly = true) { homeView(user, recommendations) }
+    }
+
+    private suspend fun homeView(user: User, recommendations: HomeRecommendations): HomeView {
         val community = user.name != null && (friendService.hasFriends(user) || clubService.isMember(user))
         val feedLimit = if (community) COMMUNITY_ROW_LIMIT else LIST_PREVIEW_LIMIT
-        HomeView(
+        return HomeView(
             featured = recommendations.featured?.let { featured(it) },
             recentlyViewed = if (community) emptyList() else recentlyViewed(user),
             topRated = if (community) emptyList() else ratingRepository.findTopRated(TOP_RATED_MINIMUM_VOTES, user.movieFilter, TOP_RATED_LIMIT),
