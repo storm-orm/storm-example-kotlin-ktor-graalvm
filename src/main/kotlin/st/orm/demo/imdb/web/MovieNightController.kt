@@ -43,8 +43,9 @@ fun Route.movieNightRoutes(movieNightService: MovieNightService, movieSeenServic
             clubId = clubId,
             title = form["title"].orEmpty(),
             day = day,
-            serviceIds = form.getAll("service").orEmpty().mapNotNull { it.toIntOrNull() }.toSet(),
-            cinema = form["cinema"] != null,
+            // At the cinema, or at home on the services ticked.
+            serviceIds = if (form["where"] == "cinema") emptySet() else form.getAll("service").orEmpty().mapNotNull { it.toIntOrNull() }.toSet(),
+            cinema = form["where"] == "cinema",
             listId = form["list"]?.toLongOrNull(),
             country = call.country()?.code
         )

@@ -42,13 +42,15 @@ data class ServiceChoice(val service: WatchProvider, val members: List<String>, 
 /**
  * The planning form of a club's movie night: the members' services, the
  * host's own ticked, the lists to pick from, the country the services and
- * the cinemas are of, and the next Friday to start from.
+ * the cinemas are of, whether TMDB knows what plays in its cinemas, so the
+ * night can be there, and the next Friday to start from.
  */
 data class PlanView(
     val club: Club,
     val services: List<ServiceChoice>,
     val lists: List<MovieList>,
     val country: Country?,
+    val cinemas: Boolean,
     val day: LocalDate
 )
 
@@ -131,8 +133,18 @@ class MovieNightService(
 
     /* ── Planning ─────────────────────────────────────────────────── */
 
-    /** The planning form for a member of the club, or null for anyone else. */
-    suspend fun planFor(user: User, clubId: Long, country: Country?, today: LocalDate = LocalDate.now(ZoneOffset.UTC)): PlanView? = transaction(readOnly = true) {
+    /**
+     * The planning form for a member of the club, or null for anyone else.
+     * The cinema is offered where TMDB knows what plays in the country's
+     * cinemas; elsewhere the night is at home.
+     */
+    suspend fun planFor(user: User, clubId: Long, country: Country?, today: LocalDate = LocalDate.now(ZoneOffset.UTC)): PlanView? {
+        // Asked before the transaction, as it may ask TMDB; kept for half a day, so the form rarely waits on it.
+        val cinemas = country != null && tmdbService.nowPlayingIn(country.code).isNotEmpty()
+        return planView(user, clubId, country, cinemas, today)
+    }
+
+    private suspend fun planView(user: User, clubId: Long, country: Country?, cinemas: Boolean, today: LocalDate): PlanView? = transaction(readOnly = true) {
         val club = clubRepository.findById(clubId) ?: return@transaction null
         clubMemberRepository.findMember(club, user.id) ?: return@transaction null
         val members = clubMemberRepository.findMembers(listOf(club)).map { it.user }
@@ -150,6 +162,7 @@ class MovieNightService(
             services = services,
             lists = movieListRepository.findOfClubs(listOf(club)) + movieListRepository.findOwn(user),
             country = country,
+            cinemas = cinemas,
             day = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.FRIDAY))
         )
     }

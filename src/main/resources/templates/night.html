@@ -10,8 +10,8 @@
         <p class="night-eyebrow" th:text="${view.day}">Friday 31 October</p>
         <h1 class="page-title" th:text="${view.night.title}">Movie night</h1>
         <div class="night-where">
-            <span class="night-chip" th:if="${view.night.cinema}"><span class="line-icon icon-ticket" aria-hidden="true"></span>The cinema</span>
-            <span class="night-chip" th:if="${!view.night.cinema and view.services.isEmpty()}"><span class="line-icon icon-home" aria-hidden="true"></span>Anywhere</span>
+            <span class="night-chip" th:if="${view.night.cinema}">🍿 At the cinema</span>
+            <span class="night-chip" th:if="${!view.night.cinema and view.services.isEmpty()}">📺 At home</span>
             <span class="night-chip" th:each="service : ${view.services}">
                 <img th:if="${service.logoPath != null}" th:src="|https://image.tmdb.org/t/p/w92${service.logoPath}|" alt="">
                 <span th:text="${service.name}">Netflix</span>
