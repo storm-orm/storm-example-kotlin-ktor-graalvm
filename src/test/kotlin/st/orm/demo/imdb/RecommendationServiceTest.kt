@@ -31,6 +31,7 @@ import st.orm.repository.repository
 import st.orm.template.ORMTemplate
 import st.orm.test.StormTest
 import java.time.Instant
+import javax.sql.DataSource
 import java.time.Year
 import java.time.ZoneOffset
 
@@ -159,6 +160,20 @@ class RecommendationServiceTest {
         val reloaded = movieRepository.getById("tt0234215")
         service.record(user, reloaded, RecommendationEventKind.OPENED)
         assertEquals(0, recommendationRepository.findAll(user).first { it.movie.id == reloaded.id }.shownCount)
+    }
+
+    @Test
+    fun `the home page and For You count the picks shown without a second connection while the first is open`(orm: ORMTemplate, dataSource: DataSource) {
+        val movieRepository = orm.repository<MovieRepository>()
+        val user = orm.insertUser("visitor-one-connection")
+        orm.repository<MovieSeenRepository>().insert(MovieSeen(user, movieRepository.getById("tt0133093"), Instant.now(), liked = true))
+        runBlocking { service(orm).refresh(user.id) }
+
+        // A request that held one connection and asked for another would fail here.
+        val service = service(ORMTemplate.of(OneConnectionDataSource(dataSource)))
+        runBlocking { service.forHome(user) }
+        runBlocking { service.forYou(user) }
+        assertTrue(orm.repository<RecommendationRepository>().findAll(user).all { it.shownCount == 2 })
     }
 
     @Test
