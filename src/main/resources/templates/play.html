@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Play')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <h1 class="page-title">Play</h1>
+        <p class="page-subtitle">Games made of the whole catalogue: its movies, and everyone who played in them.</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container game-grid">
+        <a class="game-card game-degrees" th:href="@{/six-degrees}">
+            <span class="game-art" aria-hidden="true">
+                <span class="game-dot"></span><span class="game-line"></span><span class="game-dot"></span><span class="game-line"></span><span class="game-dot"></span>
+            </span>
+            <span class="game-title">Six Degrees</span>
+            <span class="game-text">Pick any two actors and see the shortest chain of movies between them. Is anyone more than six steps from Kevin Bacon?</span>
+            <span class="button button-primary game-button">Connect two actors</span>
+        </a>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

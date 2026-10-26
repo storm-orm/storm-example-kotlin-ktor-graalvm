@@ -85,5 +85,14 @@
     <div class="person-card-name" th:text="${name}">Name</div>
 </a>
 
+<!-- An actor in a chain of six degrees: the photo, or the initial, and the name. -->
+<a th:fragment="chainPerson(person)" class="chain-person-link" th:href="@{/person/{id}(id=${person.id})}">
+    <span class="avatar avatar-large">
+        <span th:text="${#strings.substring(person.primaryName, 0, 1)}">K</span>
+        <img th:src="@{/api/photo/{id}(id=${person.id})}" alt="" loading="lazy" onerror="this.classList.add('failed')">
+    </span>
+    <span class="chain-person-name" th:text="${person.primaryName}">Keanu Reeves</span>
+</a>
+
 </body>
 </html>

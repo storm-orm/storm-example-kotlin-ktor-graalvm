@@ -117,6 +117,18 @@ data class CategoryCreditCount(
     val creditCount: Long
 )
 
+/**
+ * Query result shape: a credit as the pair it links, a person and a movie,
+ * both by their foreign keys, so neither table is joined: the edges of the
+ * graph of who played with whom. Not backed by a database table or view, so
+ * it is a plain data class — deliberately not a Data type.
+ */
+@GenerateMetamodel
+data class CreditLink(
+    val person: Ref<Person>,
+    val movie: Ref<Movie>
+)
+
 /** The favourite actors and directors of a user, for the insights page. */
 data class SeenFavourites(
     val actors: List<PersonSeenCount>,
@@ -280,4 +292,30 @@ interface PrincipalRepository : EntityRepository<Principal, PrincipalPk> {
         return SeenFavourites(actors = named(actors), directors = named(directors))
     }
 
+
+    /**
+     * The acting credits of several people in the movies at least
+     * [minimumVotes] voted on: from people to the movies they played in, one
+     * step of the search for how two actors connect. The rating joins on the
+     * movie for its votes; the pairs are foreign keys, so neither the person
+     * nor the movie is read.
+     */
+    fun findActingLinks(people: Collection<Ref<Person>>, minimumVotes: Int): List<CreditLink> =
+        select<CreditLink, _, _> { "${Principal_.person}, ${Principal_.movie}" }
+            .innerJoin<Rating>().on<Movie>()
+            .where((Principal_.person inRefs people) and (Principal_.category inList ACTING_CATEGORIES) and (Rating_.voteCount greaterEq minimumVotes))
+            .resultList
+
+    /** The cast of several movies, as pairs: from the movies to who played in them, the other step of the search. */
+    fun findCastLinks(movies: Collection<Ref<Movie>>): List<CreditLink> =
+        select<CreditLink, _, _> { "${Principal_.person}, ${Principal_.movie}" }
+            .where((Principal_.movie inRefs movies) and (Principal_.category inList ACTING_CATEGORIES))
+            .resultList
+
+    /** The leads, the top three billed, of the movies at least [minimumVotes] voted on: the actors everybody knows. */
+    fun findLeadLinks(minimumVotes: Int): List<CreditLink> =
+        select<CreditLink, _, _> { "${Principal_.person}, ${Principal_.movie}" }
+            .innerJoin<Rating>().on<Movie>()
+            .where((Principal_.category inList ACTING_CATEGORIES) and (Principal_.ordering lessEq 3) and (Rating_.voteCount greaterEq minimumVotes))
+            .resultList
 }

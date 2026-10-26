@@ -42,6 +42,7 @@
             <a th:href="@{/insights}" th:classappend="${active == 'insights'} ? 'active'">About You</a>
             <a th:if="${account.name != null}" th:href="@{/community}" th:classappend="${active == 'community'} ? 'active'">Community<span class="nav-badge" th:if="${requestCount > 0}" th:text="${requestCount}" th:title="|${requestCount} friend request${requestCount == 1 ? '' : 's'}|">1</span></a>
             <a th:href="@{/browse}" th:classappend="${active == 'browse'} ? 'active'">Browse</a>
+            <a th:href="@{/play}" th:classappend="${active == 'play'} ? 'active'">Play</a>
             <a th:href="@{/recent}" th:classappend="${active == 'recent'} ? 'active'">Recently Added</a>
             <a th:href="@{/statistics}" th:classappend="${active == 'statistics'} ? 'active'">Statistics</a>
         </div>

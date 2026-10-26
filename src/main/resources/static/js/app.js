@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupPosterGlows();
     setupPosterTilt();
     setupCardTitles();
+    setupPickers();
 });
 
 // Under the mouse a poster gives a little: it tilts toward the cursor, a light follows the cursor
@@ -1470,4 +1471,83 @@ function setupInvite() {
             button.disabled = false;
         }
     }));
+}
+
+// A picker: a box that suggests people or movies as a name is typed, like the search box, and on a
+// choice keeps the choice's id in its hidden field and its name in the box. The box tells its
+// form with a "pick" event. Typing again clears the choice, so a form never sends a name that was
+// not picked. [data-picker] says what it picks: "person" or "movie".
+function setupPickers() {
+    document.querySelectorAll('[data-picker]').forEach(picker => {
+        const kind = picker.dataset.picker;
+        const input = picker.querySelector('[data-picker-input]');
+        const value = picker.querySelector('[data-picker-value]');
+        const panel = picker.querySelector('[data-picker-suggestions]');
+        let timer = null;
+        let active = -1;
+
+        const options = () => Array.from(panel.querySelectorAll('.suggestion'));
+        const hide = () => { panel.hidden = true; active = -1; };
+        const setActive = index => {
+            options().forEach((option, i) => option.classList.toggle('active', i === index));
+            active = index;
+        };
+        const choose = option => {
+            value.value = option.dataset.id;
+            input.value = option.dataset.name;
+            hide();
+            picker.dispatchEvent(new CustomEvent('pick', { bubbles: true, detail: { id: option.dataset.id, name: option.dataset.name } }));
+        };
+
+        input.addEventListener('input', () => {
+            value.value = '';
+            clearTimeout(timer);
+            const query = input.value.trim();
+            if (query.length < 2) { hide(); return; }
+            timer = setTimeout(async () => {
+                const response = await fetch('/api/search/suggestions?query=' + encodeURIComponent(query));
+                if (!response.ok || input.value.trim() !== query) return;
+                const suggestions = await response.json();
+                const items = kind === 'person'
+                    ? suggestions.persons.map(p => ({ id: p.id, name: p.name, year: null, image: '/api/photo/' + p.id }))
+                    : suggestions.movies.map(m => ({ id: m.id, name: m.title, year: m.year, image: '/api/poster/' + m.id }));
+                panel.replaceChildren(...items.map(item => {
+                    const option = suggestionLink('#', kind, kind === 'person' ? 'Person' : 'Movie', item.name, item.year, item.image);
+                    option.dataset.id = item.id;
+                    option.dataset.name = item.name;
+                    option.addEventListener('mousedown', event => { event.preventDefault(); choose(option); });
+                    return option;
+                }));
+                panel.hidden = items.length === 0;
+                active = -1;
+            }, SUGGESTION_DEBOUNCE_MS);
+        });
+
+        input.addEventListener('keydown', event => {
+            const list = options();
+            if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && !panel.hidden && list.length) {
+                event.preventDefault();
+                const step = event.key === 'ArrowDown' ? 1 : -1;
+                setActive(((active === -1 ? (step === 1 ? -1 : list.length) : active) + step + list.length) % list.length);
+            } else if (event.key === 'Enter' && !panel.hidden && list.length) {
+                event.preventDefault();
+                choose(list[Math.max(active, 0)]);
+            } else if (event.key === 'Escape') {
+                hide();
+            }
+        });
+        input.addEventListener('blur', () => setTimeout(hide, 100));
+    });
+
+    // Six degrees asks as soon as both actors are picked; until then Connect asks for the one missing.
+    document.querySelectorAll('[data-degrees-form]').forEach(form => {
+        const missing = () => Array.from(form.querySelectorAll('[data-picker]')).find(p => !p.querySelector('[data-picker-value]').value);
+        form.addEventListener('pick', () => { if (!missing()) form.submit(); });
+        form.addEventListener('submit', event => {
+            const picker = missing();
+            if (!picker) return;
+            event.preventDefault();
+            picker.querySelector('[data-picker-input]').focus();
+        });
+    });
 }
