@@ -101,6 +101,10 @@
                 <input type="hidden" name="mode" value="club"><input type="hidden" name="club" th:value="${view.club.id}">
                 <button type="submit" class="button">🎟️ Start a Movie Draft</button>
             </form>
+            <form th:action="@{/play/connect}" method="post">
+                <input type="hidden" name="mode" value="club"><input type="hidden" name="club" th:value="${view.club.id}">
+                <button type="submit" class="button">📽️ Start a Connect puzzle</button>
+            </form>
         </div>
     </div>
 </section>

@@ -103,6 +103,16 @@
             <form th:replace="~{fragments/games :: startForm('/play/draft', 'Start a draft', 'Start a draft')}"></form>
         </div>
 
+        <!-- Connect: two movies to join, together, in as few links as par. -->
+        <div class="game-card game-connect">
+            <span class="game-art game-art-connect" aria-hidden="true">
+                <span class="game-art-poster"></span><span class="game-line"></span><span class="game-dot"></span><span class="game-line"></span><span class="game-art-poster"></span>
+            </span>
+            <span class="game-title">Connect</span>
+            <span class="game-text">Two movies to join by a chain of shared actors, in as few links as you can. Play it together: anyone adds the next link, any time.</span>
+            <form th:replace="~{fragments/games :: startForm('/play/connect', 'Start a puzzle', 'Start a puzzle')}"></form>
+        </div>
+
         <a class="game-card game-degrees" th:href="@{/six-degrees}">
             <span class="game-art" aria-hidden="true">
                 <span class="game-dot"></span><span class="game-line"></span><span class="game-dot"></span><span class="game-line"></span><span class="game-dot"></span>

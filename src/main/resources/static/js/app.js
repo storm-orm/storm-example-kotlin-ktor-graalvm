@@ -1807,7 +1807,11 @@ function setupMatchWatch() {
         if (document.hidden) return;
         try {
             const response = await fetch(url, { cache: 'no-store' });
-            if (response.ok && (await response.text()) !== watch.dataset.matchVersion) location.reload();
+            if (!response.ok || (await response.text()) === watch.dataset.matchVersion) return;
+            // Typing a move: the reload waits until the box is left.
+            const typing = document.activeElement?.matches?.('input, textarea');
+            if (typing) document.activeElement.addEventListener('blur', () => location.reload(), { once: true });
+            else location.reload();
         } catch (e) {
             // Offline for a moment: the next check tries again.
         }

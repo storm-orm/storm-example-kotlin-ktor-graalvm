@@ -16,6 +16,8 @@ import st.orm.demo.imdb.model.GameMode
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.service.ChainMove
 import st.orm.demo.imdb.service.ChainService
+import st.orm.demo.imdb.service.ConnectMove
+import st.orm.demo.imdb.service.ConnectService
 import st.orm.demo.imdb.service.DraftMove
 import st.orm.demo.imdb.service.DraftService
 import st.orm.demo.imdb.service.MovieNightService
@@ -42,7 +44,7 @@ private fun Parameters.opponents(): Opponents = when (this["mode"]) {
  * to the match. Playing with others needs a signed-in account, as they see
  * the players' names; anyone plays on their own.
  */
-fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerService, chainService: ChainService, draftService: DraftService, swipeService: SwipeService, movieNightService: MovieNightService) {
+fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerService, chainService: ChainService, draftService: DraftService, swipeService: SwipeService, movieNightService: MovieNightService, connectService: ConnectService) {
     get("/play") {
         call.respondPage(ThymeleafContent("play", mapOf("play" to playService.playOf(call.currentUser()))))
     }
@@ -51,7 +53,8 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
         "/play/higher-lower" to { user, opponents -> higherLowerService.start(user, opponents) },
         "/play/chain" to { user, opponents -> chainService.start(user, opponents) },
         "/play/draft" to { user, opponents -> draftService.start(user, opponents) },
-        "/play/swipe" to { user, opponents -> swipeService.startRound(user, opponents) }
+        "/play/swipe" to { user, opponents -> swipeService.startRound(user, opponents) },
+        "/play/connect" to { user, opponents -> connectService.start(user, opponents) }
     )) {
         post(path) {
             val opponents = call.receiveParameters().opponents()
@@ -70,6 +73,7 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
             ?: swipeService.roundOf(user, matchId)?.let { "swipe-round" to mapOf("round" to it) }
             ?: draftService.draftOf(user, matchId)?.let { "draft" to mapOf("draft" to it, "problem" to problem) }
             ?: chainService.chainOf(user, matchId)?.let { "chain" to mapOf("chain" to it, "problem" to problem) }
+            ?: connectService.puzzleOf(user, matchId)?.let { "connect" to mapOf("puzzle" to it, "problem" to problem) }
             ?: return@get call.respond(HttpStatusCode.NotFound)
         // The match as it is now, read after the game, which may have made a pick that was due: a page that
         // waits on the others asks whether this changed.
@@ -136,6 +140,29 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
             round.results.map { it.movie to (if (it.wantedBy.size == 1) "Swiped right by 1" else "Swiped right by ${it.wantedBy.size}") })
             ?: return@post call.respondRedirect("/play/matches/$matchId")
         call.respondRedirect("/nights/${night.id}")
+    }
+
+    // Connect, played together: a link added by any player, a link taken back, an actor shown, or giving up.
+    post("/play/matches/{id}/connect/link") {
+        val matchId = call.parameters.getOrFail<Long>("id")
+        val movieId = call.receiveParameters()["movie"]?.takeIf { it.isNotBlank() } ?: return@post call.respondRedirect("/play/matches/$matchId")
+        val problem = when (connectService.move(call.currentUser(), matchId, movieId)) {
+            ConnectMove.ADDED, ConnectMove.CONNECTED, ConnectMove.OVER -> null
+            ConnectMove.ALREADY_IN -> "repeat"
+            ConnectMove.NO_SHARED_ACTOR -> "unlinked"
+        }
+        call.respondRedirect("/play/matches/$matchId" + (problem?.let { "?problem=$it" } ?: ""))
+    }
+    for ((action, act) in listOf<Pair<String, suspend (User, Long) -> Unit>>(
+        "undo" to { user, matchId -> connectService.undo(user, matchId) },
+        "hint" to { user, matchId -> connectService.hint(user, matchId) },
+        "give-up" to { user, matchId -> connectService.giveUp(user, matchId) }
+    )) {
+        post("/play/matches/{id}/connect/$action") {
+            val matchId = call.parameters.getOrFail<Long>("id")
+            act(call.currentUser(), matchId)
+            call.respondRedirect("/play/matches/$matchId")
+        }
     }
 
     post("/play/matches/{id}/hint") {

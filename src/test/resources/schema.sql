@@ -461,3 +461,16 @@ CREATE TABLE swipe_round_swipe (
     swiped_at TIMESTAMP NOT NULL,
     PRIMARY KEY (match_id, user_id, movie_id)
 );
+
+-- V36: Connect.
+CREATE TABLE connect_puzzle (
+    match_id   BIGINT PRIMARY KEY REFERENCES game_match (id) ON DELETE CASCADE,
+    start_id   VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
+    target_id  VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
+    par        INTEGER NOT NULL,
+    path       VARCHAR NOT NULL,
+    hints      INTEGER NOT NULL DEFAULT 0,
+    undos      INTEGER NOT NULL DEFAULT 0,
+    hint_at    INTEGER,
+    hint_shown INTEGER NOT NULL DEFAULT 0
+);

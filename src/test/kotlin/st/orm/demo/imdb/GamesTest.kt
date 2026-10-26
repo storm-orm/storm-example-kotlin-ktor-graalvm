@@ -25,6 +25,8 @@ import st.orm.demo.imdb.repository.RatingRepository
 import st.orm.demo.imdb.repository.UserRepository
 import st.orm.demo.imdb.service.ChainMove
 import st.orm.demo.imdb.service.ChainService
+import st.orm.demo.imdb.service.ConnectMove
+import st.orm.demo.imdb.service.ConnectService
 import st.orm.demo.imdb.service.DraftMove
 import st.orm.demo.imdb.service.DraftService
 import st.orm.demo.imdb.service.HigherLowerService
@@ -183,7 +185,7 @@ class GamesTest {
             orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(),
             orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository()
         )
-        val play = PlayService(matches(orm), orm.repository(), orm.repository(), service, drafts(orm), orm.repository(), quiz)
+        val play = PlayService(matches(orm), orm.repository(), orm.repository(), service, drafts(orm), connects(orm), orm.repository(), quiz)
         assertEquals(listOf("Over: 1 point"), runBlocking { play.playOf(alice, now) }.games.map { it.status })
     }
 
@@ -208,6 +210,11 @@ class GamesTest {
         assertEquals(listOf("The Shawshank Redemption" to "Morgan Freeman", "Pulp Fiction" to "Keanu Reeves", "The Matrix" to "Keanu Reeves"),
             chain.answers.map { it.movie.primaryTitle to it.actor.primaryName })
     }
+
+    private fun connects(orm: ORMTemplate) = ConnectService(
+        matches(orm), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(),
+        orm.repository(), orm.repository(), orm.repository(), orm.repository(), parRange = 2..4
+    )
 
     private fun drafts(orm: ORMTemplate) = DraftService(
         matches(orm), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(),
@@ -279,11 +286,79 @@ class GamesTest {
     }
 
     @Test
-    fun `a link goes through another actor than the link before where it can, and scores`(orm: ORMTemplate) {
-        // Pulp Fiction has Keanu Reeves and Laurence Fishburne: the link goes through Laurence Fishburne.
+    fun `a link is an escape whenever the actor of the link before is in the next movie too`(orm: ORMTemplate) {
+        // Pulp Fiction has Keanu Reeves and Laurence Fishburne: Keanu Reeves, the actor of the link before, is in it.
         val (service, matchId) = chainToTheMatrix(orm, "nm0000206" to 2, "nm0000401" to 3)
+        val chain = runBlocking { service.chainOf(orm.repository<UserRepository>().getById("bob-escape"), matchId, now) }!!
+        assertEquals("Keanu Reeves", chain.last.via!!.primaryName)
+        assertEquals(0, chain.last.points)
+    }
+
+    @Test
+    fun `a link through another actor scores`(orm: ORMTemplate) {
+        // Pulp Fiction has Laurence Fishburne, but not Keanu Reeves, the actor of the link before.
+        val (service, matchId) = chainToTheMatrix(orm, "nm0000401" to 3)
         val chain = runBlocking { service.chainOf(orm.repository<UserRepository>().getById("bob-escape"), matchId, now) }!!
         assertEquals("Laurence Fishburne", chain.last.via!!.primaryName)
         assertEquals(1, chain.last.points)
+    }
+
+    @Test
+    fun `connect finds par from both ends, and a team joins the two movies, any player any time`(orm: ORMTemplate) {
+        castOfThree(orm)
+        val service = connects(orm)
+        val alice = orm.insertUser("alice-connect", name = "Alice")
+        val bob = orm.insertUser("bob-connect", name = "Bob")
+        orm.repository<FriendshipRepository>().befriend(alice, bob, now)
+        val movies = orm.repository<MovieRepository>()
+        // The Matrix to The Shawshank Redemption: through Keanu Reeves to The Matrix Reloaded, then Morgan Freeman.
+        val match = runBlocking { service.startWith(alice, Opponents(GameMode.FRIEND, friendId = bob.id), movies.getById("tt0133093"), movies.getById("tt0111161"), now) }!!
+        // Two movies with no way between them make no puzzle.
+        assertNull(runBlocking { service.startWith(alice, Opponents(GameMode.SOLO), movies.getById("tt0133093"), movies.getById("tt0068646"), now) })
+
+        var puzzle = runBlocking { service.puzzleOf(bob, match.id) }!!
+        assertEquals(2, puzzle.puzzle.par)
+        assertEquals(listOf("tt0133093", "tt0234215", "tt0111161"), puzzle.puzzle.path.movies)
+        assertEquals(listOf("nm0000206", "nm0000151"), puzzle.puzzle.path.actors)
+
+        runBlocking { service.hint(bob, match.id, now) }
+        puzzle = runBlocking { service.puzzleOf(alice, match.id) }!!
+        assertEquals(listOf("Keanu Reeves"), puzzle.revealed.map { it.primaryName })
+        assertEquals(ConnectMove.NO_SHARED_ACTOR, runBlocking { service.move(bob, match.id, "tt0110912", now) })
+        // Bob, without waiting for a turn, adds The Matrix Reloaded: it shares Morgan Freeman with the target, which closes the chain.
+        assertEquals(ConnectMove.CONNECTED, runBlocking { service.move(bob, match.id, "tt0234215", now) })
+        puzzle = runBlocking { service.puzzleOf(alice, match.id) }!!
+        assertTrue(puzzle.connected)
+        assertEquals(2, puzzle.linkCount)
+        assertEquals(0, puzzle.overPar)
+        assertEquals("Morgan Freeman", puzzle.last.via!!.primaryName)
+        assertEquals(listOf("The Matrix", "The Matrix Reloaded", "The Shawshank Redemption"), puzzle.parWay.map { it.movie.primaryTitle })
+        assertEquals(ConnectMove.OVER, runBlocking { service.move(alice, match.id, "tt0110912", now) })
+    }
+
+    @Test
+    fun `a link can be taken back to try another way, counted among the undos`(orm: ORMTemplate) {
+        castOfThree(orm)
+        // Keanu Reeves in Pulp Fiction too: a way from The Matrix that leads nowhere.
+        orm.repository<PrincipalRepository>().insert(
+            Principal(orm.repository<MovieRepository>().getById("tt0110912").ref(), 2, orm.repository<PersonRepository>().getById("nm0000206"), "actor", "Somebody")
+        )
+        val service = connects(orm)
+        val alice = orm.insertUser("alice-undo", name = "Alice")
+        val movies = orm.repository<MovieRepository>()
+        val match = runBlocking { service.startWith(alice, Opponents(GameMode.SOLO), movies.getById("tt0133093"), movies.getById("tt0111161"), now) }!!
+        assertEquals(ConnectMove.ADDED, runBlocking { service.move(alice, match.id, "tt0110912", now) })
+        runBlocking { service.undo(alice, match.id, now) }
+        var puzzle = runBlocking { service.puzzleOf(alice, match.id) }!!
+        assertEquals("The Matrix", puzzle.last.movie.primaryTitle)
+        assertEquals(1, puzzle.puzzle.undos)
+        // Undoing the start does nothing.
+        runBlocking { service.undo(alice, match.id, now) }
+        assertEquals(1, runBlocking { service.puzzleOf(alice, match.id) }!!.links.size)
+        runBlocking { service.giveUp(alice, match.id, now) }
+        puzzle = runBlocking { service.puzzleOf(alice, match.id) }!!
+        assertTrue(puzzle.over)
+        assertFalse(puzzle.connected)
+        assertEquals(3, puzzle.parWay.size)
     }
 }

@@ -62,10 +62,10 @@ enum class ChainMove { ADDED, NOT_YOUR_TURN, ALREADY_IN, NO_SHARED_ACTOR, OVER }
 
 /**
  * Movie Chain: the players build one chain of movies, each sharing an
- * actor with the one before, no movie twice. A link through another actor
- * than the link before scores a point, two when it leaps twenty years or
- * more; one through the same actor is an escape, which keeps the chain
- * going without points. The players take turns, a day each:
+ * actor with the one before, no movie twice. A link scores a point, two
+ * when it leaps twenty years or more; but when the actor the link before
+ * went through is in the next movie too, it is an escape, which keeps the
+ * chain going without points. The players take turns, a day each:
  * a turn not taken passes to the next player, worked out when the chain is
  * looked at, so nobody holds the game up; after a week without a move it
  * is over. The players see the movies only; a player who needs a hint is
@@ -218,7 +218,7 @@ class ChainService(
         val movie = movieRepository.findById(movieId) ?: return@transaction ChainMove.NO_SHARED_ACTOR
         if (links.any { it.movie.id == movie.id }) return@transaction ChainMove.ALREADY_IN
         val previous = links.last()
-        val via = sharedActor(previous.movie, movie, avoid = previous.via) ?: return@transaction ChainMove.NO_SHARED_ACTOR
+        val via = sharedActor(previous.movie, movie, previousVia = previous.via) ?: return@transaction ChainMove.NO_SHARED_ACTOR
         val points = pointsFor(previous, movie, via)
         chainLinkRepository.insert(ChainLink(match, links.size, movie, turn.player.user, via, points, now))
         gamePlayerRepository.update(turn.player.copy(score = turn.player.score + points, updatedAt = now))
@@ -240,8 +240,8 @@ class ChainService(
     /**
      * The house's answer, on one's own: a well-known movie that shares an
      * actor with the player's and is not in the chain yet, picked at random,
-     * through another actor than the player's link where it can; when there
-     * is none, the house is stuck and the chain is over.
+     * through the player's actor when that actor is in it too, an escape;
+     * when there is none, the house is stuck and the chain is over.
      */
     private fun houseMove(match: GameMatch, used: Set<String>, after: ChainLink, position: Int, now: Instant) {
         val actors = actorsOf(after.movie)
@@ -254,7 +254,7 @@ class ChainService(
             return
         }
         val through = candidates.getValue(movieId).map { it.person.entityId() }
-        val viaId = through.firstOrNull { it != after.via?.id } ?: through.first()
+        val viaId = through.firstOrNull { it == after.via?.id } ?: through.first()
         val movie = movieRepository.getById(movieId)
         val via = personRepository.getById(viaId)
         chainLinkRepository.insert(ChainLink(match, position, movie, player = null, via = via, points = pointsFor(after, movie, via), addedAt = now))
@@ -271,20 +271,21 @@ class ChainService(
         principalRepository.findCast(movie).filter { it.category in ACTING_CATEGORIES }.map { it.person.id }.distinct()
 
     /**
-     * An actor of both movies, the one the link goes through: the best billed
-     * of the second other than [avoid], the actor the last link went through,
-     * so a link that can switch actors scores; [avoid] when no other is shared.
+     * An actor of both movies, the one the link goes through: the actor the
+     * last link went through ([previousVia]) when the next movie has them too,
+     * an escape; else the best billed of the next movie that both share.
      */
-    private fun sharedActor(previous: Movie, next: Movie, avoid: Person?): Person? {
+    private fun sharedActor(previous: Movie, next: Movie, previousVia: Person?): Person? {
         val before = actorsOf(previous).toSet()
         val shared = principalRepository.findCast(next).filter { it.category in ACTING_CATEGORIES && it.person.id in before }.map { it.person }
-        return shared.firstOrNull { it.id != avoid?.id } ?: shared.firstOrNull()
+        return shared.firstOrNull { it.id == previousVia?.id } ?: shared.firstOrNull()
     }
 
     /**
-     * The points of a link after [previous]: none through the same actor as
-     * [previous]'s link, an escape that keeps the chain going; else a point,
-     * two for a leap of twenty years or more.
+     * The points of a link after [previous]: none when it goes through the
+     * same actor as [previous]'s link, that actor in the next movie too, an
+     * escape that keeps the chain going; else a point, two for a leap of
+     * twenty years or more.
      */
     private fun pointsFor(previous: ChainLink, next: Movie, via: Person): Int {
         if (previous.via?.id == via.id) return 0

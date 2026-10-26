@@ -343,7 +343,8 @@ private fun Application.configureStorm() {
                     "db/migration/V32__movie_night_votes.sql",
                     "db/migration/V33__movie_draft.sql",
                     "db/migration/V34__game_hints.sql",
-                    "db/migration/V35__swipes.sql"
+                    "db/migration/V35__swipes.sql",
+                    "db/migration/V36__connect.sql"
                 )))
                 .load()
                 .migrate()

@@ -3827,3 +3827,35 @@ body::after {
 @media (max-width: 860px) {
     .swipe-layout { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ── Connect ───────────────────────────────────────────────────────── */
+
+.game-connect { --tone: var(--violet-rgb); }
+
+.game-art-connect .game-line { width: 24px; }
+
+/* The two ends, the start and the target, with par between them. */
+.connect-ends { display: flex; align-items: center; justify-content: center; gap: 34px; }
+
+.connect-end { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 170px; text-align: center; }
+
+.connect-end .poster { width: 150px; box-shadow: 0 0 0 2px rgba(var(--violet-rgb), 0.6), 0 14px 34px rgba(var(--violet-rgb), 0.25); }
+
+.connect-end-label { margin-top: 6px; color: var(--violet); font-size: 11.5px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+
+.connect-end-title { font-weight: 600; }
+
+.connect-par { display: flex; flex-direction: column; align-items: center; }
+
+.connect-par-number { font-family: var(--font-display); font-size: 64px; line-height: 1; color: var(--violet); text-shadow: 0 0 22px rgba(var(--violet-rgb), 0.5); }
+
+.connect-par-label { color: var(--text-muted); font-size: 12px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; }
+
+.connect-tally { margin: 6px 0 0; }
+
+@media (max-width: 640px) {
+    .connect-ends { gap: 12px; }
+    .connect-end { width: 120px; }
+    .connect-end .poster { width: 110px; }
+    .connect-par-number { font-size: 44px; }
+}

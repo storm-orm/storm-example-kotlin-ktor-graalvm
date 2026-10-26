@@ -28,6 +28,7 @@ import st.orm.demo.imdb.service.MatchService
 import st.orm.demo.imdb.service.PlayService
 import st.orm.demo.imdb.service.HigherLowerService
 import st.orm.demo.imdb.service.ChainService
+import st.orm.demo.imdb.service.ConnectService
 import st.orm.demo.imdb.service.DraftService
 import st.orm.demo.imdb.service.SwipeService
 import st.orm.demo.imdb.service.SearchService
@@ -137,7 +138,8 @@ fun Application.configureDependencies() {
             )
         }
         provide { DraftService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
-        provide { PlayService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { ConnectService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { PlayService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { QuizService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { WikipediaSummaryService(resolve(), resolve(), resolve()) }
         // TMDB, for the trailers and for imports of TMDB exports, with the key from application.conf (tmdb).

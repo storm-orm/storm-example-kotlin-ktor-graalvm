@@ -27,6 +27,7 @@ data class GameEntry(val match: GameMatch, val with: String, val status: String,
         Game.DRAFT -> "Movie Draft"
         Game.HIGHER_LOWER -> "Higher or Lower"
         Game.SWIPE -> "Swipe Round"
+        Game.CONNECT -> "Connect"
     }
 
     /** The game's emoji, for the lists. */
@@ -35,6 +36,7 @@ data class GameEntry(val match: GameMatch, val with: String, val status: String,
         Game.DRAFT -> "🎟️"
         Game.HIGHER_LOWER -> "🎬"
         Game.SWIPE -> "🍿"
+        Game.CONNECT -> "📽️"
     }
 }
 
@@ -59,6 +61,7 @@ class PlayService(
     private val gamePlayerRepository: GamePlayerRepository,
     private val chainService: ChainService,
     private val draftService: DraftService,
+    private val connectService: ConnectService,
     private val ratingRepository: RatingRepository,
     private val quizService: QuizService
 ) {
@@ -90,6 +93,7 @@ class PlayService(
         val game = when (match.game) {
             Game.CHAIN -> chainService.versionOf(match, players, now)
             Game.DRAFT -> draftService.versionOf(match, now)
+            Game.CONNECT -> connectService.versionOf(match)
             Game.HIGHER_LOWER, Game.SWIPE -> ""
         }
         "${match.endedAt}|${match.isOver(now)}|$standing|$game"
@@ -116,6 +120,11 @@ class PlayService(
                 !me.finished && !match.isOver(now) -> GameEntry(match, with, if (me.score == 0) "Your turn" else "Your turn: a streak of ${me.score} going", yourMove = true)
                 match.isOver(now) || match.mode == GameMode.SOLO -> GameEntry(match, with, resultOf(user, players) { "a streak of $it" }, yourMove = false)
                 else -> GameEntry(match, with, "You scored ${me.score}; waiting for the others", yourMove = false)
+            }
+            Game.CONNECT -> {
+                // Played together, no turns: an open puzzle is always one the visitor can add to.
+                val (over, standing) = connectService.standingOf(match)
+                GameEntry(match, with, standing, yourMove = !over)
             }
             Game.SWIPE -> when {
                 match.isOver(now) -> GameEntry(match, with, "The round is closed: see what everyone wants", yourMove = false)
