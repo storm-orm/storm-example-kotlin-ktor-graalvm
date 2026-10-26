@@ -40,6 +40,7 @@ import st.orm.demo.imdb.service.TmdbService
 import st.orm.demo.imdb.service.WikidataClient
 import st.orm.demo.imdb.service.WikidataService
 import st.orm.demo.imdb.service.WikipediaSummaryService
+import st.orm.demo.imdb.service.WrappedService
 import st.orm.demo.imdb.service.configuredProviders
 import st.orm.demo.imdb.service.freepodSignIn
 import st.orm.demo.imdb.service.galleryRefreshProperties
@@ -99,6 +100,7 @@ fun Application.configureDependencies() {
         provide { CatchUpService(resolve(), resolve()) }
         provide { StatisticsService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { InsightsService(resolve(), resolve(), resolve(), resolve()) }
+        provide { WrappedService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { SearchService(resolve(), resolve()) }
         provide { BrowseService(resolve(), resolve(), resolve(), resolve()) }
         provide { RecentlyAddedService(resolve()) }

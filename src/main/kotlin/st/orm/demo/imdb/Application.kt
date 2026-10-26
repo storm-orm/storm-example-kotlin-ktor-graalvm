@@ -333,7 +333,8 @@ private fun Application.configureStorm() {
                     "db/migration/V22__ask_languages_again.sql",
                     "db/migration/V23__invite_accepted_count.sql",
                     "db/migration/V24__movie_countries.sql",
-                    "db/migration/V25__ask_countries.sql"
+                    "db/migration/V25__ask_countries.sql",
+                    "db/migration/V26__year_shares.sql"
                 )))
                 .load()
                 .migrate()

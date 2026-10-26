@@ -289,3 +289,12 @@ CREATE TABLE movie_tag (
     tag      VARCHAR NOT NULL,
     PRIMARY KEY (movie_id, tag)
 );
+
+-- V26: a year in movies shared with a link.
+CREATE TABLE year_share (
+    token      VARCHAR PRIMARY KEY,
+    user_id    VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    of_year    INTEGER NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    UNIQUE (user_id, of_year)
+);

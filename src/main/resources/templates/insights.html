@@ -5,9 +5,15 @@
 <nav th:replace="~{fragments/layout :: navbar('insights')}"></nav>
 
 <header class="page-header">
-    <div class="container">
-        <h1 class="page-title">About You</h1>
-        <p class="page-subtitle">What your watched list says about you.</p>
+    <div class="container page-header-row">
+        <div>
+            <h1 class="page-title">About You</h1>
+            <p class="page-subtitle">What your watched list says about you.</p>
+        </div>
+        <!-- The year in movies, from the check-ins: this year's, with the earlier ones a tap away there. -->
+        <div class="page-actions">
+            <a class="button wrapped-link" th:href="@{/wrapped}" th:text="|Your ${#dates.year(#dates.createNow())} in movies|">Your 2026 in movies</a>
+        </div>
     </div>
 </header>
 

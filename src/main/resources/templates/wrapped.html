@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(|${view.year} in Movies|)}"></head>
+<body class="data-page">
+<nav th:replace="~{fragments/layout :: navbar(${shared} ? '' : 'insights')}"></nav>
+
+<!-- The year across the top: its posters drifting behind the number, the visitor's or the one who shared it. -->
+<header class="wrapped-hero" th:with="owner=${view.owner.name} ?: 'Someone', whose=${shared} ? |${owner}'s| : 'Your'">
+    <div class="wrapped-posters" aria-hidden="true" th:unless="${view.isEmpty}">
+        <div class="wrapped-poster-strip">
+            <th:block th:each="round : ${#numbers.sequence(1, view.posterRounds)}">
+                <div class="poster" th:each="movie : ${view.posters}">
+                    <img th:src="@{/api/poster/{id}(id=${movie.id})}" alt="" loading="lazy" onerror="this.classList.add('failed')">
+                </div>
+            </th:block>
+        </div>
+    </div>
+    <div class="container wrapped-hero-content">
+        <a class="back-link" th:unless="${shared}" th:href="@{/insights}">← About You</a>
+        <p class="wrapped-eyebrow" th:text="|${whose} year in movies|">Your year in movies</p>
+        <h1 class="wrapped-year" th:text="${view.year}">2026</h1>
+        <p class="wrapped-lede" th:unless="${view.isEmpty}">
+            <th:block th:text="${view.movies == 1} ? '1 movie' : |${view.movies} movies|">48 movies</th:block>,
+            <th:block th:text="|${#numbers.formatInteger(view.hours, 1, 'COMMA')} hours|">96 hours</th:block><th:block th:unless="${view.genres.isEmpty()}">,
+            mostly <strong th:text="${view.genres[0].item.genre.name}">Drama</strong></th:block>.
+        </p>
+        <div class="wrapped-actions" th:unless="${shared}">
+            <nav class="view-tabs" th:if="${view.years.size() > 1}" aria-label="Years">
+                <a th:each="year : ${view.years}" th:href="@{/wrapped/{year}(year=${year})}" th:text="${year}"
+                   th:classappend="${year == view.year} ? 'active'">2026</a>
+            </nav>
+            <!-- Sharing names the visitor, so it is for a signed-in account; the link is made on the first share. -->
+            <div class="wrapped-share" th:if="${account.name != null and !view.isEmpty}"
+                 th:data-invite-title="|My ${view.year} in movies|">
+                <button type="button" class="button button-primary" th:data-invite="|/api/wrapped/${view.year}/share|">Share your year</button>
+                <input class="invite-link" type="text" readonly data-invite-link hidden aria-label="Link to your year">
+            </div>
+        </div>
+        <p class="wrapped-from" th:if="${shared}">
+            Your own year is on <a th:href="@{/wrapped}">Storm Movies</a>: check in what you watch, and it fills in.
+        </p>
+    </div>
+</header>
+
+<section class="section" th:if="${view.isEmpty}">
+    <div class="container">
+        <div class="empty-state" id="wrapped-empty" th:unless="${shared}">
+            Nothing checked in for <th:block th:text="${view.year}">2026</th:block> yet. Check in a movie on the day you
+            watch it, with the Watched button on its page, and your year fills in here: your months, genres, favourite
+            people, the countries the films came from, and how you compare with your friends.
+            <a th:href="@{/seen(checkins)}">Your check-ins</a>
+        </div>
+        <div class="empty-state" th:if="${shared}">Nothing checked in for this year.</div>
+    </div>
+</section>
+
+<th:block th:unless="${view.isEmpty}">
+<section class="section" id="wrapped-numbers">
+    <div class="container wrapped-numbers">
+        <div class="wrapped-number">
+            <div class="value" th:text="${view.movies}">48</div>
+            <div class="label" th:text="${view.movies == 1} ? 'movie' : 'movies'">movies</div>
+        </div>
+        <div class="wrapped-number">
+            <div class="value" th:text="${#numbers.formatInteger(view.hours, 1, 'COMMA')}">96</div>
+            <div class="label">hours watched</div>
+        </div>
+        <div class="wrapped-number">
+            <div class="value" th:text="${view.firstWatches}">44</div>
+            <div class="label" th:with="first=${view.firstWatches == 1} ? 'first watch' : 'first watches'"
+                 th:text="${view.rewatches == 0} ? ${first} : |${first} · ${view.rewatches} again|">first watches</div>
+        </div>
+        <div class="wrapped-number" th:if="${view.averageRating != null}">
+            <div class="value" th:text="|★ ${#numbers.formatDecimal(view.averageRating, 1, 1)}|">★ 7.8</div>
+            <div class="label">average on IMDB</div>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container wrapped-grid">
+        <!-- The year month by month, with the busiest month, the longest streak and the favourite day beside it. -->
+        <div class="stat-card wrapped-months" id="months-card">
+            <h2>Month by month</h2>
+            <p class="stat-note" th:if="${view.busiestMonth != null}">
+                <strong th:text="${view.busiestMonth.month}">Mar</strong> was <th:block th:text="${shared} ? 'the' : 'your'">your</th:block> busiest month, with
+                <th:block th:text="${view.busiestMonth.checkIns == 1} ? '1 check-in' : |${view.busiestMonth.checkIns} check-ins|">9 check-ins</th:block>.
+            </p>
+            <div class="month-chart">
+                <div class="month-column" th:each="bar : ${view.months}"
+                     th:title="|${bar.item.month}: ${bar.count} check-in${bar.count == 1 ? '' : 's'}|">
+                    <span class="month-count" th:text="${bar.count > 0} ? ${bar.count} : ''">4</span>
+                    <div class="month-bar" th:style="|height: ${bar.share}%|" th:classappend="${bar.count == 0} ? 'empty'"></div>
+                    <span class="month-name" th:text="${bar.item.month}">Jan</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="wrapped-facts">
+            <div class="stat-card wrapped-fact" th:if="${view.streak != null}">
+                <div class="fact-label">Longest streak</div>
+                <div class="fact-value" th:text="|${view.streak.days} days|">5 days</div>
+                <div class="fact-detail" th:text="|in a row, ${view.streak.caption}|">in a row, 12 – 16 Mar</div>
+            </div>
+            <div class="stat-card wrapped-fact" th:if="${view.favouriteWeekday != null}">
+                <div class="fact-label">Movie night</div>
+                <div class="fact-value" th:text="${view.favouriteWeekday}">Fridays</div>
+                <div class="fact-detail" th:text="${shared} ? 'the day most watched' : 'the day you watched most'">the day you watched most</div>
+            </div>
+            <div class="stat-card wrapped-fact" th:if="${view.streak == null and view.favouriteWeekday == null}">
+                <div class="fact-label">Check-ins</div>
+                <div class="fact-value" th:text="${view.checkIns}">3</div>
+                <div class="fact-detail">over the year</div>
+            </div>
+        </div>
+
+        <div class="stat-card" id="wrapped-genres-card" th:unless="${view.genres.isEmpty()}">
+            <h2 th:text="${shared} ? 'The genres' : 'Your genres'">Your genres</h2>
+            <p class="stat-note">A movie of several genres counts for each.</p>
+            <div class="bar-row genre-bar-row" th:each="bar : ${view.genres}">
+                <a th:href="@{/browse(genre=${bar.item.genre.name})}" th:text="${bar.item.genre.name}">Drama</a>
+                <div class="bar-track"><div class="bar-fill" th:style="|width: ${bar.share}%|"></div></div>
+                <span class="bar-value" th:text="${bar.count}">12</span>
+            </div>
+        </div>
+
+        <div class="stat-card" id="wrapped-people-card">
+            <h2 th:text="${shared} ? 'Who was in them' : 'Who you watched'">Who you watched</h2>
+            <p class="stat-note" th:if="${view.actors.isEmpty() and view.directors.isEmpty()}">
+                Nobody was in more than one of the year's movies.
+            </p>
+            <th:block th:unless="${view.actors.isEmpty()}">
+                <h3 class="choice-heading">Actors</h3>
+                <a class="stat-row" th:each="actor : ${view.actors}" th:href="@{/person/{id}(id=${actor.person.id})}">
+                    <div class="avatar">
+                        <span th:text="${#strings.substring(actor.person.primaryName, 0, 1)}">A</span>
+                        <img th:src="@{/api/photo/{id}(id=${actor.person.id})}" alt="" loading="lazy" onerror="this.classList.add('failed')">
+                    </div>
+                    <span th:text="${actor.person.primaryName}">Name</span>
+                    <div class="stat-end"><span class="stat-count" th:text="|${actor.movieCount} movies|">3 movies</span></div>
+                </a>
+            </th:block>
+            <th:block th:unless="${view.directors.isEmpty()}">
+                <h3 class="choice-heading wrapped-subheading">Directors</h3>
+                <a class="stat-row" th:each="director : ${view.directors}" th:href="@{/person/{id}(id=${director.person.id})}">
+                    <div class="avatar">
+                        <span th:text="${#strings.substring(director.person.primaryName, 0, 1)}">A</span>
+                        <img th:src="@{/api/photo/{id}(id=${director.person.id})}" alt="" loading="lazy" onerror="this.classList.add('failed')">
+                    </div>
+                    <span th:text="${director.person.primaryName}">Name</span>
+                    <div class="stat-end"><span class="stat-count" th:text="|${director.movieCount} movies|">2 movies</span></div>
+                </a>
+            </th:block>
+        </div>
+
+        <div class="stat-card" id="wrapped-places-card" th:unless="${view.countries.isEmpty() and view.languages.isEmpty()}">
+            <h2>Around the world</h2>
+            <p class="stat-note" th:unless="${view.countries.isEmpty()}"
+               th:text="${view.countries.size() == 1} ? 'Where the year\'s movies were made.' : |Movies from ${view.countries.size()} countries.|">Movies from 6 countries.</p>
+            <div class="place-chips" th:unless="${view.countries.isEmpty()}">
+                <span class="place-chip" th:each="place : ${view.countries}">
+                    <span class="place-flag" th:text="${place.flag}">🇺🇸</span>
+                    <span th:text="${place.name}">United States</span>
+                    <span class="place-count" th:text="${place.movies}">12</span>
+                </span>
+            </div>
+            <th:block th:unless="${view.languages.isEmpty()}">
+                <h3 class="choice-heading wrapped-subheading">Languages</h3>
+                <div class="place-chips">
+                    <span class="place-chip" th:each="place : ${view.languages}">
+                        <span th:text="${place.name}">English</span>
+                        <span class="place-count" th:text="${place.movies}">12</span>
+                    </span>
+                </div>
+            </th:block>
+        </div>
+    </div>
+</section>
+
+<section class="section" th:unless="${view.standouts.isEmpty()}" id="wrapped-standouts">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Standouts</h2>
+            <span class="section-note" th:text="|of ${view.year}|">of 2026</span>
+        </div>
+        <div class="movie-row highlight-grid">
+            <a class="movie-card highlight-card" th:each="highlight : ${view.standouts}"
+               th:href="@{/movie/{id}(id=${highlight.movie.id})}">
+                <div th:replace="~{fragments/cards :: posterThumb(${highlight.movie.id}, ${highlight.movie.primaryTitle})}"></div>
+                <div class="movie-card-info">
+                    <div class="highlight-label" th:text="${highlight.label}">First of the year</div>
+                    <div class="movie-card-title" th:text="${highlight.movie.primaryTitle}">Title</div>
+                    <div class="movie-card-year" th:text="${highlight.detail}">3 January</div>
+                </div>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- The year beside the friends': only the friends who share what they watch and when count. -->
+<section class="section" th:unless="${view.friends.isEmpty()}" id="wrapped-friends">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">You and Your Friends</h2>
+            <span class="section-note">check-ins this year</span>
+        </div>
+        <div class="stat-card year-ranks">
+            <div class="year-rank" th:each="rank, iteration : ${view.friends}" th:classappend="${rank.you} ? 'you'">
+                <span class="rank-number" th:text="${iteration.count}">1</span>
+                <span class="friend-name">
+                    <span class="nav-account-icon">
+                        <img th:if="${rank.avatarUrl != null}" th:src="${rank.avatarUrl}" alt="">
+                        <span th:unless="${rank.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(rank.name, 0, 1))}">A</span>
+                    </span>
+                    <span th:text="${rank.name}">Alice</span>
+                </span>
+                <div class="bar-track"><div class="bar-fill" th:style="|width: ${rank.share}%|"></div></div>
+                <span class="bar-value" th:text="${rank.checkIns}">61</span>
+            </div>
+        </div>
+    </div>
+</section>
+</th:block>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

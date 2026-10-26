@@ -2492,3 +2492,211 @@ body::after {
         transition: background 0.2s ease;
     }
 }
+
+/* ── Year in movies ────────────────────────────────────────────────── */
+
+/* The year across the top: the year's posters drift behind it, tilted and dimmed, under a fade
+   into the page; the year itself in the poster face, as large as the screen allows. */
+.wrapped-hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--border); }
+
+.wrapped-posters { position: absolute; inset: -40px -10%; transform: rotate(-6deg); opacity: 0.32; pointer-events: none; }
+
+.wrapped-poster-strip { display: flex; gap: 14px; width: max-content; padding-top: 30px; animation: poster-drift 90s linear infinite; }
+
+.wrapped-poster-strip .poster { width: 150px; flex-shrink: 0; }
+
+@keyframes poster-drift {
+    to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wrapped-poster-strip { animation: none; }
+}
+
+.wrapped-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(90deg, rgba(var(--background-rgb), 0.92) 0%, rgba(var(--background-rgb), 0.55) 60%, rgba(var(--background-rgb), 0.3)),
+        linear-gradient(180deg, transparent 40%, rgba(var(--background-rgb), 0.96));
+}
+
+.wrapped-hero-content { position: relative; z-index: 1; padding-top: 34px; padding-bottom: 38px; }
+
+.wrapped-eyebrow {
+    margin: 6px 0 0;
+    color: var(--green);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+}
+
+.wrapped-year {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(96px, 18vw, 188px);
+    font-weight: 400;
+    line-height: 0.95;
+    letter-spacing: 2px;
+    background: linear-gradient(100deg, var(--accent) 10%, var(--orange) 55%, var(--yellow));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 0 28px rgba(var(--accent-rgb), 0.35));
+}
+
+.wrapped-lede { margin: 8px 0 22px; max-width: 620px; font-size: 19px; color: var(--text); }
+
+.wrapped-lede strong { color: var(--accent-strong); }
+
+.wrapped-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; }
+
+.wrapped-actions .view-tabs { margin: 0; }
+
+.wrapped-share { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+
+.wrapped-from { margin: 0; color: var(--text-muted); font-size: 14.5px; }
+
+.wrapped-from a { color: var(--accent-strong); }
+
+/* The year's totals: four big numbers, each in its own neon. */
+.wrapped-numbers { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+
+.wrapped-number {
+    position: relative;
+    padding: 20px 22px 18px;
+    border: 1px solid rgba(var(--tone), 0.35);
+    border-radius: var(--radius);
+    background: linear-gradient(150deg, rgba(var(--tone), 0.14), rgba(var(--tone), 0.02) 70%) var(--surface);
+    animation: fade-up 0.35s ease backwards;
+}
+
+.wrapped-number:nth-child(1) { --tone: var(--accent-rgb); }
+.wrapped-number:nth-child(2) { --tone: var(--cyan-rgb); animation-delay: 0.06s; }
+.wrapped-number:nth-child(3) { --tone: var(--green-rgb); animation-delay: 0.12s; }
+.wrapped-number:nth-child(4) { --tone: var(--yellow-rgb); animation-delay: 0.18s; }
+
+.wrapped-number .value {
+    font-family: var(--font-display);
+    font-size: 54px;
+    line-height: 1.05;
+    color: rgb(var(--tone));
+    text-shadow: 0 0 22px rgba(var(--tone), 0.45);
+    font-variant-numeric: tabular-nums;
+}
+
+.wrapped-number .label { color: var(--text-muted); font-size: 13px; letter-spacing: 0.6px; text-transform: uppercase; }
+
+/* The months across two columns with the facts beside them; then the genres, the people and the
+   places abreast. */
+.wrapped-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; align-items: start; }
+
+/* The months and the facts beside them are as tall as each other; the cards under them as tall as their content. */
+.wrapped-months { grid-column: span 2; align-self: stretch; display: flex; flex-direction: column; }
+
+.month-chart { flex: 1; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 8px; min-height: 200px; align-items: end; }
+
+.month-column { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 6px; }
+
+.month-bar {
+    width: 100%;
+    max-width: 38px;
+    min-height: 4px;
+    border-radius: 6px 6px 2px 2px;
+    background: linear-gradient(180deg, var(--accent-strong), rgba(var(--violet-rgb), 0.55));
+    box-shadow: 0 0 16px rgba(var(--accent-rgb), 0.25);
+    transform-origin: bottom;
+    animation: month-grow 0.7s ease-out backwards;
+}
+
+.month-bar.empty { background: var(--surface-raised); box-shadow: none; }
+
+@keyframes month-grow {
+    from { transform: scaleY(0); }
+}
+
+.month-count { color: var(--text); font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; min-height: 18px; }
+
+.month-name { color: var(--text-muted); font-size: 12px; }
+
+.wrapped-facts { align-self: stretch; display: flex; flex-direction: column; gap: 22px; }
+
+.wrapped-fact { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+.fact-label { color: var(--text-muted); font-size: 12.5px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; }
+
+.fact-value { font-family: var(--font-display); font-size: 42px; line-height: 1.1; color: rgb(var(--tone, var(--accent-rgb))); text-shadow: 0 0 18px rgba(var(--tone, var(--accent-rgb)), 0.4); }
+
+.fact-detail { color: var(--text-muted); font-size: 14px; }
+
+.wrapped-subheading { margin-top: 18px; }
+
+/* The countries and the languages as tags: the flag, the name, and how many movies. */
+.place-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.place-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    font-size: 13.5px;
+}
+
+.place-flag { font-size: 17px; line-height: 1; }
+
+.place-count { color: var(--text-muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+
+/* The year beside the friends': a row each, the visitor's own lit up. */
+.year-ranks { max-width: 760px; }
+
+.year-rank {
+    display: grid;
+    grid-template-columns: 28px minmax(0, 200px) 1fr 48px;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+}
+
+.year-rank:last-child { border-bottom: none; }
+
+.year-rank .rank-number { color: var(--text-muted); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.year-rank .bar-value { text-align: right; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+.year-rank.you .friend-name { color: var(--green); font-weight: 600; }
+
+.year-rank.you .bar-fill { background: linear-gradient(90deg, rgba(var(--green-rgb), 0.3), rgba(var(--green-rgb), 0.6)); }
+
+/* The way from About You to the year. */
+.wrapped-link { --from: var(--accent-rgb); --to: var(--yellow-rgb); }
+
+@media (max-width: 960px) {
+    .wrapped-numbers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .wrapped-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .wrapped-months { grid-column: 1 / -1; }
+    .wrapped-facts { flex-direction: row; grid-column: 1 / -1; }
+}
+
+@media (max-width: 640px) {
+    .wrapped-hero-content { padding-top: 22px; padding-bottom: 26px; }
+    .wrapped-lede { font-size: 16.5px; }
+    .wrapped-posters .poster { width: 110px; }
+    .wrapped-numbers { gap: 10px; }
+    .wrapped-number { padding: 14px 14px 12px; }
+    .wrapped-number .value { font-size: 38px; }
+    .wrapped-number .label { font-size: 11.5px; }
+    .wrapped-grid { grid-template-columns: minmax(0, 1fr); }
+    .wrapped-facts { flex-direction: column; }
+    .month-chart { gap: 4px; min-height: 160px; }
+    .month-name { font-size: 10.5px; }
+    .month-count { font-size: 10px; }
+    .year-rank { grid-template-columns: 22px minmax(0, 1fr) 70px 36px; gap: 10px; }
+    .wrapped-actions .view-tabs { max-width: 100%; overflow-x: auto; }
+}

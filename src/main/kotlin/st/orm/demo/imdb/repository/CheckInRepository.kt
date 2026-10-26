@@ -12,7 +12,9 @@ import st.orm.repository.EntityRepository
 import st.orm.repository.select
 import st.orm.template.and
 import st.orm.template.eq
+import st.orm.template.greaterEq
 import st.orm.template.inList
+import st.orm.template.less
 import st.orm.template.ref
 import java.time.Instant
 
@@ -25,6 +27,28 @@ import java.time.Instant
 data class LatestCheckIn(
     val movie: Ref<Movie>,
     val watchedAt: Instant
+)
+
+/**
+ * Query result shape: a movie and the day of its first check-in. Not backed
+ * by a database table or view, so it is a plain data class — deliberately
+ * not a Data type.
+ */
+@GenerateMetamodel
+data class FirstCheckIn(
+    val movie: Ref<Movie>,
+    val watchedAt: Instant
+)
+
+/**
+ * Query result shape: how many check-ins a user made, by the user's id. Not
+ * backed by a database table or view, so it is a plain data class —
+ * deliberately not a Data type.
+ */
+@GenerateMetamodel
+data class CheckInCount(
+    val user: Ref<User>,
+    val checkIns: Long
 )
 
 interface CheckInRepository : EntityRepository<CheckIn, Long> {
@@ -47,6 +71,30 @@ interface CheckInRepository : EntityRepository<CheckIn, Long> {
         select<LatestCheckIn, _, _> { "${CheckIn_.movie.id}, MAX(${CheckIn_.watchedAt})" }
             .where(CheckIn_.user eq user)
             .groupBy(CheckIn_.movie)
+            .resultList
+
+    /**
+     * The day of the first check-in of every movie the user checked in: a
+     * check-in after it is a movie watched again. The same grouping as
+     * [findLatestPerMovie], with MIN.
+     */
+    fun findFirstPerMovie(user: User): List<FirstCheckIn> =
+        select<FirstCheckIn, _, _> { "${CheckIn_.movie}, MIN(${CheckIn_.watchedAt})" }
+            .where(CheckIn_.user eq user)
+            .groupBy(CheckIn_.movie)
+            .resultList
+
+    /** The user's check-ins from [from] up to [until], each with its movie, the earliest first: a year in movies. */
+    fun findBetween(user: User, from: Instant, until: Instant): List<CheckIn> =
+        select((CheckIn_.user eq user) and (CheckIn_.watchedAt greaterEq from) and (CheckIn_.watchedAt less until))
+            .orderBy(CheckIn_.watchedAt, CheckIn_.id)
+            .resultList
+
+    /** How many check-ins each of several users made from [from] up to [until]: a year compared with friends'. */
+    fun countBetween(users: List<User>, from: Instant, until: Instant): List<CheckInCount> =
+        select<CheckInCount, _, _> { "${CheckIn_.user}, COUNT(*)" }
+            .where((CheckIn_.user inList users) and (CheckIn_.watchedAt greaterEq from) and (CheckIn_.watchedAt less until))
+            .groupBy(CheckIn_.user)
             .resultList
 
     /**

@@ -2,6 +2,8 @@ package st.orm.demo.imdb.repository
 
 import kotlinx.serialization.Serializable
 import st.orm.GenerateMetamodel
+import st.orm.demo.imdb.model.CheckIn
+import st.orm.demo.imdb.model.CheckIn_
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieSeen
 import st.orm.demo.imdb.model.MovieSeen_
@@ -20,11 +22,14 @@ import st.orm.template.and
 import st.orm.template.eq
 import st.orm.template.inList
 import st.orm.template.inRefs
+import st.orm.template.greaterEq
+import st.orm.template.less
 import st.orm.template.lessEq
 import st.orm.template.neq
 import st.orm.template.or
 import st.orm.template.ref
 import java.math.BigDecimal
+import java.time.Instant
 
 /** The credit categories that count as acting. */
 val ACTING_CATEGORIES = listOf("actor", "actress")
@@ -235,14 +240,39 @@ interface PrincipalRepository : EntityRepository<Principal, PrincipalPk> {
      * nothing about a favourite. The people who made either list are then
      * loaded in one query, as for the most prolific actors.
      */
-    fun findSeenFavourites(user: User, minimumMovies: Int, limit: Int): SeenFavourites {
-        val counts = select<CategoryCreditCount, _, _> { "${Principal_.person}, ${Principal_.category}, COUNT(*)" }
-            .innerJoin<MovieSeen>().on<Movie>()
-            .where((MovieSeen_.user eq user) and (Principal_.category inList ACTING_CATEGORIES + DIRECTOR))
-            .groupBy(Principal_.person, Principal_.category)
-            .having { "COUNT(*) >= $minimumMovies" }
-            .orderByDescending { "COUNT(*)" }
-            .resultList
+    fun findSeenFavourites(user: User, minimumMovies: Int, limit: Int): SeenFavourites =
+        favourites(
+            select<CategoryCreditCount, _, _> { "${Principal_.person}, ${Principal_.category}, COUNT(*)" }
+                .innerJoin<MovieSeen>().on<Movie>()
+                .where((MovieSeen_.user eq user) and (Principal_.category inList ACTING_CATEGORIES + DIRECTOR))
+                .groupBy(Principal_.person, Principal_.category)
+                .having { "COUNT(*) >= $minimumMovies" }
+                .orderByDescending { "COUNT(*)" }
+                .resultList,
+            limit
+        )
+
+    /**
+     * The actors and the directors of the movies the user checked in from
+     * [from] up to [until]: a year's favourites. The same count as
+     * [findSeenFavourites], joined through the check-ins instead, where a
+     * movie watched twice is one movie, so the count is of distinct movies.
+     */
+    fun findCheckedInFavourites(user: User, from: Instant, until: Instant, minimumMovies: Int, limit: Int): SeenFavourites =
+        favourites(
+            select<CategoryCreditCount, _, _> { "${Principal_.person}, ${Principal_.category}, COUNT(DISTINCT ${CheckIn_.movie})" }
+                .innerJoin<CheckIn>().on<Movie>()
+                .where((CheckIn_.user eq user) and (CheckIn_.watchedAt greaterEq from) and (CheckIn_.watchedAt less until)
+                    and (Principal_.category inList ACTING_CATEGORIES + DIRECTOR))
+                .groupBy(Principal_.person, Principal_.category)
+                .having { "COUNT(DISTINCT ${CheckIn_.movie}) >= $minimumMovies" }
+                .orderByDescending { "COUNT(DISTINCT ${CheckIn_.movie})" }
+                .resultList,
+            limit
+        )
+
+    /** The counts split into the actors and the directors, the people who made either list loaded in one query. */
+    private fun favourites(counts: List<CategoryCreditCount>, limit: Int): SeenFavourites {
         val actors = counts.filter { it.category in ACTING_CATEGORIES }.take(limit)
         val directors = counts.filter { it.category == DIRECTOR }.take(limit)
         val people = orm.entity(Person::class).findAllByRef((actors + directors).map { it.person }.distinct()).associateBy { it.ref() }

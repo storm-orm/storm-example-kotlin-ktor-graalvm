@@ -28,6 +28,7 @@ import st.orm.demo.imdb.service.WatchlistService
 import st.orm.demo.imdb.service.StreamingService
 import st.orm.demo.imdb.service.TmdbService
 import st.orm.demo.imdb.service.WikipediaSummaryService
+import st.orm.demo.imdb.service.WrappedService
 
 /**
  * Mounts the static resources, the server-rendered pages, and the REST routes.
@@ -44,6 +45,7 @@ fun Application.configureRouting() {
     val catchUpService: CatchUpService by dependencies
     val statisticsService: StatisticsService by dependencies
     val insightsService: InsightsService by dependencies
+    val wrappedService: WrappedService by dependencies
     val friendService: FriendService by dependencies
     val communityService: CommunityService by dependencies
     val clubService: ClubService by dependencies
@@ -72,6 +74,7 @@ fun Application.configureRouting() {
         movieSeenRoutes(movieSeenService, catchUpService, friendService, clubService)
         statisticsRoutes(statisticsService)
         insightsRoutes(insightsService, streamingService)
+        wrappedRoutes(wrappedService)
         friendsRoutes(friendService)
         communityRoutes(communityService)
         clubsRoutes(clubService)
