@@ -12,8 +12,8 @@
             <th:block th:case="'SOLO'">Against the house: it answers every movie with one of its own.</th:block>
             <th:block th:case="'FRIEND'">Against a friend, a day per turn.</th:block>
             <th:block th:case="*" th:text="|With ${chain.match.club.name}, a day per turn.|">With the club.</th:block>
-            Each movie shares an actor with the one before, and scores a point, a leap of twenty years two. When the
-            actor of the link before is in it too, it is an escape: allowed, but no points.
+            Each movie shares an actor with the one before, and scores the years between the two, at least one: leap
+            across the eras. When the actor of the link before is in it too, it is an escape: allowed, but no points.
         </p>
     </div>
 </header>

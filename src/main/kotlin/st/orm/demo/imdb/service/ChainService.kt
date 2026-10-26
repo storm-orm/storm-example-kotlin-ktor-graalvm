@@ -62,8 +62,8 @@ enum class ChainMove { ADDED, NOT_YOUR_TURN, ALREADY_IN, NO_SHARED_ACTOR, OVER }
 
 /**
  * Movie Chain: the players build one chain of movies, each sharing an
- * actor with the one before, no movie twice. A link scores a point, two
- * when it leaps twenty years or more; but when the actor the link before
+ * actor with the one before, no movie twice. A link scores the years
+ * between the two movies, at least one; but when the actor the link before
  * went through is in the next movie too, it is an escape, which keeps the
  * chain going without points. The players take turns, a day each:
  * a turn not taken passes to the next player, worked out when the chain is
@@ -284,13 +284,13 @@ class ChainService(
     /**
      * The points of a link after [previous]: none when it goes through the
      * same actor as [previous]'s link, that actor in the next movie too, an
-     * escape that keeps the chain going; else a point, two for a leap of
-     * twenty years or more.
+     * escape that keeps the chain going; else the years between the two
+     * movies, at least one, so a leap across the eras scores most.
      */
     private fun pointsFor(previous: ChainLink, next: Movie, via: Person): Int {
         if (previous.via?.id == via.id) return 0
-        val leap = previous.movie.startYear?.let { from -> next.startYear?.let { abs(it - from) } } ?: 0
-        return if (leap >= LEAP_YEARS) 2 else 1
+        val years = previous.movie.startYear?.let { from -> next.startYear?.let { abs(it - from) } } ?: 0
+        return years.coerceAtLeast(1)
     }
 
     companion object {
@@ -298,7 +298,6 @@ class ChainService(
         val TURN: Duration = Duration.ofHours(24)
         /** A chain without a move for a week is over. */
         private val IDLE: Duration = Duration.ofDays(7)
-        private const val LEAP_YEARS = 20
         private const val START_POOL = 300
         private const val MINIMUM_VOTES = 25_000
         private const val MINIMUM_CAST = 3

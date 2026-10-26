@@ -143,7 +143,8 @@ class GamesTest {
         assertEquals(ChainMove.ALREADY_IN, runBlocking { service.move(bob, match.id, "tt0234215", now.plusSeconds(60)) })
         chain = runBlocking { service.chainOf(alice, match.id, now.plusSeconds(120)) }!!
         assertEquals("Keanu Reeves", chain.last.via!!.primaryName)
-        assertEquals(mapOf("Alice" to 1, "Bob" to 0), chain.players.associate { it.user.name to it.score })
+        // The Matrix Reloaded (2003) to The Matrix (1999): four years.
+        assertEquals(mapOf("Alice" to 4, "Bob" to 0), chain.players.associate { it.user.name to it.score })
         assertFalse(chain.yourTurn)
 
         // Bob lets a day go by: the turn has passed back to Alice.
@@ -186,7 +187,8 @@ class GamesTest {
             orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository()
         )
         val play = PlayService(matches(orm), orm.repository(), orm.repository(), service, drafts(orm), connects(orm), orm.repository(), quiz)
-        assertEquals(listOf("Over: 1 point"), runBlocking { play.playOf(alice, now) }.games.map { it.status })
+        // The Matrix Reloaded (2003) to The Matrix (1999): four years, four points.
+        assertEquals(listOf("Over: 4 points"), runBlocking { play.playOf(alice, now) }.games.map { it.status })
     }
 
     @Test
@@ -281,8 +283,9 @@ class GamesTest {
         val (service, matchId) = chainToTheMatrix(orm, "nm0000206" to 2)
         val chain = runBlocking { service.chainOf(orm.repository<UserRepository>().getById("alice-escape"), matchId, now) }!!
         assertEquals(listOf("Keanu Reeves", "Keanu Reeves"), chain.links.drop(1).map { it.via!!.primaryName })
-        assertEquals(listOf(1, 0), chain.links.drop(1).map { it.points })
-        assertEquals(mapOf("Alice" to 1, "Bob" to 0), chain.players.associate { it.user.name to it.score })
+        // The Matrix Reloaded (2003) to The Matrix (1999) scores its four years; the escape nothing.
+        assertEquals(listOf(4, 0), chain.links.drop(1).map { it.points })
+        assertEquals(mapOf("Alice" to 4, "Bob" to 0), chain.players.associate { it.user.name to it.score })
     }
 
     @Test
@@ -300,7 +303,8 @@ class GamesTest {
         val (service, matchId) = chainToTheMatrix(orm, "nm0000401" to 3)
         val chain = runBlocking { service.chainOf(orm.repository<UserRepository>().getById("bob-escape"), matchId, now) }!!
         assertEquals("Laurence Fishburne", chain.last.via!!.primaryName)
-        assertEquals(1, chain.last.points)
+        // The Matrix (1999) to Pulp Fiction (1994): five years.
+        assertEquals(5, chain.last.points)
     }
 
     @Test
