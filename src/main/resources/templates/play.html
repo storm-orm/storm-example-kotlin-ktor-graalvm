@@ -143,6 +143,17 @@
             <span class="game-text">Two movies to join by a chain of shared actors, in as few links as you can. Play it together: anyone adds the next link, any time.</span>
             <form th:replace="~{fragments/games :: startForm('/play/connect', 'Start a puzzle', 'Start a puzzle')}"></form>
         </div>
+
+        <!-- Name That Cast: a movie from the house; bid how many of its cast you can name, then name them. -->
+        <div class="game-card game-cast">
+            <span class="game-art game-art-cast" aria-hidden="true">
+                <span class="game-art-poster"></span><span class="game-art-bid">12</span>
+            </span>
+            <span class="game-title">Name That Cast</span>
+            <span class="game-text">The house picks a movie. How many of its cast can you name, the director too? Bid against your
+                friend or your club: the highest bid has to name them all. On your own, name as many as you know.</span>
+            <form th:replace="~{fragments/games :: startForm('/play/cast', 'Challenge', 'Start a round')}"></form>
+        </div>
     </div>
 </section>
 

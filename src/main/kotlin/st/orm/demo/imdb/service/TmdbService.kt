@@ -11,6 +11,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
+import st.orm.demo.imdb.model.Credits
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.TmdbSource
 import st.orm.demo.imdb.model.WatchProvider
@@ -74,6 +75,15 @@ class TmdbService(
      */
     suspend fun trailer(movieId: String, askTmdb: Boolean, now: Instant = Instant.now()): String? =
         source(movieId, askTmdb, now) { it.fetchedAt.isAfter(now.minus(keep)) }?.trailerKey
+
+    /**
+     * A movie's directors and whole cast, as TMDB lists them; null when TMDB
+     * does not know the movie or is off, or the request may not ask TMDB
+     * ([askTmdb]) and nothing is stored.
+     */
+    suspend fun credits(movieId: String, askTmdb: Boolean, now: Instant = Instant.now()): Credits? =
+        source(movieId, askTmdb, now) { it.credits != null && it.fetchedAt.isAfter(now.minus(keep)) }
+            ?.credits?.takeIf { it.people.isNotEmpty() }
 
     /**
      * The platforms a movie streams on or shows free in a country, in TMDB's
@@ -221,7 +231,8 @@ class TmdbService(
             externalId = tmdb?.tmdbId?.toString(),
             trailerKey = tmdb?.trailerKey,
             watchProviders = WatchProviders(platforms.mapValues { (_, providers) -> providers.map { it.id } }),
-            fetchedAt = now
+            fetchedAt = now,
+            credits = Credits(tmdb?.credits.orEmpty())
         )
         tmdbSourceRepository.save(source)
         return source

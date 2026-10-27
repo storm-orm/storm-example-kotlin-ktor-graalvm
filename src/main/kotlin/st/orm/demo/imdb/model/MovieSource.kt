@@ -43,11 +43,12 @@ data class ImdbSource(
 }
 
 /**
- * TMDB, asked when a movie page wants the trailer or the platforms, or an
- * import names a movie by its TMDB id: the TMDB id and the trailer's YouTube
- * key, either null where TMDB has none, the platforms it plays on per
- * country, null where TMDB was asked before they were, and when TMDB was
- * asked, as its terms let the answer be kept six months.
+ * TMDB, asked when a movie page wants the trailer or the platforms, a game
+ * the whole cast, or an import names a movie by its TMDB id: the TMDB id and
+ * the trailer's YouTube key, either null where TMDB has none, the platforms
+ * it plays on per country, and the cast, each null where TMDB was asked
+ * before it was, and when TMDB was asked, as its terms let the answer be
+ * kept six months.
  */
 @Discriminator("tmdb")
 data class TmdbSource(
@@ -56,7 +57,8 @@ data class TmdbSource(
     override val externalId: String?,
     val trailerKey: String?,
     @Json val watchProviders: WatchProviders?,
-    val fetchedAt: Instant
+    val fetchedAt: Instant,
+    @Json val credits: Credits? = null
 ) : MovieSource
 
 /**
@@ -81,6 +83,17 @@ data class WikidataSource(
  */
 @Serializable
 data class WatchProviders(val byCountry: Map<String, List<Int>>)
+
+/**
+ * A movie's whole cast as TMDB lists it, in billing order, and its directors:
+ * IMDb's datasets name the top-billed only.
+ */
+@Serializable
+data class Credits(val people: List<Credit>)
+
+/** Someone in a movie's credits: the name, the character played, and whether they directed it. */
+@Serializable
+data class Credit(val name: String, val character: String? = null, val director: Boolean = false)
 
 /** The source a row is of. */
 val MovieSource.source: Source

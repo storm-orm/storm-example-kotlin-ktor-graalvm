@@ -30,6 +30,7 @@ data class GameEntry(val match: GameMatch, val with: String, val status: String,
         Game.HIGHER_LOWER -> "Higher or Lower"
         Game.SWIPE -> "Swipe Round"
         Game.CONNECT -> "Connect"
+        Game.CAST -> "Name That Cast"
     }
 
     /** The game's emoji, for the lists. */
@@ -39,6 +40,7 @@ data class GameEntry(val match: GameMatch, val with: String, val status: String,
         Game.HIGHER_LOWER -> "🎬"
         Game.SWIPE -> "🍿"
         Game.CONNECT -> "📽️"
+        Game.CAST -> "🎭"
     }
 }
 
@@ -73,7 +75,8 @@ class PlayService(
     private val draftService: DraftService,
     private val connectService: ConnectService,
     private val ratingRepository: RatingRepository,
-    private val quizService: QuizService
+    private val quizService: QuizService,
+    private val castService: CastService
 ) {
 
     suspend fun playOf(user: User, now: Instant = Instant.now()): PlayView = transaction {
@@ -155,6 +158,7 @@ class PlayService(
             Game.CHAIN -> chainService.versionOf(match, players, now)
             Game.DRAFT -> draftService.versionOf(match, now)
             Game.CONNECT -> connectService.versionOf(match)
+            Game.CAST -> castService.versionOf(match, now)
             Game.HIGHER_LOWER, Game.SWIPE -> ""
         }
         "${match.endedAt}|${match.isOver(now)}|$standing|$game"
@@ -199,6 +203,9 @@ class PlayService(
                     turn.isUser(user) -> GameEntry(match, with, "Your pick", yourMove = true)
                     else -> GameEntry(match, with, "${turn.name}'s pick", yourMove = false)
                 }
+            }
+            Game.CAST -> castService.standingOf(user, match, now).let { (over, standing, yourMove) ->
+                GameEntry(match, with, standing, yourMove = yourMove, over = over)
             }
             Game.CHAIN -> {
                 val turn = chainService.turnIn(match, players, now)

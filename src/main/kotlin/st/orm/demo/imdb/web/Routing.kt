@@ -6,6 +6,7 @@ import io.ktor.server.plugins.di.dependencies
 import io.ktor.server.routing.routing
 import st.orm.demo.imdb.service.AccountService
 import st.orm.demo.imdb.service.BrowseService
+import st.orm.demo.imdb.service.CastService
 import st.orm.demo.imdb.service.CatchUpService
 import st.orm.demo.imdb.service.CinemaService
 import st.orm.demo.imdb.service.FreepodSignIn
@@ -77,6 +78,7 @@ fun Application.configureRouting() {
     val draftService: DraftService by dependencies
     val swipeService: SwipeService by dependencies
     val connectService: ConnectService by dependencies
+    val castService: CastService by dependencies
     val dailyPuzzleService: DailyPuzzleService by dependencies
     val posterController: PosterController by dependencies
     val personGalleryService: PersonGalleryService by dependencies
@@ -112,7 +114,7 @@ fun Application.configureRouting() {
         personRoutes(personService)
         quizRoutes(quizService)
         dailyPuzzleRoutes(dailyPuzzleService)
-        playRoutes(playService, higherLowerService, chainService, draftService, swipeService, movieNightService, connectService)
+        playRoutes(playService, higherLowerService, chainService, draftService, swipeService, movieNightService, connectService, castService)
         swipeRoutes(swipeService)
         posterRoutes(posterController)
         galleryRoutes(personGalleryService)

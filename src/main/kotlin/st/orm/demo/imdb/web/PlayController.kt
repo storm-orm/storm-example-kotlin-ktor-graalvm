@@ -2,6 +2,7 @@ package st.orm.demo.imdb.web
 
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.Parameters
+import io.ktor.server.request.accept
 import io.ktor.server.request.receiveParameters
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondRedirect
@@ -13,7 +14,10 @@ import io.ktor.server.thymeleaf.ThymeleafContent
 import io.ktor.server.util.getOrFail
 import st.orm.demo.imdb.model.GameMatch
 import st.orm.demo.imdb.model.GameMode
+import kotlinx.serialization.Serializable
 import st.orm.demo.imdb.model.User
+import st.orm.demo.imdb.service.CastLive
+import st.orm.demo.imdb.service.CastService
 import st.orm.demo.imdb.service.ChainMove
 import st.orm.demo.imdb.service.ChainService
 import st.orm.demo.imdb.service.ConnectMove
@@ -37,6 +41,13 @@ private fun Parameters.opponents(): Opponents = when (this["mode"]) {
     else -> Opponents(GameMode.SOLO)
 }
 
+/** A match's page: its template and its model. */
+private fun page(template: String, vararg model: Pair<String, Any?>): Pair<String, Map<String, Any?>> = template to mapOf(*model)
+
+/** What came of a name given in Name That Cast, and the round as it stands after it, for the page that sent it. */
+@Serializable
+data class CastNamed(val verdict: String, val live: CastLive)
+
 /**
  * The games: the Play page with the visitor's games and the ways to start
  * one, on one's own, with a friend or with a club, and a match's page,
@@ -44,7 +55,7 @@ private fun Parameters.opponents(): Opponents = when (this["mode"]) {
  * to the match. Playing with others needs a signed-in account, as they see
  * the players' names; anyone plays on their own.
  */
-fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerService, chainService: ChainService, draftService: DraftService, swipeService: SwipeService, movieNightService: MovieNightService, connectService: ConnectService) {
+fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerService, chainService: ChainService, draftService: DraftService, swipeService: SwipeService, movieNightService: MovieNightService, connectService: ConnectService, castService: CastService) {
     get("/play") {
         val full = call.request.queryParameters["full"] != null
         call.respondPage(ThymeleafContent("play", mapOf("play" to playService.playOf(call.currentUser()), "full" to full, "maxOpen" to PlayService.MAX_OPEN)))
@@ -67,7 +78,8 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
         "/play/chain" to { user, opponents -> chainService.start(user, opponents) },
         "/play/draft" to { user, opponents -> draftService.start(user, opponents) },
         "/play/swipe" to { user, opponents -> swipeService.startRound(user, opponents) },
-        "/play/connect" to { user, opponents -> connectService.start(user, opponents) }
+        "/play/connect" to { user, opponents -> connectService.start(user, opponents) },
+        "/play/cast" to { user, opponents -> castService.start(user, opponents) }
     )) {
         post(path) {
             val opponents = call.receiveParameters().opponents()
@@ -84,11 +96,13 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
         val user = call.currentUser()
         val matchId = call.parameters.getOrFail<Long>("id")
         val problem = call.request.queryParameters["problem"]
-        val (template, model) = higherLowerService.matchOf(user, matchId)?.let { "higher-lower" to mapOf("game" to it) }
-            ?: swipeService.roundOf(user, matchId)?.let { "swipe-round" to mapOf("round" to it) }
-            ?: draftService.draftOf(user, matchId)?.let { "draft" to mapOf("draft" to it, "problem" to problem) }
-            ?: chainService.chainOf(user, matchId)?.let { "chain" to mapOf("chain" to it, "problem" to problem) }
-            ?: connectService.puzzleOf(user, matchId)?.let { "connect" to mapOf("puzzle" to it, "problem" to problem) }
+        val said = call.request.queryParameters["said"]
+        val (template, model) = higherLowerService.matchOf(user, matchId)?.let { page("higher-lower", "game" to it) }
+            ?: swipeService.roundOf(user, matchId)?.let { page("swipe-round", "round" to it) }
+            ?: draftService.draftOf(user, matchId)?.let { page("draft", "draft" to it, "problem" to problem) }
+            ?: chainService.chainOf(user, matchId)?.let { page("chain", "chain" to it, "problem" to problem) }
+            ?: connectService.puzzleOf(user, matchId)?.let { page("connect", "puzzle" to it, "problem" to problem) }
+            ?: castService.roundOf(user, matchId)?.let { page("cast", "round" to it, "said" to said) }
             ?: return@get call.respond(HttpStatusCode.NotFound)
         // The match as it is now, read after the game, which may have made a pick that was due: a page that
         // waits on the others asks whether this changed.
@@ -178,6 +192,39 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
             act(call.currentUser(), matchId)
             call.respondRedirect("/play/matches/$matchId")
         }
+    }
+
+    // Name That Cast: a bid, a name given, or the namer stopping. A name sent by the page's script is answered
+    // with the round as it stands, so the page adds it in place; without the script, back to the round.
+    post("/play/matches/{id}/bid") {
+        val matchId = call.parameters.getOrFail<Long>("id")
+        call.receiveParameters()["count"]?.toIntOrNull()?.let { castService.bid(call.currentUser(), matchId, it) }
+        call.respondRedirect("/play/matches/$matchId")
+    }
+
+    post("/play/matches/{id}/name") {
+        val matchId = call.parameters.getOrFail<Long>("id")
+        val user = call.currentUser()
+        val answer = call.receiveParameters()["name"]?.takeIf { it.isNotBlank() }
+        val verdict = answer?.let { castService.name(user, matchId, it) }
+        if (call.request.accept()?.contains("application/json") == true) {
+            val live = castService.liveOf(user, matchId) ?: return@post call.respond(HttpStatusCode.NotFound)
+            return@post call.respond(CastNamed(verdict?.name ?: "NONE", live))
+        }
+        call.respondRedirect("/play/matches/$matchId" + (verdict?.let { "?said=${it.name.lowercase()}" } ?: ""))
+    }
+
+    post("/play/matches/{id}/stop") {
+        val matchId = call.parameters.getOrFail<Long>("id")
+        castService.stop(call.currentUser(), matchId)
+        call.respondRedirect("/play/matches/$matchId")
+    }
+
+    // Where a round of Name That Cast stands, for the page that follows the namer without reloading.
+    get("/api/play/matches/{id}/cast") {
+        val live = castService.liveOf(call.currentUser(), call.parameters.getOrFail<Long>("id"))
+            ?: return@get call.respond(HttpStatusCode.NotFound)
+        call.respond(live)
     }
 
     post("/play/matches/{id}/hint") {

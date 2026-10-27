@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import st.orm.demo.imdb.model.Credit
 import st.orm.demo.imdb.model.MovieSeen
 import st.orm.demo.imdb.model.MovieSeenPk
 import st.orm.demo.imdb.model.Source
@@ -68,6 +69,22 @@ class TmdbTest {
 
     private fun client(apiKey: String? = "test-key") =
         TmdbClient(apiKey, jacksonObjectMapper(), "http://127.0.0.1:${server.address.port}")
+
+    @Test
+    fun `a movie's credits are its directors and its whole cast in billing order, each person once`(orm: ORMTemplate) {
+        val credits = runBlocking { tmdbService(orm, client()).credits("tt0133093", askTmdb = true) }!!.people
+        assertEquals(
+            listOf(
+                Credit("Lana Wachowski", director = true),
+                Credit("Lilly Wachowski", director = true),
+                Credit("Keanu Reeves", "Thomas A. Anderson / Neo"),
+                Credit("Laurence Fishburne", "Morpheus")
+            ),
+            credits
+        )
+        // Stored with the trailer: asked again without TMDB, the same.
+        assertEquals(credits, runBlocking { tmdbService(orm, client()).credits("tt0133093", askTmdb = false) }!!.people)
+    }
 
     @Test
     fun `a TMDB export is read by its header, movies only, the ratings rounded`() {
@@ -281,7 +298,13 @@ class TmdbTest {
                 "free":[{"provider_id":73,"provider_name":"Tubi TV","logo_path":"/tubi.jpg","display_priority":5}]},
               "DE":{"link":"https://www.themoviedb.org/movie/603/watch?locale=DE",
                 "buy":[{"provider_id":2,"provider_name":"Apple TV","logo_path":"/apple.jpg","display_priority":0}]}
-            }}}
+            }},"credits":{
+              "cast":[{"name":"Laurence Fishburne","character":"Morpheus","order":1},
+                      {"name":"Keanu Reeves","character":"Thomas A. Anderson / Neo","order":0},
+                      {"name":"Lana Wachowski","character":"","order":40}],
+              "crew":[{"name":"Lana Wachowski","job":"Director"},{"name":"Lilly Wachowski","job":"Director"},
+                      {"name":"Joel Silver","job":"Producer"}]
+            }}
         """.trimIndent()
     }
 }

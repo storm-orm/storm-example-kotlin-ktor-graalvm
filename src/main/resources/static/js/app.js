@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupMatchWatch();
     setupGrid();
     setupConfirms();
+    setupCastLive();
 });
 
 // Under the mouse a poster gives a little: it tilts toward the cursor, a light follows the cursor
@@ -1877,4 +1878,64 @@ function setupConfirms() {
             if (!window.confirm(form.dataset.confirm)) event.preventDefault();
         });
     });
+}
+
+// Name That Cast: while someone names, the page follows them, adding each name given in place, without a
+// reload; when the round moves on, it reloads where it was. The namer's own names go the same way.
+function setupCastLive() {
+    const live = document.querySelector('[data-cast-live]');
+    if (!live) return;
+    const url = '/api/play/matches/' + live.dataset.castLive + '/cast';
+    const list = document.querySelector('[data-cast-answers]');
+    const right = document.querySelector('[data-cast-right]');
+    const left = document.querySelector('[data-cast-strikes-left]');
+    const said = document.querySelector('[data-cast-said]');
+    const reload = () => {
+        try { sessionStorage.setItem('match-scroll:' + location.pathname, String(window.scrollY)); } catch (e) { /* no storage */ }
+        location.reload();
+    };
+    const apply = state => {
+        if (state.phase !== live.dataset.castPhase) return reload();
+        state.answers.slice(list.children.length).forEach(answer => {
+            const item = document.createElement('li');
+            item.className = 'cast-answer ' + (answer.credit ? 'right' : 'wrong');
+            item.textContent = answer.credit || answer.answer;
+            list.append(item);
+        });
+        document.querySelector('[data-cast-none]')?.remove();
+        right.textContent = state.right;
+        left.textContent = Number(live.dataset.castStrikes) - state.strikes;
+    };
+    const messages = {
+        RIGHT: 'In the cast!',
+        WRONG: 'Not in the cast.',
+        ALREADY: 'Named already.',
+        UNCLEAR: 'More than one in the cast has that name: give the full name.'
+    };
+    const form = document.querySelector('[data-cast-name]');
+    form?.addEventListener('submit', async event => {
+        event.preventDefault();
+        const input = form.querySelector('input[name="name"]');
+        const body = new URLSearchParams(new FormData(form));
+        input.value = '';
+        input.focus();
+        try {
+            const response = await fetch(form.action, { method: 'POST', body, headers: { Accept: 'application/json' } });
+            if (!response.ok) return reload();
+            const named = await response.json();
+            if (said) said.textContent = messages[named.verdict] || '';
+            apply(named.live);
+        } catch (e) {
+            reload();
+        }
+    });
+    setInterval(async () => {
+        if (document.hidden) return;
+        try {
+            const response = await fetch(url, { headers: { Accept: 'application/json' } });
+            if (response.ok) apply(await response.json());
+        } catch (e) {
+            // A missed check is followed by the next.
+        }
+    }, 3000);
 }

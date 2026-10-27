@@ -25,6 +25,7 @@ import st.orm.demo.imdb.repository.PersonRepository
 import st.orm.demo.imdb.repository.PrincipalRepository
 import st.orm.demo.imdb.repository.RatingRepository
 import st.orm.demo.imdb.repository.UserRepository
+import st.orm.demo.imdb.service.CastService
 import st.orm.demo.imdb.service.ChainMove
 import st.orm.demo.imdb.service.ChainService
 import st.orm.demo.imdb.service.ConnectMove
@@ -36,10 +37,12 @@ import st.orm.demo.imdb.service.MatchService
 import st.orm.demo.imdb.service.Opponents
 import st.orm.demo.imdb.service.PlayService
 import st.orm.demo.imdb.service.QuizService
+import st.orm.demo.imdb.service.TmdbClient
 import st.orm.repository.repository
 import st.orm.template.ORMTemplate
 import st.orm.template.ref
 import st.orm.test.StormTest
+import tools.jackson.module.kotlin.jacksonObjectMapper
 import java.time.Duration
 import java.time.Instant
 
@@ -195,6 +198,10 @@ class GamesTest {
         QuizService(
             orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(),
             orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository()
+        ),
+        CastService(
+            matches(orm), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(),
+            orm.repository(), orm.repository(), orm.repository(), orm.repository(), tmdbService(orm, TmdbClient(null, jacksonObjectMapper()))
         )
     )
 

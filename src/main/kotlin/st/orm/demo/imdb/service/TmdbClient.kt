@@ -1,5 +1,6 @@
 package st.orm.demo.imdb.service
 
+import st.orm.demo.imdb.model.Credit
 import st.orm.demo.imdb.model.WatchProvider
 import tools.jackson.databind.JsonNode
 import tools.jackson.databind.ObjectMapper
@@ -18,7 +19,8 @@ data class TmdbMovie(
     val tmdbId: Int,
     val imdbId: String?,
     val trailerKey: String?,
-    val watchProviders: Map<String, List<WatchProvider>>
+    val watchProviders: Map<String, List<WatchProvider>>,
+    val credits: List<Credit> = emptyList()
 )
 
 /**
@@ -57,18 +59,30 @@ class TmdbClient(
             ?.let { if (it == CANTONESE) "yue" else it }
 
     /**
-     * The movie with this TMDB id, with its IMDb id, its trailer and the
-     * platforms it plays on, in one call, or null when TMDB has no such movie.
+     * The movie with this TMDB id, with its IMDb id, its trailer, the
+     * platforms it plays on and its credits, in one call, or null when TMDB
+     * has no such movie.
      */
     fun movie(tmdbId: Int): TmdbMovie? =
-        get("/3/movie/$tmdbId?append_to_response=videos,watch/providers&include_video_language=en,null")?.let { json ->
-            TmdbMovie(
-                tmdbId = tmdbId,
-                imdbId = json.path("imdb_id").asString(null)?.takeIf { it.startsWith("tt") },
-                trailerKey = trailerOf(json.path("videos").path("results")),
-                watchProviders = watchProvidersOf(json.path("watch/providers").path("results"))
-            )
-        }
+        get("/3/movie/$tmdbId?append_to_response=videos,watch/providers,credits&include_video_language=en,null")?.let(::movieOf)
+
+    /** A movie from TMDB's answer to [movie]. */
+    fun movieOf(json: JsonNode): TmdbMovie = TmdbMovie(
+        tmdbId = json.path("id").asInt(),
+        imdbId = json.path("imdb_id").asString(null)?.takeIf { it.startsWith("tt") },
+        trailerKey = trailerOf(json.path("videos").path("results")),
+        watchProviders = watchProvidersOf(json.path("watch/providers").path("results")),
+        credits = creditsOf(json.path("credits"))
+    )
+
+    /** A movie's directors and its whole cast in billing order, each person once: a director who also acts is a director. */
+    private fun creditsOf(credits: JsonNode): List<Credit> {
+        val directors = credits.path("crew").filter { it.path("job").asString("") == "Director" }
+            .map { Credit(it.path("name").asString(""), director = true) }
+        val cast = credits.path("cast").sortedBy { it.path("order").asInt(Int.MAX_VALUE) }
+            .map { Credit(it.path("name").asString(""), it.path("character").asString(null)?.takeIf(String::isNotBlank)) }
+        return (directors + cast).filter { it.name.isNotBlank() }.distinctBy { it.name }
+    }
 
     /**
      * The best of a movie's videos to show as its trailer: a YouTube video,
