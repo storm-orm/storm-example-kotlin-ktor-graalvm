@@ -64,6 +64,27 @@
             </span>
         </a>
 
+        <!-- Odd One Out: a daily of ten sets of four posters, one that does not belong. -->
+        <a class="game-card game-odd" th:href="@{/play/odd-one-out}">
+            <span class="game-art game-art-odd" aria-hidden="true"><span class="game-art-poster"></span><span class="game-art-poster"></span><span class="game-art-poster"></span><span class="game-art-poster odd"></span></span>
+            <span class="game-title">Odd One Out</span>
+            <span class="game-text">Ten sets of four posters a day. Three share a director, a star, a year or a country: tap the one that does not belong.</span>
+            <span class="game-modes">Daily · your friends and clubs see the scores</span>
+            <span class="button button-primary game-button">Play today's</span>
+        </a>
+
+        <!-- Movie Connections: a daily grid of sixteen posters in four groups. -->
+        <a class="game-card game-connections" th:href="@{/play/connections}">
+            <span class="game-art game-art-grid" aria-hidden="true">
+                <span class="level-1"></span><span class="level-1"></span><span class="level-2"></span><span class="level-2"></span>
+                <span class="level-3"></span><span class="level-3"></span><span class="level-4"></span><span class="level-4"></span>
+            </span>
+            <span class="game-title">Movie Connections</span>
+            <span class="game-text">Sixteen posters, four groups of four. Find what each four share before you make four mistakes.</span>
+            <span class="game-modes">Daily · your friends and clubs see the scores</span>
+            <span class="button button-primary game-button">Play today's</span>
+        </a>
+
         <!-- Higher or Lower: started here, on one's own, against a friend, or as a round for a club. -->
         <div class="game-card game-higher-lower">
             <span class="game-art game-art-cards" aria-hidden="true">

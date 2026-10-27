@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(|Odd One Out #${odd.number}|)}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <a class="back-link" th:href="@{/play}">← Play</a>
+        <h1 class="page-title">Odd One Out <span class="quiz-number" th:text="|#${odd.number}|">#1</span></h1>
+        <p class="page-subtitle">Three of the four share something. Tap the one that does not belong.</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container quiz-layout">
+        <div class="stat-card odd-stage">
+            <div class="odd-progress">
+                <span class="quiz-pip" th:each="i : ${#numbers.sequence(1, odd.count)}"
+                      th:classappend="${i <= odd.index} ? 'answered' : (${i == odd.index + 1} ? 'current' : '')"></span>
+                <span class="odd-score" th:text="|${odd.score} right|">3 right</span>
+            </div>
+
+            <!-- The puzzle just answered: right or not, and what the three share. -->
+            <div class="odd-reveal" th:if="${odd.last != null and !odd.finished}" th:classappend="${odd.last.right} ? 'right' : 'wrong'">
+                <p class="quiz-verdict" th:text="${odd.last.right} ? 'Right!' : 'Not quite'">Right!</p>
+                <p class="odd-reveal-text">
+                    <th:block th:text="|${odd.last.label}: all but|">Directed by Christopher Nolan: all but</th:block>
+                    <strong th:text="${odd.last.odd.primaryTitle}">Heat</strong>.
+                </p>
+            </div>
+
+            <!-- The four posters: a tap picks the odd one. -->
+            <div class="odd-grid" th:unless="${odd.finished}">
+                <form th:each="movie : ${odd.current}" th:action="@{/play/odd-one-out}" method="post" class="odd-pick">
+                    <input type="hidden" name="movie" th:value="${movie.id}">
+                    <button type="submit" class="odd-button" th:title="|Is ${movie.primaryTitle} the odd one?|">
+                        <div th:replace="~{fragments/cards :: posterThumb(${movie.id}, ${movie.primaryTitle})}"></div>
+                        <span class="odd-title" th:text="${movie.primaryTitle}">The Matrix</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Done: the score, and every puzzle with its answer. -->
+            <th:block th:if="${odd.finished}">
+                <div class="odd-final">
+                    <span class="odd-final-score" th:text="|${odd.score}/${odd.count}|">7/10</span>
+                    <div>
+                        <p class="quiz-verdict" th:text="${odd.score == odd.count} ? 'Every one right!' : 'Done for today'">Done for today</p>
+                        <button type="button" class="button button-primary" th:data-quiz-share="|Storm Movies Odd One Out #${odd.number} · ${odd.score}/${odd.count}|">Share your score</button>
+                    </div>
+                </div>
+                <div class="odd-results">
+                    <div class="odd-result" th:each="result : ${odd.results}" th:classappend="${result.right} ? 'right' : 'wrong'">
+                        <div class="odd-result-posters">
+                            <a th:each="movie : ${result.movies}" th:href="@{/movie/{id}(id=${movie.id})}" class="odd-result-poster"
+                               th:classappend="${movie.id == result.odd.id} ? 'is-odd'" th:title="${movie.primaryTitle}">
+                                <div th:replace="~{fragments/cards :: posterThumb(${movie.id}, ${movie.primaryTitle})}"></div>
+                            </a>
+                        </div>
+                        <p class="odd-result-text"><th:block th:text="${result.label}">Directed by Nolan</th:block>; not <strong th:text="${result.odd.primaryTitle}">Heat</strong></p>
+                    </div>
+                </div>
+            </th:block>
+        </div>
+        <aside th:replace="~{fragments/games :: boards(${odd.boards})}"></aside>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

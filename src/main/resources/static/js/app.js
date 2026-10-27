@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupNightVotes();
     setupSwipeDecks();
     setupMatchWatch();
+    setupGrid();
 });
 
 // Under the mouse a poster gives a little: it tilts toward the cursor, a light follows the cursor
@@ -1843,4 +1844,39 @@ function setupMatchWatch() {
     };
     setInterval(check, 10000);
     document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
+}
+
+// Movie Connections: a tap selects a poster, four at most, and Submit sends the four; Shuffle mixes
+// the posters, Deselect clears the selection.
+function setupGrid() {
+    const form = document.querySelector('[data-grid]');
+    if (!form) return;
+    const tiles = form.querySelector('[data-grid-tiles]');
+    const submit = form.querySelector('[data-grid-submit]');
+    const selected = () => [...tiles.querySelectorAll('.grid-tile.selected')];
+    const update = () => { submit.disabled = selected().length !== 4; };
+    tiles.addEventListener('click', event => {
+        const tile = event.target.closest('[data-grid-tile]');
+        if (!tile) return;
+        if (!tile.classList.contains('selected') && selected().length >= 4) return;
+        tile.classList.toggle('selected');
+        update();
+    });
+    form.querySelector('[data-grid-shuffle]').addEventListener('click', () => {
+        [...tiles.children].sort(() => Math.random() - 0.5).forEach(tile => tiles.append(tile));
+    });
+    form.querySelector('[data-grid-clear]').addEventListener('click', () => {
+        selected().forEach(tile => tile.classList.remove('selected'));
+        update();
+    });
+    form.addEventListener('submit', () => {
+        form.querySelectorAll('input[name="movie"]').forEach(input => input.remove());
+        selected().forEach(tile => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'movie';
+            input.value = tile.dataset.gridTile;
+            form.append(input);
+        });
+    });
 }

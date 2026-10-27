@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(|Movie Connections #${grid.number}|)}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <a class="back-link" th:href="@{/play}">← Play</a>
+        <h1 class="page-title">Movie Connections <span class="quiz-number" th:text="|#${grid.number}|">#1</span></h1>
+        <p class="page-subtitle">Find the four groups of four. Pick four posters that share something, and submit; four mistakes allowed.</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container quiz-layout">
+        <div class="stat-card grid-stage">
+            <div class="notice" th:if="${guess == 'right' and !grid.finished}">Found one!</div>
+            <div class="notice notice-error" th:if="${guess == 'one-away' and !grid.finished}">One away…</div>
+            <div class="notice notice-error" th:if="${guess == 'wrong' and !grid.finished}">Not a group.</div>
+
+            <!-- The groups found, each a band in its level's colour. -->
+            <div class="grid-group" th:each="group : ${grid.finished} ? ${grid.all} : ${grid.found}" th:classappend="|level-${group.level}|">
+                <span class="grid-group-label" th:text="${group.label}">Directed by Christopher Nolan</span>
+                <span class="grid-group-movies" th:text="${group.titles}">Inception · Memento</span>
+            </div>
+
+            <!-- The posters still to group: a tap selects one, four at most (app.js). -->
+            <form th:unless="${grid.finished}" th:action="@{/play/connections}" method="post" data-grid>
+                <div class="grid-tiles" data-grid-tiles th:style="|--columns: ${grid.remaining.size == 12 ? 6 : (grid.remaining.size == 4 ? 4 : 8)}|">
+                    <button type="button" class="grid-tile" th:each="movie : ${grid.remaining}" th:data-grid-tile="${movie.id}">
+                        <div th:replace="~{fragments/cards :: posterThumb(${movie.id}, ${movie.primaryTitle})}"></div>
+                        <span class="grid-tile-title" th:text="${movie.primaryTitle}">The Matrix</span>
+                    </button>
+                </div>
+                <div class="grid-controls">
+                    <span class="grid-mistakes">
+                        Mistakes left
+                        <span class="quiz-pip" th:each="i : ${#numbers.sequence(1, 4)}" th:classappend="${i <= grid.mistakesLeft} ? 'left' : 'used'"></span>
+                    </span>
+                    <button type="button" class="button" data-grid-shuffle>Shuffle</button>
+                    <button type="button" class="button" data-grid-clear>Deselect</button>
+                    <button type="submit" class="button button-primary" data-grid-submit disabled>Submit</button>
+                </div>
+            </form>
+
+            <div class="odd-final" th:if="${grid.finished}">
+                <span class="odd-final-score" th:text="|${grid.found.size}/4|">4/4</span>
+                <div>
+                    <p class="quiz-verdict" th:text="${grid.won} ? (${grid.mistakes == 0} ? 'Perfect: no mistakes!' : (${grid.mistakes == 1} ? 'Solved, with 1 mistake' : |Solved, with ${grid.mistakes} mistakes|)) : 'Out of mistakes'">Solved</p>
+                    <button type="button" class="button button-primary"
+                            th:data-quiz-share="|Storm Movies Connections #${grid.number} · ${grid.won ? (grid.mistakes == 1 ? 'solved with 1 mistake' : 'solved with ' + grid.mistakes + ' mistakes') : grid.found.size + '/4 groups'}|">Share your score</button>
+                </div>
+            </div>
+        </div>
+        <aside th:replace="~{fragments/games :: boards(${grid.boards})}"></aside>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

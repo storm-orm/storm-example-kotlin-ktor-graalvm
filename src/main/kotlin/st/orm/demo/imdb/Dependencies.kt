@@ -29,6 +29,8 @@ import st.orm.demo.imdb.service.PlayService
 import st.orm.demo.imdb.service.HigherLowerService
 import st.orm.demo.imdb.service.ChainService
 import st.orm.demo.imdb.service.ConnectService
+import st.orm.demo.imdb.service.DailyPuzzleService
+import st.orm.demo.imdb.service.PuzzleFactory
 import st.orm.demo.imdb.service.DraftService
 import st.orm.demo.imdb.service.SwipeService
 import st.orm.demo.imdb.service.SearchService
@@ -138,6 +140,8 @@ fun Application.configureDependencies() {
             )
         }
         provide { DraftService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { PuzzleFactory(resolve(), resolve(), resolve(), resolve()) }
+        provide { DailyPuzzleService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { ConnectService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PlayService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { QuizService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }

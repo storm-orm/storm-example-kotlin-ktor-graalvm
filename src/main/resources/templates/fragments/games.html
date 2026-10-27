@@ -71,5 +71,21 @@
     </div>
 </div>
 
+<!-- The boards of a daily game: the visitor's friends, and each club, with how each who finished did. -->
+<aside th:fragment="boards(boards)" class="quiz-boards" th:unless="${boards.isEmpty()}">
+    <div class="stat-card quiz-board" th:each="board : ${boards}">
+        <h2 th:text="${board.title}">Your friends</h2>
+        <div class="quiz-board-row" th:each="row, rank : ${board.rows}" th:classappend="${row.you} ? 'you'">
+            <span class="quiz-rank" th:text="${rank.count}">1</span>
+            <span class="nav-account-icon">
+                <img th:if="${row.avatarUrl != null}" th:src="${row.avatarUrl}" alt="">
+                <span th:unless="${row.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(row.name, 0, 1))}">A</span>
+            </span>
+            <span class="quiz-board-name" th:text="${row.name}">Alice</span>
+            <span class="quiz-board-score" th:text="${row.score}">7/10</span>
+        </div>
+    </div>
+</aside>
+
 </body>
 </html>
