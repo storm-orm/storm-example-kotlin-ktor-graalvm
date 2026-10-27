@@ -4,8 +4,9 @@
 <body>
 <nav th:replace="~{fragments/layout :: navbar('for-you')}"></nav>
 
-<header class="page-header">
-    <div class="container">
+<header class="play-hero section-hero">
+    <div th:replace="~{fragments/layout :: wall(${wall})}"></div>
+    <div class="container play-hero-content">
         <nav th:replace="~{fragments/layout :: sectionNav('for-you')}"></nav>
         <h1 class="page-title">For You</h1>
         <p class="page-subtitle" th:if="${onServices}">Your picks that stream on your services.</p>

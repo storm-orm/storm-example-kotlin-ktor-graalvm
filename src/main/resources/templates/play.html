@@ -4,14 +4,15 @@
 <body>
 <nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
 
-<!-- A wall of posters of the visitor's taste behind the title: three rows drifting each its own way. -->
-<header class="play-hero">
-    <div class="play-wall" aria-hidden="true">
-        <div class="play-wall-row" th:each="row, line : ${play.posterRows}" th:classappend="|row-${line.count}|">
+<!-- A wall of the games' pieces behind the title, posters, pips, tickets, cards and links in neon, three rows
+     drifting each its own way, as the posters drift behind the other sections. -->
+<header class="play-hero game-hero">
+    <div class="play-wall game-wall" aria-hidden="true">
+        <div class="play-wall-row" th:each="line : ${#numbers.sequence(1, 3)}" th:classappend="|row-${line}|">
             <th:block th:each="round : ${#numbers.sequence(1, 2)}">
-                <div class="poster" th:each="movie : ${row}">
-                    <img th:src="@{/api/poster/{id}(id=${movie.id})}" alt="" loading="lazy" onerror="this.classList.add('failed')">
-                </div>
+                <span class="piece" th:each="i : ${#numbers.sequence(1, 12)}" th:classappend="|piece-${(i + line) % 6} tone-${(i * 7 + line) % 5}|">
+                    <span></span><span></span><span></span>
+                </span>
             </th:block>
         </div>
     </div>

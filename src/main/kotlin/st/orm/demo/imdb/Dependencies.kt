@@ -48,6 +48,7 @@ import st.orm.demo.imdb.service.InsightsService
 import st.orm.demo.imdb.service.StatisticsService
 import st.orm.demo.imdb.service.ViewLogProperties
 import st.orm.demo.imdb.service.ViewLogService
+import st.orm.demo.imdb.service.WallService
 import st.orm.demo.imdb.service.WatchlistService
 import st.orm.demo.imdb.service.MovieSourceService
 import st.orm.demo.imdb.service.StreamingService
@@ -148,6 +149,7 @@ fun Application.configureDependencies() {
         provide { ConnectService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { LevelService(resolve(), resolve(), resolve()) }
         provide { PoolService(resolve(), resolve(), resolve()) }
+        provide { WallService(resolve(), resolve(), resolve()) }
         provide { BadgeService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { CastService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PlayService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }

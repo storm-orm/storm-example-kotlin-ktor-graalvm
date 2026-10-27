@@ -1,6 +1,5 @@
 package st.orm.demo.imdb.service
 
-import java.util.concurrent.ConcurrentHashMap
 import st.orm.demo.imdb.model.Club
 import st.orm.demo.imdb.model.Game
 import st.orm.demo.imdb.model.GameMatch
@@ -50,10 +49,7 @@ data class GameEntry(val match: GameMatch, val with: String, val status: String,
  * the few that closed last, who they can start one with, and the posters of
  * the movies of their taste, for the wall across the top.
  */
-data class PlayView(val games: List<GameEntry>, val finished: List<GameEntry>, val company: Company, val posters: List<Movie>, val yesterday: YesterdayQuiz?) {
-    /** The wall's rows of posters, a third of them each. */
-    val posterRows: List<List<Movie>> get() = posters.chunked(((posters.size + 2) / 3).coerceAtLeast(1))
-}
+data class PlayView(val games: List<GameEntry>, val finished: List<GameEntry>, val company: Company, val yesterday: YesterdayQuiz?)
 
 /** A page of the visitor's archive: their closed games, the last closed first. */
 data class ArchiveView(val games: List<GameEntry>, val page: Int, val hasNext: Boolean)
@@ -91,27 +87,9 @@ class PlayService(
             entries.sortedWith(compareByDescending<GameEntry> { it.yourMove }.thenByDescending { it.match.createdAt }),
             gamePlayerRepository.findClosed(user, 0, FINISHED_SHOWN).content().map { closedEntryOf(user, it, now) },
             company,
-            wallOf(user).shuffled().take(POSTERS),
             quizService.yesterdayOf(user, LocalDate.ofInstant(now, ZoneOffset.UTC))
         )
     }
-
-    /**
-     * The posters of the wall: some of the best-known movies of the visitor's
-     * taste, kept in memory a while per taste, as the query is a heavy one
-     * and the wall is the same for everyone of a taste.
-     */
-    private fun wallOf(user: User): List<Movie> {
-        val key = user.movieFilter?.key.orEmpty()
-        val kept = walls[key]?.takeIf { Duration.between(it.first, Instant.now()) < WALL_KEPT }
-        if (kept != null) return kept.second
-        val movies = ratingRepository.findBestKnown(user.movieFilter, POSTER_VOTES, POSTER_POOL).map { it.movie }
-        walls[key] = Instant.now() to movies
-        return movies
-    }
-
-    /** The walls by taste, each with when it was read. */
-    private val walls = ConcurrentHashMap<String, Pair<Instant, List<Movie>>>()
 
     /**
      * Closes a game for the visitor: on their own or with a friend the game
@@ -280,14 +258,8 @@ class PlayService(
         private const val LIMIT = 12
         /** A match nobody moved in for this long ends by itself. */
         val IDLE: Duration = Duration.ofDays(7)
-        /** How long a taste's wall is kept in memory. */
-        private val WALL_KEPT: Duration = Duration.ofMinutes(15)
         /** The games that closed last, under the open ones. */
         private const val FINISHED_SHOWN = 3
         private const val ARCHIVE_PAGE = 20
-        /** The wall's posters: some of the hundred best-known movies of the visitor's taste. */
-        private const val POSTERS = 30
-        private const val POSTER_POOL = 100
-        private const val POSTER_VOTES = 25_000
     }
 }

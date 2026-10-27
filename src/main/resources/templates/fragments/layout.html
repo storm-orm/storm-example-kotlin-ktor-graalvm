@@ -78,6 +78,17 @@
     </div>
 </nav>
 
+<!-- A wall of posters drifting behind a title: three rows, each its own way (the hero's CSS). -->
+<div th:fragment="wall(rows)" class="play-wall" aria-hidden="true" th:if="${rows != null and !rows.isEmpty()}">
+    <div class="play-wall-row" th:each="row, line : ${rows}" th:classappend="|row-${line.count}|">
+        <th:block th:each="round : ${#numbers.sequence(1, 2)}">
+            <div class="poster" th:each="movie : ${row}">
+                <img th:src="@{/api/poster/{id}(id=${movie.id})}" alt="" loading="lazy" onerror="this.classList.add('failed')">
+            </div>
+        </th:block>
+    </div>
+</div>
+
 <!-- The pages of a section, above a page's title: "Movies · For You / Browse / Recently Added", the page itself lit. -->
 <nav th:fragment="sectionNav(active)" class="section-nav" aria-label="Section"
      th:with="movies=${active == 'for-you' or active == 'browse' or active == 'recent'}">

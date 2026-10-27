@@ -21,6 +21,8 @@ import st.orm.demo.imdb.service.LevelProgress
 import st.orm.demo.imdb.service.LevelService
 import st.orm.demo.imdb.service.StreamingService
 import st.orm.demo.imdb.service.TmdbService
+import st.orm.demo.imdb.service.WallKind
+import st.orm.demo.imdb.service.WallService
 import java.util.Locale
 
 /**
@@ -38,6 +40,13 @@ private val StreamingServiceKey = AttributeKey<StreamingService>("StreamingServi
 private val LevelServiceKey = AttributeKey<LevelService>("LevelService")
 private val AccountIdKey = AttributeKey<String>("AccountId")
 private val LevelProgressKey = AttributeKey<LevelProgress>("LevelProgress")
+private val WallServiceKey = AttributeKey<WallService>("WallService")
+
+/** The pages with a wall of posters behind their title, and what each wall is made of. */
+private val WALLS = mapOf(
+    "for-you" to WallKind.RECOMMENDED, "browse" to WallKind.RECOMMENDED, "recent" to WallKind.RECOMMENDED,
+    "seen" to WallKind.WATCHED, "watchlist" to WallKind.WATCHED, "lists" to WallKind.WATCHED, "insights" to WallKind.WATCHED
+)
 private val CurrentUserKey = AttributeKey<User>("CurrentUser")
 
 private const val ACCOUNT_COOKIE = "account"
@@ -53,6 +62,8 @@ fun Application.configureAccounts() {
     val tmdbService: TmdbService by dependencies
     val streamingService: StreamingService by dependencies
     val levelService: LevelService by dependencies
+    val wallService: WallService by dependencies
+    attributes.put(WallServiceKey, wallService)
     attributes.put(AccountServiceKey, accountService)
     attributes.put(FreepodSignInKey, freepodSignIn)
     attributes.put(FriendServiceKey, friendService)
@@ -78,9 +89,12 @@ suspend fun ApplicationCall.respondPage(content: ThymeleafContent) {
     val requestCount = if (user.name != null) application.attributes[FriendServiceKey].countRequests(user) else 0L
     val hasServices = isSignedIn() && country() != null && application.attributes[StreamingServiceKey].servicesOf(user).isNotEmpty()
     val level = if (user.name != null) levelProgress() else null
+    // A section page drifts a wall of posters behind its title: recommendations, or what the visitor watched.
+    val wall = WALLS[content.template]?.let { application.attributes[WallServiceKey].wallOf(user, it) }
     val layout = mapOf(
         "account" to user,
         "level" to level,
+        "wall" to wall,
         "requestCount" to requestCount,
         "hostedOnFreepod" to application.attributes[FreepodSignInKey].enabled,
         "tmdb" to application.attributes[TmdbServiceKey].enabled,

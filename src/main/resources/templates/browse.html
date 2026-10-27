@@ -4,8 +4,9 @@
 <body>
 <nav th:replace="~{fragments/layout :: navbar('browse')}"></nav>
 
-<header class="page-header">
-    <div class="container">
+<header class="play-hero section-hero">
+    <div th:replace="~{fragments/layout :: wall(${wall})}"></div>
+    <div class="container play-hero-content">
         <nav th:replace="~{fragments/layout :: sectionNav('browse')}"></nav>
         <h1 class="page-title">Browse</h1>
         <p class="page-subtitle" th:if="${view.genre == null}">Every genre: the best rated with at least 25,000 votes, the newest among them, or all of it, the most voted first.</p>

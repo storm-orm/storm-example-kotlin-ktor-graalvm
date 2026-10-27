@@ -4184,3 +4184,37 @@ body::after {
 @media (min-width: 900px) {
     .game-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: none; gap: 6px 10px; }
 }
+
+/* ── The section heroes: a wall behind the title, and the games' pieces behind Play ── */
+
+/* A section page's title sits a little tighter than Play's over its wall, with the room the page header had. */
+.section-hero .play-hero-content { padding-top: 34px; padding-bottom: 14px; }
+.section-hero .play-wall { opacity: 0.22; }
+.section-hero + .section { padding-top: 26px; }
+
+/* Play's wall: the games' pieces in neon, each a tone of the palette. */
+.game-hero .play-wall { opacity: 0.55; }
+.game-wall .play-wall-row { align-items: center; gap: 40px; }
+.game-wall .play-wall-row.row-2 { margin-left: -60px; transform: scale(1.2); transform-origin: left center; }
+.piece { --tone: var(--accent-rgb); position: relative; display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; filter: drop-shadow(0 0 10px rgba(var(--tone), 0.55)); }
+.piece.tone-1 { --tone: var(--cyan-rgb); }
+.piece.tone-2 { --tone: var(--violet-rgb); }
+.piece.tone-3 { --tone: var(--orange-rgb); }
+.piece.tone-4 { --tone: var(--yellow-rgb); }
+.piece span { display: block; border: 2px solid rgba(var(--tone), 0.9); box-shadow: 0 0 12px rgba(var(--tone), 0.35), inset 0 0 10px rgba(var(--tone), 0.15); }
+/* A poster, a pip row, a ticket, two cards, a chain of links, a ring. */
+.piece-0 span { width: 30px; height: 44px; border-radius: 5px; }
+.piece-0 span + span { display: none; }
+.piece-1 span { width: 14px; height: 14px; border-radius: 50%; }
+.piece-1 span:nth-child(2) { background: rgb(var(--tone)); }
+.piece-2 span { width: 56px; height: 32px; border-radius: 7px; border-style: dashed; }
+.piece-2 span + span { display: none; }
+.piece-3 span { width: 26px; height: 38px; border-radius: 5px; }
+.piece-3 span:nth-child(1) { transform: rotate(-12deg) translateX(8px); }
+.piece-3 span:nth-child(2) { transform: rotate(10deg) translateX(-8px); }
+.piece-3 span:nth-child(3) { display: none; }
+.piece-4 span { width: 28px; height: 40px; border-radius: 5px; }
+.piece-4 span + span { margin-left: 14px; position: relative; }
+.piece-4 span + span::before { content: ""; position: absolute; left: -18px; top: 50%; width: 16px; height: 2px; background: rgb(var(--tone)); }
+.piece-5 span { width: 40px; height: 40px; border-radius: 50%; border-width: 3px; }
+.piece-5 span + span { display: none; }

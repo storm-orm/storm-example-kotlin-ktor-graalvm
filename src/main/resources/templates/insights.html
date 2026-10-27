@@ -4,8 +4,9 @@
 <body class="data-page">
 <nav th:replace="~{fragments/layout :: navbar('insights')}"></nav>
 
-<header class="page-header">
-    <div class="container page-header-row">
+<header class="play-hero section-hero">
+    <div th:replace="~{fragments/layout :: wall(${wall})}"></div>
+    <div class="container play-hero-content page-header-row">
         <div>
             <nav th:replace="~{fragments/layout :: sectionNav('insights')}"></nav>
             <h1 class="page-title">About You</h1>
