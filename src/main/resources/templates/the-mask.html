@@ -32,9 +32,10 @@
                 <div class="mask-case">
                     <svg class="mask-face" aria-hidden="true"><use href="#the-mask"/></svg>
                     <p class="mask-ask">Who is behind the mask? Their movies:</p>
+                    <!-- The posters under a deep veil, the titles the clues: a face on a poster would be the actor's. -->
                     <div class="mask-clues">
                         <div th:each="movie : ${mask.current.movies}">
-                            <div th:replace="~{fragments/cards :: posterThumb(${movie.id}, ${movie.primaryTitle})}"></div>
+                            <div th:replace="~{fragments/cards :: deepVeiledPoster(${movie.id}, ${movie.primaryTitle})}"></div>
                             <span class="mask-clue-title" th:text="${movie.primaryTitle}">The Truman Show</span>
                         </div>
                     </div>

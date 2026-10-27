@@ -81,6 +81,12 @@
     <span class="poster-veil-label" th:if="${veiled}" title="The poster is hidden until the game is over">Hidden</span>
 </div>
 
+<!-- A poster under a deep veil, where a face on it would give the actor away: blurred past recognising anyone. -->
+<div th:fragment="deepVeiledPoster(id, title)" class="poster-veil veiled deep">
+    <div th:replace="~{fragments/cards :: posterThumb(${id}, ${title})}"></div>
+    <span class="poster-veil-label" th:if="${veiled}" title="The poster is hidden until the game is over">Hidden</span>
+</div>
+
 <!-- A person card with an initial avatar. -->
 <a th:fragment="person(id, name)" class="person-card" th:href="@{/person/{id}(id=${id})}">
     <div class="avatar">

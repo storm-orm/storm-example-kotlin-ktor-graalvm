@@ -32,10 +32,9 @@
 
             <!-- The case: the movie and the part; then the line-up, a tap points at one. -->
             <th:block th:if="${lineUp.current != null}">
+                <!-- The poster under a deep veil: a face on it would point at the culprit. -->
                 <div class="lineup-case">
-                    <div class="poster lineup-poster">
-                        <img th:src="@{/api/poster/{id}(id=${lineUp.current.movie.id})}" alt="" loading="lazy" onerror="this.classList.add('failed')">
-                    </div>
+                    <div class="lineup-poster" th:replace="~{fragments/cards :: deepVeiledPoster(${lineUp.current.movie.id}, ${lineUp.current.movie.primaryTitle})}"></div>
                     <div>
                         <p class="lineup-eyebrow">Who played</p>
                         <h2 class="lineup-part" th:text="${lineUp.current.character}">Neo</h2>
