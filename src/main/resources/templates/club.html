@@ -91,19 +91,19 @@
         <div class="club-game-starts">
             <form th:action="@{/play/higher-lower}" method="post">
                 <input type="hidden" name="mode" value="club"><input type="hidden" name="club" th:value="${view.club.id}">
-                <button type="submit" class="button">🎬 Start a round of Higher or Lower</button>
+                <button type="submit" class="button">🎬 Start a round of Top Gun</button>
             </form>
             <form th:action="@{/play/chain}" method="post">
                 <input type="hidden" name="mode" value="club"><input type="hidden" name="club" th:value="${view.club.id}">
-                <button type="submit" class="button">🎞️ Start a Movie Chain</button>
+                <button type="submit" class="button">🎞️ Start a Chain Reaction</button>
             </form>
             <form th:action="@{/play/draft}" method="post">
                 <input type="hidden" name="mode" value="club"><input type="hidden" name="club" th:value="${view.club.id}">
-                <button type="submit" class="button">🎟️ Start a Movie Draft</button>
+                <button type="submit" class="button">🎟️ Start The Wolf of Wall Street</button>
             </form>
             <form th:action="@{/play/connect}" method="post">
                 <input type="hidden" name="mode" value="club"><input type="hidden" name="club" th:value="${view.club.id}">
-                <button type="submit" class="button">📽️ Start a Connect puzzle</button>
+                <button type="submit" class="button">📽️ Start Six Degrees of Separation</button>
             </form>
         </div>
     </div>

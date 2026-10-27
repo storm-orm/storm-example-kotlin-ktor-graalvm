@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Connect')}"></head>
+<head th:replace="~{fragments/layout :: head('Six Degrees of Separation')}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
 
 <header class="page-header">
     <div class="container">
         <a class="back-link" th:href="@{/play}">← Play</a>
-        <h1 class="page-title">Connect</h1>
+        <h1 class="page-title">Six Degrees of Separation</h1>
         <p class="page-subtitle">
             <th:block th:switch="${puzzle.match.mode.name()}">
                 <th:block th:case="'SOLO'">On your own.</th:block>

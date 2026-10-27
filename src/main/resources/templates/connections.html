@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head(|Movie Connections #${grid.number}|)}"></head>
+<head th:replace="~{fragments/layout :: head(|The Breakfast Club #${grid.number}|)}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
 
 <header class="page-header">
     <div class="container">
         <a class="back-link" th:href="@{/play}">← Play</a>
-        <h1 class="page-title">Movie Connections <span class="quiz-number" th:text="|#${grid.number}|">#1</span></h1>
+        <h1 class="page-title">The Breakfast Club <span class="quiz-number" th:text="|#${grid.number}|">#1</span></h1>
         <p class="page-subtitle">Find the four groups of four. Pick four posters that share something, and submit; four mistakes allowed.</p>
     </div>
 </header>
@@ -49,7 +49,7 @@
                 <div>
                     <p class="quiz-verdict" th:text="${grid.won} ? (${grid.mistakes == 0} ? 'Perfect: no mistakes!' : (${grid.mistakes == 1} ? 'Solved, with 1 mistake' : |Solved, with ${grid.mistakes} mistakes|)) : 'Out of mistakes'">Solved</p>
                     <button type="button" class="button button-primary"
-                            th:data-quiz-share="|Storm Movies Connections #${grid.number} · ${grid.won ? (grid.mistakes == 1 ? 'solved with 1 mistake' : 'solved with ' + grid.mistakes + ' mistakes') : grid.found.size + '/4 groups'}|">Share your score</button>
+                            th:data-quiz-share="|Storm Movies The Breakfast Club #${grid.number} · ${grid.won ? (grid.mistakes == 1 ? 'solved with 1 mistake' : 'solved with ' + grid.mistakes + ' mistakes') : grid.found.size + '/4 groups'}|">Share your score</button>
                 </div>
             </div>
         </div>

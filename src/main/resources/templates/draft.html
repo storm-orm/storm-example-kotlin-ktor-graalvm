@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Movie Draft')}"></head>
+<head th:replace="~{fragments/layout :: head('The Wolf of Wall Street')}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
 
 <header class="page-header">
     <div class="container">
         <a class="back-link" th:href="@{/play}">← Play</a>
-        <p class="night-eyebrow">Movie Draft</p>
+        <p class="night-eyebrow">The Wolf of Wall Street</p>
         <h1 class="page-title" th:text="${draft.theme.label}">Sci-Fi of the 1990s</h1>
         <p class="page-subtitle" th:switch="${draft.match.mode.name()}">
             <th:block th:case="'SOLO'">Against the house.</th:block>

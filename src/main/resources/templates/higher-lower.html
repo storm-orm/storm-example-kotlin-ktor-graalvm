@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Higher or Lower')}"></head>
+<head th:replace="~{fragments/layout :: head('Top Gun')}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
 
@@ -8,7 +8,7 @@
     <div class="container">
         <a class="back-link" th:href="@{/play}">← Play</a>
         <div class="quiz-title-row">
-            <h1 class="page-title">Higher or Lower</h1>
+            <h1 class="page-title">Top Gun</h1>
             <span class="hl-streak" th:text="${game.streak}">7</span>
         </div>
         <p class="page-subtitle">

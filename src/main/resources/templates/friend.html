@@ -32,11 +32,11 @@
             <th:block th:each="entry : ${view.games}"><a th:replace="~{fragments/games :: entry(${entry})}"></a></th:block>
         </div>
         <div class="friend-start">
-            <form th:each="game : ${ #{'higher-lower':'Higher or Lower', 'chain':'Movie Chain', 'draft':'Movie Draft', 'connect':'Connect', 'cast':'Role Call', 'swipe':'Swipe'} }"
+            <form th:each="game : ${ #{'higher-lower':'Top Gun', 'chain':'Chain Reaction', 'draft':'The Wolf of Wall Street', 'connect':'Six Degrees of Separation', 'cast':'Role Call', 'swipe':'Swipe'} }"
                   th:action="@{/play/{game}(game=${game.key})}" method="post">
                 <input type="hidden" name="mode" value="friend">
                 <input type="hidden" name="friend" th:value="${view.friend.id}">
-                <button type="submit" class="button" th:text="|Challenge: ${game.value}|">Challenge: Movie Chain</button>
+                <button type="submit" class="button" th:text="|Challenge: ${game.value}|">Challenge: Chain Reaction</button>
             </form>
         </div>
     </div>

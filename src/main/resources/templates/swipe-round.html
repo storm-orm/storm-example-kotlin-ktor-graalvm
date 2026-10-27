@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Swipe Round')}"></head>
+<head th:replace="~{fragments/layout :: head('Love at First Sight')}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
 
 <header class="page-header">
     <div class="container">
         <a class="back-link" th:href="@{/play}">← Play</a>
-        <h1 class="page-title">Swipe Round</h1>
+        <h1 class="page-title">Love at First Sight</h1>
         <p class="page-subtitle">
             <th:block th:if="${round.match.mode.name() == 'FRIEND'}">With a friend: the movies you both want are your matches.</th:block>
             <th:block th:if="${round.match.mode.name() == 'CLUB'}" th:text="|With ${round.match.club.name}: the most wanted become the ballot of a movie night.|">With the club.</th:block>

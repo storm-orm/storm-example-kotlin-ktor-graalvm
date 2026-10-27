@@ -30,11 +30,11 @@ data class GameRule(val game: Game, val title: String, val level: Level, val poo
 /** The rules of every game, in the order of the levels. */
 object GameRules {
     private val rules = listOf(
-        GameRule(Game.HIGHER_LOWER, "Higher or Lower", Level.EXTRA, PoolKind.UNION),
-        GameRule(Game.SWIPE, "Swipe", Level.EXTRA, PoolKind.RECOMMENDED),
-        GameRule(Game.CHAIN, "Movie Chain", Level.BIT_PART, PoolKind.UNION),
-        GameRule(Game.CONNECT, "Connect", Level.BIT_PART, PoolKind.UNION),
-        GameRule(Game.DRAFT, "Movie Draft", Level.SUPPORTING, PoolKind.UNION),
+        GameRule(Game.HIGHER_LOWER, "Top Gun", Level.EXTRA, PoolKind.UNION),
+        GameRule(Game.SWIPE, "Love at First Sight", Level.EXTRA, PoolKind.RECOMMENDED),
+        GameRule(Game.CHAIN, "Chain Reaction", Level.BIT_PART, PoolKind.UNION),
+        GameRule(Game.CONNECT, "Six Degrees of Separation", Level.BIT_PART, PoolKind.UNION),
+        GameRule(Game.DRAFT, "The Wolf of Wall Street", Level.SUPPORTING, PoolKind.UNION),
         // Total Recall is one game of two kinds, of a movie (CAST) or of a person (REEL): one rule each, one name.
         GameRule(Game.CAST, "Total Recall", Level.SUPPORTING, PoolKind.INTERSECTION),
         GameRule(Game.REEL, "Total Recall", Level.SUPPORTING, PoolKind.INTERSECTION)

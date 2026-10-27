@@ -50,7 +50,7 @@
                     <span class="level-rung-name" th:text="${rung.level.label}">Supporting</span>
                     <span class="level-rung-blurb" th:text="${rung.level.name() == 'STAR'} ? ${levels.walk.blurb} : ${rung.level.blurb}">A hundred movies.</span>
                     <span class="level-rung-unlocks" th:unless="${rung.unlocks.isEmpty()}">
-                        <span class="level-unlock" th:each="rule : ${rung.unlocks}" th:text="${rule.title}">Movie Chain</span>
+                        <span class="level-unlock" th:each="rule : ${rung.unlocks}" th:text="${rule.title}">Chain Reaction</span>
                     </span>
                     <span class="level-rung-unlocks" th:if="${rung.unlocks.isEmpty() and rung.level.name() == 'LEAD'}">
                         <span class="level-unlock">The harder rounds</span>
@@ -111,7 +111,7 @@
                 <p class="stat-note">Each game picks its movies from what its players have watched.</p>
                 <ul class="levels-rules">
                     <li th:each="rule : ${levels.rules}">
-                        <strong th:text="${rule.title}">Movie Chain</strong>: <span th:text="${rule.pool.label.toLowerCase()}">movies any of you has watched</span>
+                        <strong th:text="${rule.title}">Chain Reaction</strong>: <span th:text="${rule.pool.label.toLowerCase()}">movies any of you has watched</span>
                     </li>
                 </ul>
             </div>

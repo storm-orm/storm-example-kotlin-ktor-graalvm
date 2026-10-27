@@ -94,22 +94,22 @@
             </span>
         </a>
 
-        <!-- Odd One Out: a daily of ten sets of four posters, one that does not belong. -->
+        <!-- The Outsiders: a daily of ten sets of four posters, one that does not belong. -->
         <a class="game-card game-odd" th:href="@{/play/odd-one-out}">
             <span class="game-art game-art-odd" aria-hidden="true"><span class="game-art-poster"></span><span class="game-art-poster"></span><span class="game-art-poster"></span><span class="game-art-poster odd"></span></span>
-            <span class="game-title">Odd One Out</span>
+            <span class="game-title">The Outsiders</span>
             <span class="game-text">Ten sets of four posters a day. Three share a director or a star: tap the one that does not belong.</span>
             <span class="game-modes">Daily · your friends and clubs see the scores</span>
             <span class="button button-primary game-button">Play today's</span>
         </a>
 
-        <!-- Movie Connections: a daily grid of sixteen posters in four groups. -->
+        <!-- The Breakfast Club: a daily grid of sixteen posters in four groups. -->
         <a class="game-card game-connections" th:href="@{/play/connections}">
             <span class="game-art game-art-grid" aria-hidden="true">
                 <span class="level-1"></span><span class="level-1"></span><span class="level-2"></span><span class="level-2"></span>
                 <span class="level-3"></span><span class="level-3"></span><span class="level-4"></span><span class="level-4"></span>
             </span>
-            <span class="game-title">Movie Connections</span>
+            <span class="game-title">The Breakfast Club</span>
             <span class="game-text">Sixteen posters, four groups of four, each with a director or a star in common. Find them before you make four mistakes.</span>
             <span class="game-modes">Daily · your friends and clubs see the scores</span>
             <span class="button button-primary game-button">Play today's</span>
@@ -151,12 +151,12 @@
             <span class="button button-primary game-button">Play today's</span>
         </a>
 
-        <!-- Higher or Lower: started here, on one's own, against a friend, or as a round for a club. -->
+        <!-- Top Gun: started here, on one's own, against a friend, or as a round for a club. -->
         <div class="game-card game-higher-lower">
             <span class="game-art game-art-cards" aria-hidden="true">
                 <span class="game-art-card"><span>7.8</span></span><span class="game-art-card back"><span>?</span></span>
             </span>
-            <span class="game-title">Higher or Lower</span>
+            <span class="game-title">Top Gun</span>
             <span class="game-text">Two posters: is the second rated higher or lower on IMDb? Keep it going as long as you can.</span>
             <th:block th:if="${locks['HIGHER_LOWER'] == null}">
             <form th:replace="~{fragments/games :: startForm('/play/higher-lower', 'Challenge', 'Start a round')}"></form>
@@ -164,12 +164,12 @@
             <span class="game-lock" th:if="${locks['HIGHER_LOWER'] != null}" th:text="${locks['HIGHER_LOWER'].text}">Unlocks at Bit Part · 12 movies to go</span>
         </div>
 
-        <!-- Movie Chain: each movie shares an actor with the one before; against the house, a friend, or a club. -->
+        <!-- Chain Reaction: each movie shares an actor with the one before; against the house, a friend, or a club. -->
         <div class="game-card game-chain">
             <span class="game-art game-art-chain" aria-hidden="true">
                 <span class="game-art-poster"></span><span class="game-line"></span><span class="game-art-poster"></span><span class="game-line"></span><span class="game-art-poster"></span>
             </span>
-            <span class="game-title">Movie Chain</span>
+            <span class="game-title">Chain Reaction</span>
             <span class="game-text">Take turns adding a movie that shares an actor with the last one. A day per turn; whoever misses theirs is skipped. On your own it is Catch Me If You Can: the house answers every movie of yours with one of its own.</span>
             <th:block th:if="${locks['CHAIN'] == null}">
             <form th:replace="~{fragments/games :: startForm('/play/chain', 'Start a chain', 'Start a chain')}"></form>
@@ -177,21 +177,21 @@
             <span class="game-lock" th:if="${locks['CHAIN'] != null}" th:text="${locks['CHAIN'].text}">Unlocks at Bit Part · 12 movies to go</span>
         </div>
 
-        <!-- Swipe: posters to swipe on one's own, or a round with a friend or a club. -->
+        <!-- Love at First Sight: posters to swipe on one's own, or a round with a friend or a club. -->
         <a class="game-card game-swipe" th:href="@{/swipe}">
             <span class="game-art game-art-swipe" aria-hidden="true"><span class="game-art-poster"></span><span class="game-art-poster"></span></span>
-            <span class="game-title">Swipe</span>
+            <span class="game-title">Love at First Sight</span>
             <span class="game-text">Posters, one at a time: right for a movie you want to see, left to pass. On your own it teaches For You your taste; with a friend you find your matches, with a club the next movie night.</span>
             <span class="game-modes">On your own · with a friend · with a club</span>
             <span class="button button-primary game-button">Start swiping</span>
         </a>
 
-        <!-- Movie Draft: a theme, picks in turn, the IMDb ratings told at the end. -->
+        <!-- The Wolf of Wall Street: a theme, picks in turn, the IMDb ratings told at the end. -->
         <div class="game-card game-draft">
             <span class="game-art game-art-draft" aria-hidden="true">
                 <span class="game-art-poster"></span><span class="game-art-poster"></span><span class="game-art-poster"></span>
             </span>
-            <span class="game-title">Movie Draft</span>
+            <span class="game-title">The Wolf of Wall Street</span>
             <span class="game-text">A theme, like Sci-Fi of the 1990s. Take turns picking three movies each; the ratings stay hidden until the end, and the best line-up wins.</span>
             <th:block th:if="${locks['DRAFT'] == null}">
             <form th:replace="~{fragments/games :: startForm('/play/draft', 'Start a draft', 'Start a draft')}"></form>
@@ -199,12 +199,12 @@
             <span class="game-lock" th:if="${locks['DRAFT'] != null}" th:text="${locks['DRAFT'].text}">Unlocks at Bit Part · 12 movies to go</span>
         </div>
 
-        <!-- Connect: two movies to join, together, in as few links as par. -->
+        <!-- Six Degrees of Separation: two movies to join, together, in as few links as par. -->
         <div class="game-card game-connect">
             <span class="game-art game-art-connect" aria-hidden="true">
                 <span class="game-art-poster"></span><span class="game-line"></span><span class="game-dot"></span><span class="game-line"></span><span class="game-art-poster"></span>
             </span>
-            <span class="game-title">Connect</span>
+            <span class="game-title">Six Degrees of Separation</span>
             <span class="game-text">Two movies to join by a chain of shared actors, in as few links as you can. Play it together: anyone adds the next link, any time.</span>
             <th:block th:if="${locks['CONNECT'] == null}">
             <form th:replace="~{fragments/games :: startForm('/play/connect', 'Start a puzzle', 'Start a puzzle')}"></form>

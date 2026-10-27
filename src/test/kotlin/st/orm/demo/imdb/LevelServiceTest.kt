@@ -95,8 +95,8 @@ class LevelServiceTest {
         val view = runBlocking { service(orm).levelsOf(alice) }
         assertEquals(Level.entries.size, view.rungs.size)
         assertTrue(view.rungs.first().current)
-        assertEquals(listOf("Higher or Lower", "Swipe"), view.rungs.first().unlocks.map { it.title })
-        assertEquals(listOf("Movie Chain", "Connect"), view.rungs[1].unlocks.map { it.title })
+        assertEquals(listOf("Top Gun", "Love at First Sight"), view.rungs.first().unlocks.map { it.title })
+        assertEquals(listOf("Chain Reaction", "Six Degrees of Separation"), view.rungs[1].unlocks.map { it.title })
         assertFalse(view.rungs[1].reached)
     }
 }

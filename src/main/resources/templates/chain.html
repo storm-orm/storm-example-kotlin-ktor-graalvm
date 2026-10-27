@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head(${chain.match.mode.name() == 'SOLO'} ? 'Catch Me If You Can' : 'Movie Chain')}"></head>
+<head th:replace="~{fragments/layout :: head(${chain.match.mode.name() == 'SOLO'} ? 'Catch Me If You Can' : 'Chain Reaction')}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
 
@@ -8,9 +8,9 @@
     <div class="container">
         <a class="back-link" th:href="@{/play}">← Play</a>
         <!-- On one's own the chain is Catch Me If You Can: the house chases every movie with one of its own. -->
-        <h1 class="page-title" th:text="${chain.match.mode.name() == 'SOLO'} ? 'Catch Me If You Can' : 'Movie Chain'">Movie Chain</h1>
+        <h1 class="page-title" th:text="${chain.match.mode.name() == 'SOLO'} ? 'Catch Me If You Can' : 'Chain Reaction'">Chain Reaction</h1>
         <p class="page-subtitle" th:switch="${chain.match.mode.name()}">
-            <th:block th:case="'SOLO'">Movie Chain against the house: it answers every movie of yours with one of its own. Catch it out, stuck for a link, and you win.</th:block>
+            <th:block th:case="'SOLO'">Chain Reaction against the house: it answers every movie of yours with one of its own. Catch it out, stuck for a link, and you win.</th:block>
             <th:block th:case="'FRIEND'">Against a friend, a day per turn.</th:block>
             <th:block th:case="*" th:text="|With ${chain.match.club.name}, a day per turn.|">With the club.</th:block>
             Each movie shares an actor with the one before, and scores the years between the two, at least one: leap

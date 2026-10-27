@@ -25,11 +25,11 @@ import java.time.ZoneOffset
  */
 data class GameEntry(val match: GameMatch, val with: String, val status: String, val yourMove: Boolean, val over: Boolean = false, val mine: Boolean = true) {
     val title: String get() = when (match.game) {
-        Game.CHAIN -> if (match.mode == GameMode.SOLO) "Catch Me If You Can" else "Movie Chain"
-        Game.DRAFT -> "Movie Draft"
-        Game.HIGHER_LOWER -> "Higher or Lower"
-        Game.SWIPE -> "Swipe Round"
-        Game.CONNECT -> "Connect"
+        Game.CHAIN -> if (match.mode == GameMode.SOLO) "Catch Me If You Can" else "Chain Reaction"
+        Game.DRAFT -> "The Wolf of Wall Street"
+        Game.HIGHER_LOWER -> "Top Gun"
+        Game.SWIPE -> "Love at First Sight"
+        Game.CONNECT -> "Six Degrees of Separation"
         Game.CAST, Game.REEL -> "Total Recall"
     }
 

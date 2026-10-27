@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head(|Odd One Out #${odd.number}|)}"></head>
+<head th:replace="~{fragments/layout :: head(|The Outsiders #${odd.number}|)}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
 
 <header class="page-header">
     <div class="container">
         <a class="back-link" th:href="@{/play}">← Play</a>
-        <h1 class="page-title">Odd One Out <span class="quiz-number" th:text="|#${odd.number}|">#1</span></h1>
+        <h1 class="page-title">The Outsiders <span class="quiz-number" th:text="|#${odd.number}|">#1</span></h1>
         <p class="page-subtitle">Three of the four share something. Tap the one that does not belong.</p>
     </div>
 </header>
@@ -47,7 +47,7 @@
                     <span class="odd-final-score" th:text="|${odd.score}/${odd.count}|">7/10</span>
                     <div>
                         <p class="quiz-verdict" th:text="${odd.score == odd.count} ? 'Every one right!' : 'Done for today'">Done for today</p>
-                        <button type="button" class="button button-primary" th:data-quiz-share="|Storm Movies Odd One Out #${odd.number} · ${odd.score}/${odd.count}|">Share your score</button>
+                        <button type="button" class="button button-primary" th:data-quiz-share="|Storm Movies The Outsiders #${odd.number} · ${odd.score}/${odd.count}|">Share your score</button>
                     </div>
                 </div>
                 <div class="odd-results">
