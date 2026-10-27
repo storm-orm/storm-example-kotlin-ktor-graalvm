@@ -28,6 +28,42 @@
 <body>
 
 <nav class="navbar" th:fragment="navbar(active)">
+    <!-- The honours of the top three levels, worn on avatars and set on the ladder: a star in the pavement, a Golden
+         Globe, an Oscar. Drawn once here, in gold, so every page has them. -->
+    <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true">
+        <defs>
+            <linearGradient id="honour-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6dc8c"/><stop offset="0.5" stop-color="#c9962f"/><stop offset="1" stop-color="#e6bd5c"/></linearGradient>
+            <linearGradient id="honour-shade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a87824"/><stop offset="1" stop-color="#6e4b12"/></linearGradient>
+            <symbol id="honour-star" viewBox="0 0 40 40">
+                <polygon points="20,2 24.47,14.85 38.07,15.13 27.23,23.35 31.17,36.37 20,28.6 8.83,36.37 12.77,23.35 1.93,15.13 15.53,14.85" fill="url(#honour-gold)"/>
+                <circle cx="20" cy="22" r="3.2" fill="none" stroke="#6e4b12" stroke-width="1.4"/>
+            </symbol>
+            <symbol id="honour-globe" viewBox="0 0 40 48">
+                <circle cx="20" cy="16" r="13" fill="url(#honour-gold)"/>
+                <g fill="none" stroke="#8a5f18" stroke-width="1.1" opacity="0.8"><ellipse cx="20" cy="16" rx="5.5" ry="13"/><path d="M7 16h26M9.5 9.5h21M9.5 22.5h21"/></g>
+                <g transform="rotate(-28 20 16)">
+                    <rect x="3" y="12.5" width="34" height="7" fill="url(#honour-shade)"/>
+                    <g fill="#f6dc8c"><rect x="5" y="13.3" width="2" height="1.2"/><rect x="9.5" y="13.3" width="2" height="1.2"/><rect x="14" y="13.3" width="2" height="1.2"/><rect x="18.5" y="13.3" width="2" height="1.2"/><rect x="23" y="13.3" width="2" height="1.2"/><rect x="27.5" y="13.3" width="2" height="1.2"/><rect x="32" y="13.3" width="2" height="1.2"/><rect x="5" y="17.5" width="2" height="1.2"/><rect x="9.5" y="17.5" width="2" height="1.2"/><rect x="14" y="17.5" width="2" height="1.2"/><rect x="18.5" y="17.5" width="2" height="1.2"/><rect x="23" y="17.5" width="2" height="1.2"/><rect x="27.5" y="17.5" width="2" height="1.2"/><rect x="32" y="17.5" width="2" height="1.2"/></g>
+                </g>
+                <path d="M16.5 28.5h7l2.5 7h-12z" fill="url(#honour-shade)"/>
+                <rect x="9" y="35.5" width="22" height="5" rx="1" fill="url(#honour-gold)"/>
+                <rect x="6" y="40.5" width="28" height="5" rx="1" fill="url(#honour-shade)"/>
+            </symbol>
+            <symbol id="honour-oscar" viewBox="0 0 40 48">
+                <circle cx="20" cy="5.5" r="3.6" fill="url(#honour-gold)"/>
+                <path d="M18.6 9h2.8l.3 2.4h-3.4z" fill="url(#honour-shade)"/>
+                <path d="M13 13.5q7-4.2 14 0l-1.6 18.5h-10.8z" fill="url(#honour-gold)"/>
+                <rect x="19.1" y="12.5" width="1.8" height="19.5" fill="url(#honour-shade)"/>
+                <rect x="16" y="15" width="8" height="1.6" rx="0.6" fill="url(#honour-shade)"/>
+                <rect x="12.2" y="31.8" width="15.6" height="2.4" fill="url(#honour-shade)"/>
+                <ellipse cx="20" cy="41.5" rx="11" ry="3.3" fill="url(#honour-shade)"/>
+                <rect x="9" y="36.5" width="22" height="5" fill="url(#honour-shade)"/>
+                <ellipse cx="20" cy="36.5" rx="11" ry="3.3" fill="url(#honour-gold)"/>
+                <g fill="#6e4b12"><circle cx="14" cy="36.3" r="1.1"/><circle cx="26" cy="36.3" r="1.1"/><circle cx="20" cy="34.3" r="1.1"/><circle cx="20" cy="38.5" r="1.1"/></g>
+                <rect x="6" y="43.5" width="28" height="4" rx="1" fill="url(#honour-gold)"/>
+            </symbol>
+        </defs>
+    </svg>
     <div class="container navbar-inner">
         <div class="brand">
             <a th:href="@{/}" title="Storm Movies">
@@ -67,12 +103,12 @@
         <div class="nav-account">
             <!-- The ring fills from this level to the next; its title says how far (the levels page explains). -->
             <a th:if="${account.name != null}" class="nav-account-icon" th:href="@{/signin}"
-               th:classappend="(${active == 'signin'} ? 'active ' : '') + (${level != null and level.level.name() == 'WALK_OF_FAME'} ? 'starred' : '')"
+               th:classappend="(${active == 'signin'} ? 'active ' : '') + (${level != null and level.level.honour != null} ? 'honoured' : '')"
                th:style="${level != null} ? |--progress: ${level.fraction}|"
                th:title="${level != null} ? |${account.name} · ${level.level.label}: ${level.nextText}| : |${account.name}: your account|" aria-label="Your account">
                 <img th:if="${account.avatarUrl != null}" th:src="${account.avatarUrl}" alt="">
                 <span th:unless="${account.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(account.name, 0, 1))}">A</span>
-                <i class="walk-mark" th:if="${level != null and level.level.name() == 'WALK_OF_FAME'}" title="On the Walk of Fame"></i>
+                <svg class="honour-mark" th:if="${level != null and level.level.honour != null}" th:classappend="${level.level.honour.mark}"><title th:text="${level.level.honour.title}">An Oscar</title><use th:attr="href=|#honour-${level.level.honour.mark}|"/></svg>
             </a>
             <a th:unless="${account.name != null}" class="nav-signin" th:href="@{/signin}">Sign in</a>
         </div>

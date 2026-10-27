@@ -23,6 +23,12 @@
                 <span>Every actor has a Bacon number: how many shared movies it takes to reach him, six or fewer
                     in the game Six Degrees of Kevin Bacon. A link through him scores a bonus in Movie Chain and Connect.</span>
             </p>
+            <!-- Meryl Streep's own page only: the GOAT, which the top of the bill is named for. -->
+            <p class="bacon-number goat-note" th:if="${person.id == 'nm0000658'}">
+                <strong>The GOAT</strong>
+                <span>Twenty-one Oscar nominations, more than anyone, and three wins: the greatest of all time.
+                    The top level here, two thousand movies in, is named for what she is called. <a th:href="@{/play/levels}">The levels</a></span>
+            </p>
         </div>
     </div>
 </header>

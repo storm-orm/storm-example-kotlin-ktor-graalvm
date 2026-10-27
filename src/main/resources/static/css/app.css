@@ -4232,13 +4232,14 @@ body::after {
 .piece-5 span { width: 40px; height: 40px; border-radius: 50%; border-width: 3px; }
 .piece-5 span + span { display: none; }
 
-/* ── The star in the pavement: the top of the ladder ──────────────── */
+/* ── The honours: the star, the globe, the statuette ─────────────── */
 
 /* The star in the pavement, in its own colours: coral-pink terrazzo flecked with charcoal, a brass star with
    the bronze emblem, the name set in brass under it. Unlit until the level is reached, lit with a glow once it is. */
-/* The star on the line is the biggest mark on the ladder, set over the line's end. */
-.level-rung.walk .level-rung-mark { width: 44px; height: 44px; margin: -8px 0 0 -10px; border: 0; border-radius: 0; background: linear-gradient(160deg, #e9c87a, #b8873a 60%, #d9b25e); clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); box-shadow: none; opacity: 0.55; }
-.level-rung.walk.reached .level-rung-mark, .level-rung.walk.current .level-rung-mark { opacity: 1; filter: drop-shadow(0 0 8px rgba(233, 200, 122, 0.8)); }
+/* From Star on, the mark on the line is the level's honour, the biggest marks on the ladder, set over the line. */
+.level-rung.honoured .level-rung-mark { display: flex; width: 44px; height: 48px; margin: -8px 0 0 -10px; border: 0; border-radius: 0; background: none; box-shadow: none; opacity: 0.55; }
+.level-rung.honoured .level-rung-mark svg { width: 100%; height: 100%; }
+.level-rung.honoured.reached .level-rung-mark, .level-rung.honoured.current .level-rung-mark { opacity: 1; filter: drop-shadow(0 0 8px rgba(233, 200, 122, 0.8)); }
 .walk-star { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 12px; padding: 16px 22px 12px; border-radius: 6px; color: #3a2a12; opacity: 0.7; transition: opacity 0.3s ease, transform 0.2s ease;
     background:
         radial-gradient(circle at 12% 20%, rgba(40, 36, 40, 0.75) 0 1.4px, transparent 2px),
@@ -4255,14 +4256,26 @@ body::after {
 .walk-star-emblem { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(90, 60, 20, 0.7); margin-top: 14px; box-shadow: inset 0 0 0 3px rgba(233, 200, 122, 0.9); }
 .walk-star-name { margin-top: 4px; font-family: var(--font-display); font-size: 20px; letter-spacing: 2px; text-transform: uppercase; color: #8a5a1c; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35); max-width: 240px; text-align: center; }
 .walk-star-walk { font-size: 10px; letter-spacing: 1.6px; text-transform: uppercase; color: #8a5a1c; }
-
-/* The star worn on the avatar of anyone on the Walk of Fame, wherever it shows. */
-.nav-account-icon { position: relative; }
-.walk-mark { position: absolute; right: -5px; bottom: -5px; width: 14px; height: 14px; background: linear-gradient(160deg, #f3d27a, #c9962f 60%); clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); filter: drop-shadow(0 0 4px rgba(243, 210, 122, 0.9)); }
-.avatar-large .walk-mark, .nav-account-icon.avatar-large .walk-mark { width: 22px; height: 22px; right: -4px; bottom: -4px; }
-.seat .nav-account-icon { width: 24px; height: 24px; font-size: 12px; border: 0; }
-.seat .walk-mark { width: 10px; height: 10px; right: -3px; bottom: -3px; }
 .walk-place { margin-top: 8px; }
+
+/* The Golden Globe and the Oscar on their shelf: the statuette in gold, the name on the plinth once the level is
+   reached, the award and where it is handed out under it. Dim until reached, lit once it is. */
+.honour-trophy { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 12px; padding: 16px 26px 12px; border-radius: 6px; opacity: 0.7; transition: opacity 0.3s ease;
+    background: linear-gradient(180deg, #2b2231, #15111a 70%, #0f0c12); box-shadow: inset 0 0 0 1px rgba(233, 200, 122, 0.25), 0 10px 30px rgba(0, 0, 0, 0.45); }
+.honour-trophy.set { opacity: 1; box-shadow: inset 0 0 0 1px rgba(233, 200, 122, 0.55), 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 34px rgba(233, 200, 122, 0.25); }
+.honour-trophy-shape { width: 84px; height: 100px; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.55)); }
+.honour-trophy-plate { padding: 3px 14px; border-radius: 2px; background: linear-gradient(160deg, #f3d27a, #c9962f 60%, #e2b95a); color: #3a2a12; font-family: var(--font-display); font-size: 16px; letter-spacing: 2px; text-transform: uppercase; max-width: 240px; text-align: center; }
+.honour-trophy-caption { font-size: 10px; letter-spacing: 1.6px; text-transform: uppercase; color: #c9a65a; text-align: center; }
+
+/* The honour worn on the avatar of a Star, a Legend or the GOAT, wherever it shows. */
+.nav-account-icon { position: relative; }
+.nav-account-icon.honoured { overflow: visible; }
+.nav-account-icon.honoured img { border-radius: 50%; }
+.honour-mark { position: absolute; right: -7px; bottom: -7px; width: 17px; height: 19px; filter: drop-shadow(0 0 4px rgba(243, 210, 122, 0.9)); }
+.avatar-large .honour-mark, .nav-account-icon.avatar-large .honour-mark { width: 26px; height: 29px; right: -8px; bottom: -8px; }
+.seat .nav-account-icon { width: 24px; height: 24px; font-size: 12px; border: 0; }
+.seat .honour-mark { width: 12px; height: 13px; right: -4px; bottom: -4px; }
+.goat-note strong { color: #e6bd5c; }
 
 /* ── What waits on the visitor: fuchsia counts ─────────────────────── */
 

@@ -42,12 +42,13 @@
     <div class="container levels-layout">
         <!-- The ladder: every level, what it takes and what it opens, the visitor's own lit. -->
         <ol class="level-ladder">
-            <li class="level-rung" th:each="rung : ${levels.rungs}" th:classappend="(${rung.current} ? 'current' : (${rung.reached} ? 'reached' : 'ahead')) + (${rung.level.name() == 'WALK_OF_FAME'} ? ' walk' : '')">
-                <span class="level-rung-mark" aria-hidden="true"></span>
+            <li class="level-rung" th:each="rung : ${levels.rungs}" th:classappend="(${rung.current} ? 'current' : (${rung.reached} ? 'reached' : 'ahead')) + (${rung.level.honour != null} ? ' honoured' : '')">
+                <!-- The mark on the line: a dot, or from Star on the level's honour, the star, the globe, the statuette. -->
+                <span class="level-rung-mark" aria-hidden="true"><svg th:if="${rung.level.honour != null}"><use th:attr="href=|#honour-${rung.level.honour.mark}|"/></svg></span>
                 <span class="level-rung-threshold" th:text="${rung.level.threshold == 0} ? 'Start' : ${#numbers.formatInteger(rung.level.threshold, 1, 'COMMA')}">100</span>
                 <span class="level-rung-body">
                     <span class="level-rung-name" th:text="${rung.level.label}">Supporting</span>
-                    <span class="level-rung-blurb" th:text="${rung.level.name() == 'WALK_OF_FAME'} ? ${levels.walk.blurb} : ${rung.level.blurb}">A hundred movies.</span>
+                    <span class="level-rung-blurb" th:text="${rung.level.name() == 'STAR'} ? ${levels.walk.blurb} : ${rung.level.blurb}">A hundred movies.</span>
                     <span class="level-rung-unlocks" th:unless="${rung.unlocks.isEmpty()}">
                         <span class="level-unlock" th:each="rule : ${rung.unlocks}" th:text="${rule.title}">Movie Chain</span>
                     </span>
@@ -63,14 +64,24 @@
                             <span th:text="${rite.text}">Hot Streak</span>
                         </span>
                     </span>
-                    <!-- The top of the bill: a star in the pavement, with the visitor's name once they are there. -->
-                    <span class="walk-star" th:if="${rung.level.name() == 'WALK_OF_FAME'}"
+                    <!-- The honours: at Star a star in the pavement with the visitor's name once they are there; at Legend a
+                         Golden Globe; at the top an Oscar, the name on its plinth. -->
+                    <span class="walk-star" th:if="${rung.level.name() == 'STAR'}"
                           th:classappend="${rung.reached} ? 'set'" th:title="|${levels.walk.name}: ${levels.walk.place}|">
                         <span class="walk-star-shape" aria-hidden="true"><span class="walk-star-emblem"></span></span>
                         <span class="walk-star-name" th:text="${rung.reached} ? ${account.name} : 'Your name here'">Your name here</span>
                         <span class="walk-star-walk" th:text="${levels.walk.name}">Hollywood Walk of Fame</span>
                     </span>
-                    <span class="level-rung-blurb walk-place" th:if="${rung.level.name() == 'WALK_OF_FAME'}" th:text="${levels.walk.place}">Hollywood Boulevard, at the corner of Vine Street</span>
+                    <span class="level-rung-blurb walk-place" th:if="${rung.level.name() == 'STAR'}" th:text="${levels.walk.place}">Hollywood Boulevard, at the corner of Vine Street</span>
+                    <span class="honour-trophy" th:if="${rung.level.honour != null and rung.level.name() != 'STAR'}"
+                          th:classappend="(${rung.reached} ? 'set ' : '') + ${rung.level.honour.mark}" th:title="${rung.level.honour.title}">
+                        <svg class="honour-trophy-shape" aria-hidden="true"><use th:attr="href=|#honour-${rung.level.honour.mark}|"/></svg>
+                        <span class="honour-trophy-plate" th:text="${rung.reached} ? ${account.name} : 'Your name here'">Your name here</span>
+                        <span class="honour-trophy-caption" th:text="${rung.level.name() == 'LEGEND'} ? 'Golden Globe Award · The Beverly Hilton, every January' : 'Academy Award · The Dolby Theatre, every March'">Academy Award</span>
+                    </span>
+                    <span class="level-rung-blurb walk-place" th:if="${rung.level.name() == 'GOAT'}">
+                        The greatest of all time, as the town calls <a th:href="@{/person/nm0000658}">Meryl Streep</a>.
+                    </span>
                 </span>
                 <span class="level-rung-you" th:if="${rung.current}">You</span>
             </li>

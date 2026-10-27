@@ -38,7 +38,7 @@ object LevelRites {
         Level.LEAD to LevelRite(listOf(Badge.WINNER, Badge.PERFECT_GRID), 5),
         Level.STAR to LevelRite(listOf(Badge.CAST_CALL, Badge.ODD_EYE), 10),
         Level.LEGEND to LevelRite(listOf(Badge.BACON_NUMBER, Badge.DAILY_WEEK, Badge.NIGHT_HOST), 15),
-        Level.WALK_OF_FAME to LevelRite(listOf(Badge.CHAMPION), 25)
+        Level.GOAT to LevelRite(listOf(Badge.CHAMPION), 25)
     )
 
     fun of(level: Level): LevelRite = rites[level] ?: LevelRite(emptyList(), 0)
@@ -79,7 +79,7 @@ data class LevelProgress(
     /** The next level's name and what is still to watch for it, in a line; or the rites still to do, when the points are there. */
     val nextText: String get() = when {
         held -> rites.count { !it.done }.let { "${it} ${if (it == 1) "rite" else "rites"} to go for ${next?.label}" }
-        else -> next?.let { "$toNext more to ${it.label}" } ?: "The top of the bill"
+        else -> next?.let { "$toNext more to ${it.label}" } ?: "The greatest of all time"
     }
     /** The same, for the scripts. */
     fun standing(newBadges: List<String> = emptyList()): LevelStanding = LevelStanding(level.label, score, next?.label, toNext, fraction, newBadges)
@@ -98,13 +98,13 @@ data class GameLock(val game: Game, val level: Level, val toGo: Int) {
 data class LevelRung(val level: Level, val unlocks: List<GameRule>, val rites: List<RiteStatus>, val reached: Boolean, val current: Boolean)
 
 /**
- * The walk the top level sets a star in: Hollywood's, on the Boulevard and
+ * The walk the Star level sets a star in: Hollywood's, on the Boulevard and
  * Vine Street, or, for a taste of Bollywood alone, Bandra's Walk of the
  * Stars on the Bandstand, with the page that tells about it.
  */
 data class WalkOfFame(val name: String, val place: String, val link: String, val blurb: String, val town: String)
 
-/** The levels page: the user's progress, the ladder, its top's walk, every game's rule, and the posters of their latest watched movies, for the wall. */
+/** The levels page: the user's progress, the ladder, the walk its star goes in, every game's rule, and the posters of their latest watched movies, for the wall. */
 data class LevelsView(val progress: LevelProgress, val rungs: List<LevelRung>, val walk: WalkOfFame, val rules: List<GameRule>, val posters: List<Movie>) {
     /** The wall's rows of posters, a third of them each. */
     val posterRows: List<List<Movie>> get() = posters.chunked(((posters.size + 2) / 3).coerceAtLeast(1))
@@ -196,13 +196,13 @@ class LevelService(
         val HOLLYWOOD = WalkOfFame(
             "Hollywood Walk of Fame", "Hollywood Boulevard, at the corner of Vine Street",
             "https://en.wikipedia.org/wiki/Hollywood_Walk_of_Fame",
-            "Two thousand movies: your own star in the terrazzo, somewhere along Hollywood Boulevard, a few blocks from Vine.",
+            "Five hundred movies: your own star in the terrazzo, somewhere along Hollywood Boulevard, a few blocks from Vine.",
             "Hollywood"
         )
         val BANDRA = WalkOfFame(
             "Walk of the Stars", "Bandstand Promenade, Bandra, Mumbai",
             "https://en.wikipedia.org/wiki/Walk_of_the_Stars",
-            "Two thousand movies: your own star on the Bandstand in Bandra, where Bollywood takes its evening walk by the sea.",
+            "Five hundred movies: your own star on the Bandstand in Bandra, where Bollywood takes its evening walk by the sea.",
             "Bollywood"
         )
         /** What a check-in adds to a watched movie's one point. */

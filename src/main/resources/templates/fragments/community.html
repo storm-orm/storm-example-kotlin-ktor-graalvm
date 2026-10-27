@@ -25,11 +25,11 @@
 </th:block>
 
 <!-- An account's avatar, or its initial; [size] is an extra class, such as invite-avatar, or empty. -->
-<!-- Someone on the Walk of Fame wears their star on their avatar, wherever it shows: that is the prestige. -->
-<span th:fragment="avatar(user, size)" class="nav-account-icon" th:classappend="${size} + (${user.level != null and user.level.name() == 'WALK_OF_FAME'} ? ' starred' : '')">
+<!-- A Star, a Legend or the GOAT wears their honour on their avatar, wherever it shows: that is the prestige. -->
+<span th:fragment="avatar(user, size)" class="nav-account-icon" th:classappend="${size} + (${user.level != null and user.level.honour != null} ? ' honoured' : '')">
     <img th:if="${user.avatarUrl != null}" th:src="${user.avatarUrl}" alt="">
     <span th:unless="${user.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(user.name, 0, 1))}">A</span>
-    <i class="walk-mark" th:if="${user.level != null and user.level.name() == 'WALK_OF_FAME'}" title="On the Walk of Fame"></i>
+    <svg class="honour-mark" th:if="${user.level != null and user.level.honour != null}" th:classappend="${user.level.honour.mark}"><title th:text="${user.level.honour.title}">An Oscar</title><use th:attr="href=|#honour-${user.level.honour.mark}|"/></svg>
 </span>
 
 <!-- The invite links still open, public and personal, each with its link to copy and a way to withdraw it; hidden
