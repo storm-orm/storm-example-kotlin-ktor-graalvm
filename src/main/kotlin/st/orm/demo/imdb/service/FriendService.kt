@@ -132,7 +132,7 @@ class FriendService(
      * all of them, each shown as far as its friend shares their name and
      * the day.
      */
-    private fun feed(friends: List<User>, limit: Int): List<SharedCheckIn> {
+    fun feed(friends: List<User>, limit: Int): List<SharedCheckIn> {
         val sharing = friends.filter { it.shareSeen }.associateBy { it.id }
         if (sharing.isEmpty()) return emptyList()
         return checkInRepository.findLatestOf(sharing.values.toList(), limit).map { checkIn ->
@@ -144,6 +144,19 @@ class FriendService(
                 seenAt = checkIn.watchedAt.takeIf { friend.shareDates },
                 unnamed = "A friend"
             )
+        }
+    }
+
+    /**
+     * The latest movies these friends marked watched, check-ins or not, for
+     * when nobody checked anything in lately: shown as far as each shares.
+     */
+    fun watches(friends: List<User>, limit: Int): List<SharedCheckIn> {
+        val sharing = friends.filter { it.shareSeen }.associateBy { it.id }
+        if (sharing.isEmpty()) return emptyList()
+        return movieSeenRepository.findMostRecentOf(sharing.values.toList(), limit).map { seen ->
+            val friend = sharing.getValue(seen.user.entityId())
+            SharedCheckIn(movie = seen.movie, name = friend.name.takeIf { friend.shareName }, avatarUrl = friend.avatarUrl.takeIf { friend.shareName }, seenAt = null, unnamed = "A friend")
         }
     }
 

@@ -162,6 +162,13 @@ interface MovieSeenRepository : EntityRepository<MovieSeen, MovieSeenPk> {
     fun countFor(user: User): Long =
         count(MovieSeen_.user eq user)
 
+    /** The movies several users marked as seen most recently, across all of them: a community's latest watches. */
+    fun findMostRecentOf(users: List<User>, limit: Int): List<MovieSeen> =
+        if (users.isEmpty()) emptyList() else select(MovieSeen_.user inList users)
+            .orderByDescending(MovieSeen_.seenAt)
+            .limit(limit)
+            .resultList
+
     /** The movies the user marked as seen most recently, for the home page. */
     fun findMostRecent(user: User, limit: Int): List<MovieSeen> =
         select(MovieSeen_.user eq user)

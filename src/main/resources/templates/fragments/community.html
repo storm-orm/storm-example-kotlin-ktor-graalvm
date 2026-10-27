@@ -25,9 +25,11 @@
 </th:block>
 
 <!-- An account's avatar, or its initial; [size] is an extra class, such as invite-avatar, or empty. -->
-<span th:fragment="avatar(user, size)" class="nav-account-icon" th:classappend="${size}">
+<!-- Someone on the Walk of Fame wears their star on their avatar, wherever it shows: that is the prestige. -->
+<span th:fragment="avatar(user, size)" class="nav-account-icon" th:classappend="${size} + (${user.level != null and user.level.name() == 'WALK_OF_FAME'} ? ' starred' : '')">
     <img th:if="${user.avatarUrl != null}" th:src="${user.avatarUrl}" alt="">
     <span th:unless="${user.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(user.name, 0, 1))}">A</span>
+    <i class="walk-mark" th:if="${user.level != null and user.level.name() == 'WALK_OF_FAME'}" title="On the Walk of Fame"></i>
 </span>
 
 <!-- The invite links still open, public and personal, each with its link to copy and a way to withdraw it; hidden
@@ -53,6 +55,19 @@
 
 <!-- What the visitor has in common with each person: the movies both watched, as a share of what the other
      watched, and the genres both watch most; a person who does not share what they watch shows no numbers. -->
+<!-- An auditorium behind a title: rows of seats, the visitor's people in some of them, by their avatar or
+     initial, the rest empty. The people are seated across the rows, a few seats apart. -->
+<div th:fragment="seats(people)" class="seats-wall" aria-hidden="true">
+    <div class="seats-screen"></div>
+    <div class="seat-row" th:each="row : ${#numbers.sequence(0, 3)}">
+        <span class="seat" th:each="col : ${#numbers.sequence(0, 17)}"
+              th:with="index=${(row * 18 + col)}, slot=${(index * 7 + row * 5) % (people.size() * 3 + 5)}, person=${people.isEmpty() or slot >= people.size() ? null : people[slot]}"
+              th:classappend="${person != null} ? 'taken'">
+            <th:block th:if="${person != null}"><span th:replace="~{fragments/community :: avatar(${person}, 'seat-avatar')}"></span></th:block>
+        </span>
+    </div>
+</div>
+
 <div th:fragment="inCommon(items)" class="in-common" data-in-common>
     <div class="stat-row in-common-row" th:each="item : ${items}">
         <span class="friend-name">

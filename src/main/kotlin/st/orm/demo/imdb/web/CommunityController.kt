@@ -41,6 +41,13 @@ fun Route.communityRoutes(communityService: CommunityService) {
         call.respond(SearchWindow(movies.map { it.toSearchItem() }, null))
     }
 
+    // A friend's own page: in common, lately, and the games the two play.
+    get("/friends/{id}") {
+        val user = call.currentUser().takeIf { it.name != null } ?: return@get call.respondRedirect("/signin?rd=/community")
+        val view = communityService.friendOf(user, call.parameters.getOrFail("id")) ?: return@get call.respond(HttpStatusCode.NotFound)
+        call.respondPage(ThymeleafContent("friend", mapOf("view" to view)))
+    }
+
     get("/friends") {
         call.respondRedirect(if (call.request.queryParameters["tab"] == "manage") "/community?manage" else "/community", permanent = true)
     }

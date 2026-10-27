@@ -67,11 +67,12 @@
         <div class="nav-account">
             <!-- The ring fills from this level to the next; its title says how far (the levels page explains). -->
             <a th:if="${account.name != null}" class="nav-account-icon" th:href="@{/signin}"
-               th:classappend="${active == 'signin'} ? 'active'"
+               th:classappend="(${active == 'signin'} ? 'active ' : '') + (${level != null and level.level.name() == 'WALK_OF_FAME'} ? 'starred' : '')"
                th:style="${level != null} ? |--progress: ${level.fraction}|"
                th:title="${level != null} ? |${account.name} · ${level.level.label}: ${level.nextText}| : |${account.name}: your account|" aria-label="Your account">
                 <img th:if="${account.avatarUrl != null}" th:src="${account.avatarUrl}" alt="">
                 <span th:unless="${account.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(account.name, 0, 1))}">A</span>
+                <i class="walk-mark" th:if="${level != null and level.level.name() == 'WALK_OF_FAME'}" title="On the Walk of Fame"></i>
             </a>
             <a th:unless="${account.name != null}" class="nav-signin" th:href="@{/signin}">Sign in</a>
         </div>

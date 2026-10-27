@@ -53,12 +53,12 @@
                         <span class="level-unlock">The harder rounds</span>
                     </span>
                     <!-- The top of the bill: a star in the pavement, with the visitor's name once they are there. -->
-                    <a class="walk-star" th:if="${rung.level.name() == 'WALK_OF_FAME'}" th:href="${levels.walk.link}" target="_blank" rel="noopener"
-                       th:classappend="${rung.reached} ? 'set'" th:title="|${levels.walk.name}: ${levels.walk.place}|">
+                    <span class="walk-star" th:if="${rung.level.name() == 'WALK_OF_FAME'}"
+                          th:classappend="${rung.reached} ? 'set'" th:title="|${levels.walk.name}: ${levels.walk.place}|">
                         <span class="walk-star-shape" aria-hidden="true"><span class="walk-star-emblem"></span></span>
                         <span class="walk-star-name" th:text="${rung.reached} ? ${account.name} : 'Your name here'">Your name here</span>
                         <span class="walk-star-walk" th:text="${levels.walk.name}">Hollywood Walk of Fame</span>
-                    </a>
+                    </span>
                     <span class="level-rung-blurb walk-place" th:if="${rung.level.name() == 'WALK_OF_FAME'}" th:text="${levels.walk.place}">Hollywood Boulevard, at the corner of Vine Street</span>
                 </span>
                 <span class="level-rung-you" th:if="${rung.current}">You</span>

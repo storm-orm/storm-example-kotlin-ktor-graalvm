@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${view.friend.name})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('community')}"></nav>
+
+<!-- A friend's page: the two of you in the seats behind the title. -->
+<header class="play-hero community-hero">
+    <div th:replace="~{fragments/community :: seats(${view.seats})}"></div>
+    <div class="container play-hero-content">
+        <a class="back-link" th:href="@{/community}">← Community</a>
+        <div class="friend-head">
+            <span th:replace="~{fragments/community :: avatar(${view.friend}, 'avatar-large')}"></span>
+            <div>
+                <h1 class="page-title" th:text="${view.friend.name}">Alice</h1>
+                <p class="page-subtitle" th:if="${view.inCommon != null and view.inCommon.shares and view.inCommon.theirs > 0}"
+                   th:text="|${view.inCommon.movies} ${view.inCommon.movies == 1 ? 'movie' : 'movies'} in common: ${view.inCommon.percent}% of the ${view.inCommon.theirs} they watched|">12 movies in common</p>
+                <p class="page-subtitle" th:if="${view.inCommon == null or !view.inCommon.shares}">Keeps what they watch to themselves.</p>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- The games the two play, and the ways to start one. -->
+<section class="section" id="friend-games">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Together</h2>
+            <span class="section-note" th:unless="${view.games.isEmpty()}" th:text="${view.games.size() == 1} ? '1 game going' : |${view.games.size()} games going|">2 games going</span>
+        </div>
+        <div class="game-list" th:unless="${view.games.isEmpty()}">
+            <th:block th:each="entry : ${view.games}"><a th:replace="~{fragments/games :: entry(${entry})}"></a></th:block>
+        </div>
+        <div class="friend-start">
+            <form th:each="game : ${ #{'higher-lower':'Higher or Lower', 'chain':'Movie Chain', 'draft':'Movie Draft', 'connect':'Connect', 'cast':'Name That Cast', 'swipe':'Swipe'} }"
+                  th:action="@{/play/{game}(game=${game.key})}" method="post">
+                <input type="hidden" name="mode" value="friend">
+                <input type="hidden" name="friend" th:value="${view.friend.id}">
+                <button type="submit" class="button" th:text="|Challenge: ${game.value}|">Challenge: Movie Chain</button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<!-- In common: the movies both watched, the friend's latest first. -->
+<section class="section" id="in-common-section" th:unless="${view.moviesInCommon.isEmpty()}">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">In Common</h2>
+            <span class="section-note" th:unless="${view.inCommon == null or view.inCommon.genres.isEmpty()}">you both watch
+                <th:block th:each="genre, status : ${view.inCommon.genres}"><a th:href="@{/browse(genre=${genre.name})}" th:text="${genre.name}">Drama</a><th:block th:unless="${status.last}">, </th:block></th:block></span>
+        </div>
+        <div class="movie-grid">
+            <th:block th:each="movie : ${view.moviesInCommon}">
+                <a th:replace="~{fragments/cards :: movie(${movie.id}, ${movie.primaryTitle}, ${movie.startYear})}"></a>
+            </th:block>
+        </div>
+    </div>
+</section>
+
+<!-- What the friend checked in lately, as far as they share it. -->
+<section class="section" id="friend-feed" th:unless="${view.feed.isEmpty()}">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Checked In Lately</h2>
+        </div>
+        <div class="movie-grid">
+            <th:block th:each="item : ${view.feed}">
+                <a th:replace="~{fragments/cards :: sharedCheckIn(${item})}"></a>
+            </th:block>
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

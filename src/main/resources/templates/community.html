@@ -4,14 +4,15 @@
 <body>
 <nav th:replace="~{fragments/layout :: navbar('community')}"></nav>
 
-<header class="page-header">
-    <div class="container">
+<header class="play-hero community-hero" th:classappend="${manage} ? 'manage'">
+    <div th:replace="~{fragments/community :: seats(${view != null ? view.seats : {}})}"></div>
+    <div class="container play-hero-content">
         <div class="page-title-row">
             <h1 class="page-title">Community<span class="attention-badge" th:if="${attention.community > 0}" th:text="${attention.community == 1} ? '1 to answer' : |${attention.community} to answer|">2 to answer</span></h1>
             <!-- With a community, its cog leads to the friends, the clubs, the invites and the sharing. -->
             <a th:if="${view != null and view.hasCommunity and !manage}" th:replace="~{fragments/community :: manageLink(@{/community(manage='')}, 'Manage your friends and clubs')}"></a>
         </div>
-        <p class="page-subtitle" th:if="${!manage}">What your friends and the members of your clubs watched lately, and what you have in common, as far as each shares it.</p>
+        <p class="page-subtitle" th:if="${!manage}">Your friends and your clubs, and what goes on among you: what they watched, the games you play together, and the nights you plan.</p>
         <p class="page-subtitle" th:if="${manage}">Friends and film clubs see what the others watched, as far as each shares it.</p>
         <p class="page-switch" th:if="${manage and view != null and view.hasCommunity}"><a th:href="@{/community}">← Back to your community</a></p>
     </div>
@@ -58,58 +59,76 @@
     </div>
 </section>
 
-<!-- The community: what friends and club members saw lately, the clubs, and what the visitor has in common with each person. -->
+<!-- The community: what waits on the visitor, what everyone watched lately, the games and nights to pick up, and the people. -->
 <th:block th:if="${!manage}">
-<section class="section">
+<div class="container" th:if="${added}"><div class="notice">You are friends now.</div></div>
+
+<!-- To pick up: the games waiting on the visitor and the nights to answer, before anything else. -->
+<section class="section" th:if="${view.waiting > 0 or !view.games.isEmpty() or !view.nights.isEmpty()}" id="pick-up-section">
     <div class="container">
-        <div class="notice" th:if="${added}">You are friends now.</div>
         <div class="section-header">
-            <h2 class="section-title">Friends Recently Saw</h2>
+            <h2 class="section-title">Pick Up</h2>
+            <span class="attention-badge" th:if="${view.waiting > 0}" th:text="${view.waiting == 1} ? '1 waits on you' : |${view.waiting} wait on you|">3 wait on you</span>
         </div>
-        <div class="empty-state" th:if="${view.friends.feed.isEmpty()}">
-            Nothing yet: wait for your friends to mark what they saw, or <a th:href="@{/community(manage='')}">invite one</a>.
+        <div class="pick-up-grid">
+            <a class="pick-up night" th:each="card : ${view.nights}" th:href="@{/nights/{id}(id=${card.night.id})}" th:classappend="${!card.answered} ? 'your-move'">
+                <span class="pick-up-icon" aria-hidden="true"><span class="tonight-seats"><span></span><span></span><span></span></span></span>
+                <span class="pick-up-text">
+                    <span class="pick-up-title" th:text="${card.night.title}">Halloween night</span>
+                    <span class="pick-up-with" th:text="|${card.night.club.name} · ${card.day}|">Office film club · Saturday 31 October</span>
+                </span>
+                <span class="pick-up-status" th:text="${card.answered} ? ${card.state} : (${card.night.method.name() == 'SWIPE'} ? 'Swipe the deck' : 'Your vote')">Your vote</span>
+            </a>
+            <th:block th:each="entry : ${view.games}"><a th:replace="~{fragments/games :: entry(${entry})}"></a></th:block>
         </div>
-        <div class="movie-grid" id="friends-feed">
-            <th:block th:each="item : ${view.friends.feed}">
+    </div>
+</section>
+
+<!-- Lately: the check-ins of everyone in the community, or, when nobody checked in, their latest watches. -->
+<section class="section" id="lately-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title" th:text="${view.feedIsCheckIns} ? 'Checked In Lately' : 'Watched Lately'">Checked In Lately</h2>
+            <span class="section-note" th:text="${view.feedIsCheckIns} ? 'by your friends and clubs' : 'nobody checked in lately: what they marked watched'">by your friends and clubs</span>
+        </div>
+        <div class="empty-state" th:if="${view.feed.isEmpty()}">
+            Nothing yet: wait for your friends to mark what they watched, or <a th:href="@{/community(manage='')}">invite one</a>.
+        </div>
+        <div class="movie-grid" id="community-feed" th:unless="${view.feed.isEmpty()}">
+            <th:block th:each="item : ${view.feed}">
                 <a th:replace="~{fragments/cards :: sharedCheckIn(${item})}"></a>
             </th:block>
         </div>
     </div>
 </section>
 
-<section class="section" th:unless="${view.clubs.clubs.isEmpty()}" id="clubs-section">
+<!-- The people: each friend a card to their page, each club a chip to its page, with what is in common. -->
+<section class="section" id="people-section">
     <div class="container">
         <div class="section-header">
-            <h2 class="section-title">Your Clubs</h2>
+            <h2 class="section-title">Your People</h2>
+            <span class="section-note">tap one for what you have in common, and everything between you</span>
         </div>
-        <div class="club-chips">
+        <div class="club-chips" th:unless="${view.clubs.clubs.isEmpty()}">
             <a class="genre-chip" th:each="summary : ${view.clubs.clubs}" th:href="@{/clubs/{id}(id=${summary.membership.club.id})}">
                 <span th:text="${summary.membership.club.name}">Office film club</span>
                 <span class="count" th:text="${summary.memberCount}">4</span>
             </a>
         </div>
-        <div class="empty-state" th:if="${view.clubsSeen.isEmpty()}">Nothing watched in your clubs lately.</div>
-        <div class="movie-grid" id="clubs-feed" th:unless="${view.clubsSeen.isEmpty()}">
-            <th:block th:each="item : ${view.clubsSeen}">
-                <a th:replace="~{fragments/cards :: sharedCheckIn(${item})}"></a>
-            </th:block>
+        <div class="people-grid" th:unless="${view.people.isEmpty()}">
+            <a class="person-tile" th:each="item : ${view.people}" th:href="@{/friends/{id}(id=${item.user.id})}"
+               th:classappend="${!view.friends.friends.contains(item.user)} ? 'member'">
+                <span th:replace="~{fragments/community :: avatar(${item.user}, 'avatar-large')}"></span>
+                <span class="person-tile-name" th:text="${item.user.name}">Alice</span>
+                <span class="person-tile-note" th:if="${item.shares and item.theirs > 0}" th:text="|${item.percent}% in common|">34% in common</span>
+                <span class="person-tile-note" th:if="${item.shares and item.theirs == 0}">nothing watched yet</span>
+                <span class="person-tile-note" th:unless="${item.shares}">keeps it private</span>
+            </a>
         </div>
-    </div>
-</section>
-
-<section class="section" id="in-common-section" th:unless="${view.inCommon.isEmpty()}">
-    <div class="container">
-        <div class="section-header">
-            <h2 class="section-title">In Common</h2>
-            <span class="section-note">what you and each of them both watched</span>
-        </div>
-        <div class="stat-card">
-            <div th:replace="~{fragments/community :: inCommon(${view.inCommon})}"></div>
-        </div>
+        <div class="empty-state" th:if="${view.people.isEmpty()}">Nobody yet: <a th:href="@{/community(manage='')}">invite a friend or start a club</a>.</div>
     </div>
 </section>
 </th:block>
-
 <!-- What the page manages: the friends and their invites, the clubs, and what the visitor shares with each. -->
 <section class="section" th:if="${manage}">
     <div class="container friends-grid">

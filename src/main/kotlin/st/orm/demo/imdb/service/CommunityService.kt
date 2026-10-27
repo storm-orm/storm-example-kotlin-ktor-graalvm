@@ -1,30 +1,76 @@
 package st.orm.demo.imdb.service
 
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+import st.orm.demo.imdb.model.GameMode
 import st.orm.demo.imdb.model.Movie
+import st.orm.demo.imdb.model.MovieNight
+import st.orm.demo.imdb.model.NightMethod
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.repository.ClubMemberRepository
 import st.orm.demo.imdb.repository.FriendshipRepository
+import st.orm.demo.imdb.repository.GamePlayerRepository
+import st.orm.demo.imdb.repository.MovieNightRepository
+import st.orm.demo.imdb.repository.MovieNightVoteRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.UserRepository
+import st.orm.template.entityId
 import st.orm.template.transaction
 
+/** A night of one of the visitor's clubs still to decide, as the community page lists it. */
+data class NightCard(val night: MovieNight, val answered: Boolean) {
+    val day: String get() = night.nightOn.format(NIGHT_DAY)
+    val state: String get() = if (night.method == NightMethod.SWIPE) "Swipe the deck" else "The vote is open"
+
+    private companion object {
+        val NIGHT_DAY: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.ENGLISH)
+    }
+}
+
 /**
- * The community page: the visitor's friends and clubs together. What each
- * watched lately, what the visitor has in common with everyone in it, and
- * the friends and clubs themselves with what the visitor shares, which the
- * page manages.
+ * The community page: the visitor's friends and clubs together, and what
+ * goes on among them. What they watched lately, check-ins first and their
+ * latest watches when nobody checked in; the games the visitor plays with
+ * them and the nights to answer, to pick up from here; and the people and
+ * clubs themselves, each a way to their own page. The friends and clubs
+ * with their invites and sharing are what the page manages.
  */
 data class CommunityView(
     val friends: FriendsView,
     val clubs: ClubsView,
-    /** What the other members of the visitor's clubs saw lately. */
-    val clubsSeen: List<SharedCheckIn>,
-    /** What the visitor has in common with each friend and club member, the most first. */
-    val inCommon: List<InCommon>
+    /** What friends and club members watched lately: check-ins, or their latest watches. */
+    val feed: List<SharedCheckIn>,
+    val feedIsCheckIns: Boolean,
+    /** The visitor's open games with friends and clubs, the ones waiting on them first. */
+    val games: List<GameEntry>,
+    /** The nights of the visitor's clubs still to decide. */
+    val nights: List<NightCard>,
+    /** Everyone in the community, with what the visitor has in common with each, the most first. */
+    val people: List<InCommon>,
+    /** Everyone in the community, for the seats behind the title. */
+    val seats: List<User>
 ) {
     /** Whether the visitor has friends or clubs: without, the page is what manages them. */
     val hasCommunity: Boolean get() = friends.friends.isNotEmpty() || clubs.clubs.isNotEmpty()
+    /** What waits on the visitor here: requests, nights and games. */
+    val waiting: Int get() = friends.requests.size + nights.count { !it.answered } + games.count { it.yourMove }
 }
+
+/**
+ * A friend's own page: what the two have in common, what the friend
+ * watched lately, and the games the two play, with the ways to start one.
+ */
+data class FriendView(
+    val friend: User,
+    val inCommon: InCommon?,
+    val moviesInCommon: List<Movie>,
+    val feed: List<SharedCheckIn>,
+    val games: List<GameEntry>,
+    val seats: List<User>
+)
 
 /**
  * The visitor's community as one: friends and the members of their clubs.
@@ -38,27 +84,53 @@ class CommunityService(
     private val userRepository: UserRepository,
     private val friendshipRepository: FriendshipRepository,
     private val clubMemberRepository: ClubMemberRepository,
-    private val movieSeenRepository: MovieSeenRepository
+    private val movieSeenRepository: MovieSeenRepository,
+    private val movieNightRepository: MovieNightRepository,
+    private val movieNightVoteRepository: MovieNightVoteRepository,
+    private val gamePlayerRepository: GamePlayerRepository,
+    private val playService: PlayService
 ) {
-    suspend fun overview(user: User): CommunityView {
+    suspend fun overview(user: User, now: Instant = Instant.now()): CommunityView {
         val friends = friendService.friendsOf(user)
         val clubs = clubService.clubsOf(user)
+        val games = playService.playOf(user, now).games.filter { it.match.mode != GameMode.SOLO }
         return transaction(readOnly = true) {
-            val sharingMembers = clubMemberRepository.findMembers(clubs.clubs.map { it.membership.club })
-                .filter { it.user.id != user.id }
-                .groupBy({ it.user.id }, { it.sharesSeen })
+            val memberships = clubMemberRepository.findMembers(clubs.clubs.map { it.membership.club }).filter { it.user.id != user.id }
+            val sharingMembers = memberships.groupBy({ it.user.id }, { it.sharesSeen })
             val friendIds = friends.friends.map { it.id }.toSet()
-            val members = clubMemberRepository.findMembers(clubs.clubs.map { it.membership.club })
-                .map { it.user }
-                .filter { it.id != user.id && it.id !in friendIds }
-                .distinctBy { it.id }
+            val members = memberships.map { it.user }.filter { it.id !in friendIds }.distinctBy { it.id }
+            // Everyone, as they share: a friend as a friend, a member as a member of a club both are in.
+            val everyone = friends.friends + members.filter { member -> sharingMembers[member.id].orEmpty().any { it } }.map { it.copy(shareSeen = true) }
+            val checkIns = friendService.feed(everyone, FEED_LIMIT)
+            val nights = movieNightRepository.findOpenOf(clubs.clubs.map { it.membership.club }, LocalDate.ofInstant(now, ZoneOffset.UTC))
+            val voted = movieNightVoteRepository.findByUser(user, nights).map { it.night.entityId() }.toSet()
             CommunityView(
                 friends = friends,
                 clubs = clubs,
-                clubsSeen = clubService.latestInClubs(user, FEED_LIMIT),
-                inCommon = tasteOverlap.inCommon(user, friends.friends + members) { other ->
+                feed = checkIns.ifEmpty { friendService.watches(everyone, FEED_LIMIT) },
+                feedIsCheckIns = checkIns.isNotEmpty(),
+                games = games,
+                nights = nights.sortedBy { it.nightOn }.map { NightCard(it, answered = it.method == NightMethod.SWIPE || it.id in voted) },
+                people = tasteOverlap.inCommon(user, friends.friends + members) { other ->
                     if (other.id in friendIds) other.shareSeen else sharingMembers[other.id].orEmpty().any { it }
-                }
+                },
+                seats = (friends.friends + members).distinctBy { it.id }
+            )
+        }
+    }
+
+    /** A friend's page; null for anyone who is not the visitor's friend. */
+    suspend fun friendOf(user: User, friendId: String, now: Instant = Instant.now()): FriendView? {
+        val friend = transaction(readOnly = true) { userRepository.findById(friendId)?.takeIf { friendshipRepository.areFriends(user, it) } } ?: return null
+        val games = playService.playOf(user, now).games.filter { it.match.mode == GameMode.FRIEND }
+        return transaction(readOnly = true) {
+            FriendView(
+                friend = friend,
+                inCommon = tasteOverlap.inCommon(user, listOf(friend)) { it.shareSeen }.firstOrNull(),
+                moviesInCommon = if (friend.shareSeen) movieSeenRepository.findSeenInCommon(user, friend, IN_COMMON_SHOWN).map { it.movie } else emptyList(),
+                feed = friendService.feed(listOf(friend), FEED_LIMIT),
+                games = games.filter { entry -> gamePlayerRepository.findPlayers(entry.match).any { it.user.id == friend.id } },
+                seats = listOf(user, friend)
             )
         }
     }
@@ -80,5 +152,7 @@ class CommunityService(
 
     private companion object {
         const val FEED_LIMIT = 36
+        /** The movies in common a friend's page shows. */
+        private const val IN_COMMON_SHOWN = 18
     }
 }
