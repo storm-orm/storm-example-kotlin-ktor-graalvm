@@ -1696,5 +1696,17 @@
     "allDeclaredConstructors": true,
     "allPublicMethods": true,
     "allDeclaredFields": true
+  },
+  {
+    "name": "org.thymeleaf.expression.Lists",
+    "allPublicMethods": true
+  },
+  {
+    "name": "org.thymeleaf.expression.Sets",
+    "allPublicMethods": true
+  },
+  {
+    "name": "org.thymeleaf.expression.Dates",
+    "allPublicMethods": true
   }
 ]
