@@ -11,6 +11,7 @@ import st.orm.demo.imdb.repository.ClubRepository
 import st.orm.demo.imdb.repository.FriendInviteRepository
 import st.orm.demo.imdb.repository.FriendRequestRepository
 import st.orm.demo.imdb.repository.FriendshipRepository
+import st.orm.demo.imdb.repository.InviteAcceptanceRepository
 import st.orm.demo.imdb.repository.InviteRepository
 import st.orm.template.transaction
 import java.time.Instant
@@ -51,7 +52,8 @@ class InviteService(
     private val clubInviteRepository: ClubInviteRepository,
     private val friendshipRepository: FriendshipRepository,
     private val clubRepository: ClubRepository,
-    private val clubMemberRepository: ClubMemberRepository
+    private val clubMemberRepository: ClubMemberRepository,
+    private val inviteAcceptanceRepository: InviteAcceptanceRepository
 ) {
 
     /** What an invite link leads to for the visitor opening it. */
@@ -86,6 +88,7 @@ class InviteService(
                 friendshipRepository.befriend(user, invite.inviter, now)
                 friendRequestRepository.removeBetween(user, invite.inviter)
                 if (invite.reusable) friendInviteRepository.countAccepted(invite.token) else friendInviteRepository.remove(invite)
+                inviteAcceptanceRepository.record(invite.inviter, user, now)
                 Accepted.Friends
             }
             is ClubInvite -> {
@@ -94,6 +97,7 @@ class InviteService(
                     if (clubMemberRepository.countMembers(club) >= ClubService.MAX_MEMBERS) return@transaction null
                     clubMemberRepository.insert(ClubMember(club, user, admin = false, joinedAt = now))
                     if (invite.reusable) clubInviteRepository.countAccepted(invite.token) else clubInviteRepository.remove(invite)
+                    if (invite.inviter.id != user.id) inviteAcceptanceRepository.record(invite.inviter, user, now)
                 }
                 Accepted.Joined(club)
             }

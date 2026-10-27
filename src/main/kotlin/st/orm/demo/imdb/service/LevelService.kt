@@ -2,21 +2,17 @@ package st.orm.demo.imdb.service
 
 import kotlinx.serialization.Serializable
 import st.orm.demo.imdb.model.Badge
-import st.orm.demo.imdb.model.ClubInvite_
 import st.orm.demo.imdb.model.DailyGame
-import st.orm.demo.imdb.model.FriendInvite_
 import st.orm.demo.imdb.model.Game
 import st.orm.demo.imdb.model.Level
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.Tag
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.repository.CheckInRepository
-import st.orm.demo.imdb.repository.ClubInviteRepository
-import st.orm.demo.imdb.repository.FriendInviteRepository
+import st.orm.demo.imdb.repository.InviteAcceptanceRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.UserBadgeRepository
 import st.orm.demo.imdb.repository.UserRepository
-import st.orm.template.eq
 import st.orm.template.transaction
 import kotlin.math.ceil
 
@@ -72,7 +68,9 @@ data class LevelProgress(
     val watched: Long,
     val checkedIn: Long,
     val byPoints: Level = level,
-    val rites: List<RiteStatus> = emptyList()
+    val rites: List<RiteStatus> = emptyList(),
+    /** How many people came through the user's invites. */
+    val invited: Int = 0
 ) {
     /** Whether the points reach a level the rites do not yet. */
     val held: Boolean get() = byPoints.reaches(level) && byPoints != level
@@ -132,8 +130,7 @@ class LevelService(
     private val movieSeenRepository: MovieSeenRepository,
     private val checkInRepository: CheckInRepository,
     private val userBadgeRepository: UserBadgeRepository,
-    private val friendInviteRepository: FriendInviteRepository,
-    private val clubInviteRepository: ClubInviteRepository
+    private val inviteAcceptanceRepository: InviteAcceptanceRepository
 ) {
 
     /** Where the user stands now, their stored level raised when the score reached a new one. */
@@ -152,13 +149,11 @@ class LevelService(
         // A level once reached is kept: the stored one is raised, never lowered.
         val level = if (reached.reaches(user.level)) reached else user.level
         if (level != user.level) userRepository.update(userRepository.getById(user.id).copy(level = level))
-        return LevelProgress(level, score, watched, checkedIn, byPoints, level.next?.let { LevelRites.statusOf(it, earned, invited) }.orEmpty())
+        return LevelProgress(level, score, watched, checkedIn, byPoints, level.next?.let { LevelRites.statusOf(it, earned, invited) }.orEmpty(), invited)
     }
 
-    /** How many people came through the user's invites, friends and clubs together. */
-    private fun invitedBy(user: User): Int =
-        friendInviteRepository.findAll(FriendInvite_.inviter eq user).sumOf { it.acceptedCount } +
-            clubInviteRepository.findAll(ClubInvite_.inviter eq user).sumOf { it.acceptedCount }
+    /** How many people came through the user's invites, friends and clubs together, however long ago. */
+    private fun invitedBy(user: User): Int = inviteAcceptanceRepository.countFor(user).toInt()
 
     /** The games a user at [progress] cannot play yet, matches and dailies, by the game's name, each with why. */
     fun locksOf(progress: LevelProgress): Map<String, GameLock> =

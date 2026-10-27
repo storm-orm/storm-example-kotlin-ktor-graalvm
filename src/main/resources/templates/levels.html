@@ -99,6 +99,8 @@
             <div class="stat-card levels-how">
                 <h2 class="section-title">How it counts</h2>
                 <p class="levels-motto" th:text="|You can't get here by yourself: make friends to make it in ${levels.walk.town}.|">You can't get here by yourself: make friends to make it in Hollywood.</p>
+                <!-- The people who came through the visitor's invites, the rite the upper levels share. -->
+                <p class="levels-invited" th:text="${levels.progress.invited == 0} ? 'Nobody has come through your invites yet.' : (${levels.progress.invited == 1} ? '1 person came through your invites.' : |${levels.progress.invited} people came through your invites.|)">3 people came through your invites.</p>
                 <ul class="levels-rules">
                     <li><strong>One movie, one step</strong>: every movie you have watched, imported, ticked or checked in.</li>
                     <li>Each level also asks for its rites: badges from the games and from checking in, and from Supporting on, people who came through your invites: 1, then 5, 10, 15, 20 and 25. The movies keep counting meanwhile.</li>

@@ -538,6 +538,14 @@ CREATE TABLE cast_answer (
     PRIMARY KEY (match_id, position)
 );
 
+-- V50: who came through whose invite, kept for good.
+CREATE TABLE invite_acceptance (
+    inviter_id  VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    invitee_id  VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    accepted_at TIMESTAMP NOT NULL,
+    PRIMARY KEY (inviter_id, invitee_id)
+);
+
 -- V44: the badges users earned.
 CREATE TABLE user_badge (
     user_id   VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,

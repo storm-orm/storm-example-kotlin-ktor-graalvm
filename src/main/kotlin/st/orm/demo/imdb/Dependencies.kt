@@ -115,7 +115,7 @@ fun Application.configureDependencies() {
         provide { CommunityService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { FriendService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { ClubService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
-        provide { InviteService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { InviteService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide {
             MovieNightService(
                 resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(),
@@ -148,7 +148,7 @@ fun Application.configureDependencies() {
         provide { PuzzleFactory(resolve()) }
         provide { DailyPuzzleService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { ConnectService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
-        provide { LevelService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { LevelService(resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PoolService(resolve(), resolve(), resolve()) }
         provide { WallService(resolve(), resolve(), resolve()) }
         provide { AttentionService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }

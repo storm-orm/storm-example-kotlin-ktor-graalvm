@@ -169,6 +169,9 @@
                     <button type="button" class="link-button" data-invite="/api/friends/public-invite/new">New public link</button>
                 </div>
                 <input class="invite-link" type="text" readonly data-invite-link hidden aria-label="Invite link">
+                <!-- The people who came through the visitor's invites so far, friends and clubs together: the levels count them. -->
+                <p class="stat-note invited-note" th:if="${level != null}"
+                   th:text="${level.invited == 0} ? 'Nobody has come through your invites yet: the levels count the people you bring in.' : (${level.invited == 1} ? '1 person came through your invites so far: the levels count them.' : |${level.invited} people came through your invites so far: the levels count them.|)">2 people came through your invites so far.</p>
                 <div th:replace="~{fragments/community :: openInvites(${view.friends.invites}, '/friends/invites')}"></div>
             </div>
         </div>

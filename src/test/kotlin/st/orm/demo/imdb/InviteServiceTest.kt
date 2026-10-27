@@ -12,6 +12,7 @@ import st.orm.demo.imdb.repository.ClubMemberRepository
 import st.orm.demo.imdb.repository.ClubRepository
 import st.orm.demo.imdb.repository.FriendInviteRepository
 import st.orm.demo.imdb.repository.FriendshipRepository
+import st.orm.demo.imdb.repository.InviteAcceptanceRepository
 import st.orm.demo.imdb.repository.InviteRepository
 import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
@@ -43,7 +44,8 @@ class InviteServiceTest {
         orm.repository<ClubInviteRepository>(),
         orm.repository<FriendshipRepository>(),
         orm.repository<ClubRepository>(),
-        orm.repository<ClubMemberRepository>()
+        orm.repository<ClubMemberRepository>(),
+        orm.repository<InviteAcceptanceRepository>()
     )
 
     private fun friendService(orm: ORMTemplate) = FriendService(
@@ -86,6 +88,9 @@ class InviteServiceTest {
         assertEquals(listOf("Bob"), runBlocking { friends.friendsOf(alice) }.friends.map { it.name })
         assertEquals(listOf("Alice"), runBlocking { friends.friendsOf(bob) }.friends.map { it.name })
         assertEquals(InviteState.Gone, runBlocking { invites.invite(token, bob) })
+        // The invite is gone, but that Bob came through Alice is kept: the levels count it.
+        assertEquals(1, runBlocking { levelService(orm).progressOf(alice) }.invited)
+        assertEquals(0, runBlocking { levelService(orm).progressOf(bob) }.invited)
     }
 
     @Test

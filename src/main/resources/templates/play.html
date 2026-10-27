@@ -149,7 +149,7 @@
 
         <!-- The Mask: a daily of ten actors behind a mask, four of their movies the clues. -->
         <div class="game-card game-mask">
-            <span class="game-art game-art-mask" aria-hidden="true"><svg class="mask-art"><use href="#the-mask"/></svg></span>
+            <span class="game-art game-art-mask" aria-hidden="true"><svg th:replace="~{fragments/games :: maskFace('mask-art')}"></svg></span>
             <span class="game-title-row"><span class="game-title">The Mask</span> <span class="game-level" th:text="${levels['THE_MASK']}">Extra</span></span>
             <span class="game-text">Four posters, one actor behind a mask: who is it? Four names to choose from, ten a day.</span>
             <span class="game-modes">Daily · your friends and clubs see the scores</span>

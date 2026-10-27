@@ -30,7 +30,7 @@
             <!-- The case: the mask, the four movies, and the names; a tap names the actor. -->
             <th:block th:if="${mask.current != null}">
                 <div class="mask-case">
-                    <svg class="mask-face" aria-hidden="true"><use href="#the-mask"/></svg>
+                    <svg th:replace="~{fragments/games :: maskFace('mask-face-large')}"></svg>
                     <p class="mask-ask">Who is behind the mask? Their movies:</p>
                     <!-- The posters under a deep veil, the titles the clues: a face on a poster would be the actor's. -->
                     <div class="mask-clues">

@@ -3751,7 +3751,8 @@ body::after {
 .swipe-card.gone-pass { transform: translateX(-140%) rotate(-24deg); }
 .swipe-card.gone-seen { transform: translateY(-130%); }
 
-.swipe-buttons { display: flex; gap: 12px; }
+.swipe-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; max-width: 100%; }
+@media (max-width: 640px) { .swipe-buttons { gap: 8px; } .swipe-buttons .button { padding: 10px 14px; font-size: 15px; } }
 
 .swipe-pass { --from: var(--accent-rgb); --to: var(--violet-rgb); }
 .swipe-seen { --from: var(--green-rgb); --to: var(--cyan-rgb); }
@@ -4292,14 +4293,23 @@ body::after {
 /* ── The Mask ───────────────────────────────────────────────────────── */
 
 .game-mask { --tone: var(--green-rgb); }
-.mask-art { width: 60px; height: 56px; filter: drop-shadow(0 0 12px rgba(var(--green-rgb), 0.6)); }
+.mask-face { overflow: visible; filter: drop-shadow(0 0 12px rgba(var(--green-rgb), 0.5)); }
+.mask-face.mask-art { width: 64px; height: 76px; }
+/* The gag, every five seconds: the eyes shoot up on their stalks, the tongue rolls out, and all goes back. */
+.mask-eye { transform-box: fill-box; transform-origin: 50% 100%; animation: mask-eyes 5s ease-in-out infinite; }
+.mask-stalk { opacity: 0; animation: mask-stalk 5s ease-in-out infinite; }
+.mask-tongue { transform-box: fill-box; transform-origin: 50% 0; transform: scaleY(0); animation: mask-tongue 5s ease-in-out infinite; }
+@keyframes mask-eyes { 0%, 10% { transform: none; } 15% { transform: translateY(-18px) scale(1.7); } 19% { transform: translateY(-14px) scale(1.5); } 32% { transform: translateY(-16px) scale(1.55); } 40%, 100% { transform: none; } }
+@keyframes mask-stalk { 0%, 12% { opacity: 0; } 15%, 34% { opacity: 1; } 40%, 100% { opacity: 0; } }
+@keyframes mask-tongue { 0%, 13% { transform: scaleY(0); } 20% { transform: scaleY(1.15); } 24% { transform: scaleY(1); } 33% { transform: scaleY(1); } 40%, 100% { transform: scaleY(0); } }
+@media (prefers-reduced-motion: reduce) { .mask-eye, .mask-stalk, .mask-tongue { animation: none; } .mask-stalk { opacity: 0; } }
 /* The case: the mask large, the four posters as the clues, the names under them. */
 .mask-case { display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.mask-face { width: 130px; height: 122px; filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.5)); }
+.mask-face.mask-face-large { width: 124px; height: 148px; filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.5)); }
 .mask-clues { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; width: 100%; max-width: 560px; }
 .mask-clue-title { display: block; margin-top: 4px; font-size: 12.5px; font-weight: 600; line-height: 1.3; text-align: center; }
 .mask-ask { margin: 0; color: var(--text-muted); }
-@media (max-width: 640px) { .mask-clues { gap: 8px; } .mask-face { width: 96px; height: 90px; } }
+@media (max-width: 640px) { .mask-clues { gap: 8px; } .mask-face.mask-face-large { width: 90px; height: 108px; } }
 
 /* ── Face/Off, The Usual Suspects, Memento, Amadeus ───────────────── */
 
@@ -4444,6 +4454,8 @@ body::after {
 .sponsor-text { margin: 0 0 18px; color: var(--text-muted); }
 .rite-icon { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .levels-held { color: var(--yellow); }
+.levels-invited { margin: 0 0 10px; color: var(--yellow); font-size: 13.5px; }
+.invited-note { margin: 10px 0 0; }
 .levels-motto { margin: 10px 0 4px; font-family: var(--font-display); font-size: 20px; letter-spacing: 0.5px; text-transform: uppercase; line-height: 1.2; color: var(--accent-strong); }
 
 /* Reel Call: the person the house picked, their photo where the poster would be. */
@@ -4451,3 +4463,16 @@ body::after {
 .cast-person { align-items: center; text-align: center; }
 .cast-avatar { width: 120px; height: 120px; font-size: 44px; margin-bottom: 8px; }
 .veiled-link .cast-avatar { box-shadow: none; }
+
+/* ── Selects ─────────────────────────────────────────────────────────── */
+
+/* Every select draws its own chevron, set in from the right edge with room around it, the same everywhere. */
+select, .game-with select, .field select, .country-select, .recall-of select {
+    -webkit-appearance: none;
+    appearance: none;
+    padding-right: 40px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23b8b2c4' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 14px 14px;
+}

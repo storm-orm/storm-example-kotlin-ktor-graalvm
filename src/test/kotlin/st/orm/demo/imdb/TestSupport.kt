@@ -83,7 +83,7 @@ fun movieSeenService(orm: ORMTemplate, tmdbClient: TmdbClient = TmdbClient(null,
 fun tmdbService(orm: ORMTemplate, tmdbClient: TmdbClient) =
     TmdbService(orm.repository<MovieRepository>(), orm.repository<TmdbSourceRepository>(), orm.repository<WatchProviderRepository>(), tmdbClient)
 
-fun levelService(orm: ORMTemplate) = LevelService(orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository())
+fun levelService(orm: ORMTemplate) = LevelService(orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository())
 
 fun poolService(orm: ORMTemplate) = PoolService(orm.repository(), orm.repository(), orm.repository())
 
