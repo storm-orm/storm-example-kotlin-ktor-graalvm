@@ -105,7 +105,7 @@ class CommunityService(
     suspend fun overview(user: User, now: Instant = Instant.now()): CommunityView {
         // The friends, the clubs and the games, each its own transaction, read side by side.
         val (friends, clubs, games) = coroutineScope {
-            val friends = async { friendService.friendsOf(user) }
+            val friends = async { friendService.friendsOf(user, now, withFeed = false) }
             val clubs = async { clubService.clubsOf(user) }
             val games = async { playService.playOf(user, now).games.filter { it.match.mode != GameMode.SOLO } }
             Triple(friends.await(), clubs.await(), games.await())

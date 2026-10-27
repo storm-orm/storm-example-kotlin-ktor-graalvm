@@ -14,6 +14,9 @@ import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.UserBadgeRepository
 import st.orm.demo.imdb.repository.UserRepository
 import st.orm.template.transaction
+import java.time.Duration
+import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.ceil
 
 /**
@@ -133,8 +136,18 @@ class LevelService(
     private val inviteAcceptanceRepository: InviteAcceptanceRepository
 ) {
 
-    /** Where the user stands now, their stored level raised when the score reached a new one. */
-    suspend fun progressOf(user: User): LevelProgress = transaction { progressIn(user) }
+    /** Where each user stood when last worked out, and when: the pages' ring reads this for a minute rather than the database. */
+    private val recent = ConcurrentHashMap<String, Pair<Instant, LevelProgress>>()
+
+    /**
+     * Where the user stands now, their stored level raised when the score
+     * reached a new one. Worked out afresh when [fresh], or when a minute
+     * passed since the last time: a level moves slowly, and every page asks.
+     */
+    suspend fun progressOf(user: User, fresh: Boolean = false, now: Instant = Instant.now()): LevelProgress {
+        if (!fresh) recent[user.id]?.takeIf { Duration.between(it.first, now) < KEPT }?.let { return it.second }
+        return transaction { progressIn(user) }.also { recent[user.id] = now to it }
+    }
 
     /** The same, inside a transaction of the caller's. */
     fun progressIn(user: User): LevelProgress {
@@ -201,6 +214,8 @@ class LevelService(
     }
 
     companion object {
+        /** How long a user's standing is kept for the pages' ring before it is worked out again. */
+        private val KEPT: Duration = Duration.ofMinutes(1)
         val HOLLYWOOD = WalkOfFame(
             "Hollywood Walk of Fame", "Hollywood Boulevard, at the corner of Vine Street",
             "https://en.wikipedia.org/wiki/Hollywood_Walk_of_Fame",

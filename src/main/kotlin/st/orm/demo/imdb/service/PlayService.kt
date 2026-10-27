@@ -79,11 +79,12 @@ class PlayService(
 
     suspend fun playOf(user: User, now: Instant = Instant.now()): PlayView = transaction {
         val company = matchService.companyOf(user)
-        val open = openGamesOf(user, now)
         // The club's rounds the visitor has no part in yet; one they closed is not offered again.
         val rounds = gameMatchRepository.findOpen(company.clubs, now, LIMIT)
         val joined = gamePlayerRepository.findMine(user, rounds).map { it.match.id }.toSet()
-        val entries = open + rounds.filter { it.id !in joined }.map { entryOf(user, it, null, now) }
+        val offered = rounds.filter { it.id !in joined }
+        val (open, loads) = openGamesOf(user, now, offered)
+        val entries = open + offered.map { entryOf(user, it, null, now, loads.players[it.id].orEmpty(), loads) }
         PlayView(
             entries.sortedWith(compareByDescending<GameEntry> { it.yourMove }.thenByDescending { it.match.createdAt }),
             gamePlayerRepository.findClosed(user, 0, FINISHED_SHOWN).content().map { closedEntryOf(user, it, now) },
@@ -109,7 +110,7 @@ class PlayService(
      * when there is no room, all of them being played with others.
      */
     suspend fun makeRoom(user: User, now: Instant = Instant.now()): Boolean = transaction {
-        val started = openGamesOf(user, now).filter { it.match.host.id == user.id }
+        val started = openGamesOf(user, now).first.filter { it.match.host.id == user.id }
         if (started.size < MAX_OPEN) return@transaction true
         val oldest = started.filter { it.match.mode == GameMode.SOLO }.minByOrNull { it.match.createdAt } ?: return@transaction false
         gamePlayerRepository.findById(GamePlayerPk(matchId = oldest.match.id, userId = user.id))?.let { close(it, now) }
@@ -127,19 +128,21 @@ class PlayService(
      * close, to the archive. A match nobody moved in for [IDLE] ends here,
      * whatever its game: the list never grows with games left behind.
      */
-    private fun openGamesOf(user: User, now: Instant): List<GameEntry> {
+    private fun openGamesOf(user: User, now: Instant, alongside: List<GameMatch> = emptyList()): Pair<List<GameEntry>, Loads> {
         val mine = gamePlayerRepository.findOpen(user)
-        val players = gamePlayerRepository.findPlayersOf(mine.map { it.match })
-        // The matches as they stand now, the idle ones ended; then what each game says of them, a query or two per game, not per match.
+        val players = gamePlayerRepository.findPlayersOf(mine.map { it.match } + alongside)
+        // The matches as they stand now, the idle ones ended; then what each game says of them, and of the ones read
+        // [alongside], a query or two per game, not per match.
         val matches = mine.map { me -> endIfIdle(me.match, players[me.match.id].orEmpty(), now) }
+        val all = matches + alongside
         val loads = Loads(
             players,
-            chainService.turnsIn(matches.filter { it.game == Game.CHAIN }, players, now),
-            connectService.standingsOf(matches.filter { it.game == Game.CONNECT }),
-            draftService.turnsIn(matches.filter { it.game == Game.DRAFT }, players, now),
-            castService.standingsOf(user, matches.filter { it.game == Game.CAST || it.game == Game.REEL }, now)
+            chainService.turnsIn(all.filter { it.game == Game.CHAIN }, players, now),
+            connectService.standingsOf(all.filter { it.game == Game.CONNECT }),
+            draftService.turnsIn(all.filter { it.game == Game.DRAFT }, players, now),
+            castService.standingsOf(user, all.filter { it.game == Game.CAST || it.game == Game.REEL }, now)
         )
-        return mine.zip(matches).mapNotNull { (me, match) ->
+        val entries = mine.zip(matches).mapNotNull { (me, match) ->
             val its = players[match.id].orEmpty()
             val entry = entryOf(user, match, me, now, its, loads).copy(since = agoText(lastMoveOf(match, its), now))
             if (entry.over) {
@@ -147,6 +150,7 @@ class PlayService(
                 null
             } else entry
         }
+        return entries to loads
     }
 
     /** What the games say of several matches, read in one go for the list, by the match's id; absent, each match is read on its own. */

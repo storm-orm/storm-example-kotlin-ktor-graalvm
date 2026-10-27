@@ -124,10 +124,13 @@ suspend fun ApplicationCall.noteGamesWaiting(games: Int) {
     application.attributes[AttentionServiceKey].noteGames(currentUser(), games)
 }
 
-/** Where the visitor stands with the levels, worked out once per request: the layout's ring and the pages share it. */
-suspend fun ApplicationCall.levelProgress(): LevelProgress {
-    attributes.getOrNull(LevelProgressKey)?.let { return it }
-    val progress = application.attributes[LevelServiceKey].progressOf(currentUser())
+/**
+ * Where the visitor stands with the levels, worked out once per request: the layout's ring and the pages share it,
+ * and read the minute-old standing unless [fresh], as the levels page and the standing after a check-in do.
+ */
+suspend fun ApplicationCall.levelProgress(fresh: Boolean = false): LevelProgress {
+    if (!fresh) attributes.getOrNull(LevelProgressKey)?.let { return it }
+    val progress = application.attributes[LevelServiceKey].progressOf(currentUser(), fresh)
     attributes.put(LevelProgressKey, progress)
     return progress
 }

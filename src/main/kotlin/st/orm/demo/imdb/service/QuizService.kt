@@ -24,6 +24,8 @@ import st.orm.demo.imdb.repository.UserRepository
 import st.orm.template.ref
 import st.orm.template.transaction
 import java.time.Instant
+import java.util.concurrent.ConcurrentHashMap
+import java.time.Duration
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
@@ -210,11 +212,19 @@ class QuizService(
      * Yesterday's quiz of the visitor's taste, for the Play page: its movie,
      * and how many played it and got it; null before the first quiz.
      */
-    suspend fun yesterdayOf(user: User, today: LocalDate = today()): YesterdayQuiz? = transaction(readOnly = true) {
+    suspend fun yesterdayOf(user: User, today: LocalDate = today(), now: Instant = Instant.now()): YesterdayQuiz? {
         val day = today.minusDays(1)
-        val quiz = quizDayRepository.findById(QuizDayPk(quizOn = day, filterKey = user.movieFilter?.key.orEmpty())) ?: return@transaction null
-        YesterdayQuiz(quiz.movie, quizPlayRepository.countFinished(day, quiz.movie), quizPlayRepository.countSolved(day, quiz.movie))
+        val key = user.movieFilter?.key.orEmpty()
+        // The same for everyone of a taste, and the counts move slowly: kept a minute per taste.
+        yesterdays["$day|$key"]?.takeIf { Duration.between(it.first, now) < KEPT }?.let { return it.second }
+        return transaction(readOnly = true) {
+            val quiz = quizDayRepository.findById(QuizDayPk(quizOn = day, filterKey = key)) ?: return@transaction null
+            YesterdayQuiz(quiz.movie, quizPlayRepository.countFinished(day, quiz.movie), quizPlayRepository.countSolved(day, quiz.movie))
+        }.also { yesterdays["$day|$key"] = now to it }
     }
+
+    /** Yesterday's quiz per day and taste, as last read, and when. */
+    private val yesterdays = ConcurrentHashMap<String, Pair<Instant, YesterdayQuiz?>>()
 
     /** How the club's members did today, for its page: empty while nobody finished, or for someone not in the club. */
     suspend fun boardOf(clubId: Long, user: User, today: LocalDate = today()): List<QuizScore> = transaction(readOnly = true) {
@@ -248,6 +258,8 @@ class QuizService(
     private fun today(): LocalDate = LocalDate.now(ZoneOffset.UTC)
 
     companion object {
+        /** How long yesterday's quiz is kept before its counts are read again. */
+        private val KEPT: Duration = Duration.ofMinutes(1)
         const val MAX_GUESSES = 6
         /** The ones who got it first, in fewest guesses. */
         private val BEST_FIRST = compareByDescending<QuizScore> { it.solved }.thenBy { it.guesses }

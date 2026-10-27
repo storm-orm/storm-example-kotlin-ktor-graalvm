@@ -37,14 +37,14 @@ class LevelServiceTest {
         val service = service(orm)
         val alice = orm.insertUser("alice-level", name = "Alice")
         val movies = orm.repository<MovieRepository>().findAll()
-        assertEquals(Level.EXTRA, runBlocking { service.progressOf(alice) }.level)
+        assertEquals(Level.EXTRA, runBlocking { service.progressOf(alice, fresh = true) }.level)
         assertEquals(setOf("CHAIN", "CONNECT", "DRAFT", "CAST", "REEL", "CONNECTIONS", "USUAL_SUSPECTS", "MEMENTO", "THE_MASK", "AMADEUS"), runBlocking { service.locksOf(alice) }.keys)
         assertEquals("Unlocks at Bit Part · 25 movies to go", runBlocking { service.locksOf(alice) }.getValue("CHAIN").text)
 
         orm.repository<MovieSeenRepository>().insert(movies.map { MovieSeen(alice, it, now) })
         // Two of the six checked in, one of them twice: the score is the six watched.
         orm.repository<CheckInRepository>().insert(listOf(CheckIn(alice, movies[0], now), CheckIn(alice, movies[0], now), CheckIn(alice, movies[1], now)))
-        val progress = runBlocking { service.progressOf(alice) }
+        val progress = runBlocking { service.progressOf(alice, fresh = true) }
         assertEquals(6.0, progress.score)
         assertEquals(6, progress.watched)
         assertEquals(2, progress.checkedIn)
@@ -55,7 +55,7 @@ class LevelServiceTest {
         // Lifted to Supporting by hand, as by a long history, the level stays when the movies go.
         orm.repository<UserRepository>().update(orm.repository<UserRepository>().getById(alice.id).copy(level = Level.SUPPORTING))
         orm.repository<MovieSeenRepository>().findAll(alice).forEach { orm.repository<MovieSeenRepository>().remove(it) }
-        val kept = runBlocking { service.progressOf(orm.repository<UserRepository>().getById(alice.id)) }
+        val kept = runBlocking { service.progressOf(orm.repository<UserRepository>().getById(alice.id), fresh = true) }
         assertEquals(Level.SUPPORTING, kept.level)
         assertTrue(runBlocking { service.canStart(orm.repository<UserRepository>().getById(alice.id), Game.CAST) })
         assertFalse(runBlocking { service.locksOf(orm.repository<UserRepository>().getById(alice.id)) }.containsKey("DRAFT"))
@@ -71,13 +71,13 @@ class LevelServiceTest {
         orm.repository<MovieSeenRepository>().insert(movies.map { MovieSeen(alice, it, now) })
         orm.repository<CheckInRepository>().insert(movies.map { CheckIn(alice, it, now) })
         val users = orm.repository<UserRepository>()
-        var progress = runBlocking { service.progressOf(users.getById(alice.id)) }
+        var progress = runBlocking { service.progressOf(users.getById(alice.id), fresh = true) }
         assertEquals(Level.EXTRA, progress.level)
         assertFalse(progress.held)
 
         // With the points of Bit Part but none of its rites, the level is held back, and says what is left.
         orm.repository<MovieSeenRepository>().insert((1..20).map { i -> MovieSeen(alice, orm.repository<MovieRepository>().insertAndFetch(st.orm.demo.imdb.model.Movie("tt77700$i", "Extra $i", "Extra $i", 2000, 100)), now) })
-        progress = runBlocking { service.progressOf(users.getById(alice.id)) }
+        progress = runBlocking { service.progressOf(users.getById(alice.id), fresh = true) }
         assertEquals(Level.BIT_PART, progress.byPoints)
         assertEquals(Level.EXTRA, progress.level)
         assertTrue(progress.held)
@@ -85,7 +85,7 @@ class LevelServiceTest {
 
         // The rites done, the level follows.
         orm.repository<UserBadgeRepository>().insert(listOf(UserBadge(alice, Badge.DECK_DONE, now), UserBadge(alice, Badge.HOT_STREAK, now), UserBadge(alice, Badge.CHECKED_IN, now)))
-        progress = runBlocking { service.progressOf(users.getById(alice.id)) }
+        progress = runBlocking { service.progressOf(users.getById(alice.id), fresh = true) }
         assertEquals(Level.BIT_PART, progress.level)
         assertFalse(progress.held)
         // Supporting asks for someone invited too: the ladder says so.

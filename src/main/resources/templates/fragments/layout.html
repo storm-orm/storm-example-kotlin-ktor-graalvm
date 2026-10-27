@@ -118,6 +118,17 @@
         <!-- The account: a name once signed in with a git provider, else the way to. -->
         <!-- Signed in, the account icon opens the account page: the logins, linking another, signing out. -->
         <div class="nav-account">
+            <!-- Signed in: the movies watched behind an eye, in fuchsia, and the check-ins behind a plus, in green, each a way to the list. -->
+            <th:block th:if="${account.name != null and level != null}">
+                <a class="nav-count nav-count-watched" th:href="@{/seen}" th:title="|${level.watched} movies watched|">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <span th:text="${#numbers.formatInteger(level.watched, 1, 'COMMA')}">724</span>
+                </a>
+                <a class="nav-count nav-count-checkins" th:href="@{/seen(checkins='')}" th:title="|${level.checkedIn} checked in|">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                    <span th:text="${level.checkedIn}">12</span>
+                </a>
+            </th:block>
             <!-- The ring fills from this level to the next; its title says how far (the levels page explains). -->
             <a th:if="${account.name != null}" class="nav-account-icon" th:href="@{/signin}"
                th:classappend="(${active == 'signin'} ? 'active ' : '') + (${level != null and level.level.honour != null} ? 'honoured' : '')"

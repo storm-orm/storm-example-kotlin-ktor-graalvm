@@ -14,7 +14,7 @@ import st.orm.demo.imdb.service.LevelService
 fun Route.levelRoutes(levelService: LevelService, badgeService: BadgeService) {
     get("/play/levels") {
         val user = call.currentUser()
-        call.respondPage(ThymeleafContent("levels", mapOf("levels" to levelService.levelsOf(user, call.levelProgress()), "badges" to badgeService.wallOf(user))))
+        call.respondPage(ThymeleafContent("levels", mapOf("levels" to levelService.levelsOf(user, call.levelProgress(fresh = true)), "badges" to badgeService.wallOf(user))))
     }
 
     // The star's pay link, pressed: the sponsorship is given, free of charge.
@@ -26,6 +26,6 @@ fun Route.levelRoutes(levelService: LevelService, badgeService: BadgeService) {
     // Where the visitor stands, after a check-in: the page tells them what it brought, badges included.
     get("/api/level") {
         val user = call.currentUser()
-        call.respond(call.levelProgress().standing(badgeService.award(user).map { it.title }))
+        call.respond(call.levelProgress(fresh = true).standing(badgeService.award(user).map { it.title }))
     }
 }

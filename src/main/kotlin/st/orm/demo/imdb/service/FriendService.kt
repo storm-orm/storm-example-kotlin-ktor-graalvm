@@ -91,16 +91,17 @@ class FriendService(
     private val tasteOverlap: TasteOverlap
 ) {
     /** The friends page for a signed-in visitor. */
-    suspend fun friendsOf(user: User, now: Instant = Instant.now()): FriendsView = transaction(readOnly = true) {
+    /** The friends page; without [withFeed], the friends and the invites alone, for a page with a feed of its own, such as the community's. */
+    suspend fun friendsOf(user: User, now: Instant = Instant.now(), withFeed: Boolean = true): FriendsView = transaction(readOnly = true) {
         val friends = friendshipRepository.findFriends(user).map { it.friend }
         FriendsView(
             requests = friendRequestRepository.findOpenFor(user),
             sent = friendRequestRepository.findSentBy(user),
             friends = friends,
-            feed = feed(friends, FEED_LIMIT),
+            feed = if (withFeed) feed(friends, FEED_LIMIT) else emptyList(),
             sharing = user,
             invites = friendInviteRepository.findOpen(user, now.minus(Invite.VALIDITY)).map { OpenInvite.of(it, now) },
-            inCommon = tasteOverlap.inCommon(user, friends) { it.shareSeen }
+            inCommon = if (withFeed) tasteOverlap.inCommon(user, friends) { it.shareSeen } else emptyList()
         )
     }
 

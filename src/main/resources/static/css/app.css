@@ -910,7 +910,14 @@ img { display: block; }
 /* ── Account ───────────────────────────────────────────────────────── */
 
 /* The account: "Sign in" while signed out, then an icon, the avatar or else the initial, that opens the account page. */
-.nav-account { display: flex; align-items: center; min-width: 0; white-space: nowrap; }
+.nav-account { display: flex; align-items: center; gap: 8px; min-width: 0; white-space: nowrap; }
+
+/* The counts beside the account: the movies watched behind an eye, in fuchsia; the check-ins behind a plus, in green. */
+.nav-count { --tone: var(--fuchsia-rgb); display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px 4px 7px; border-radius: 999px; border: 1px solid rgba(var(--tone), 0.5); color: rgb(var(--tone)); font-size: 12.5px; font-weight: 700; letter-spacing: 0.3px; transition: background 0.15s ease; }
+.nav-count:hover { background: rgba(var(--tone), 0.14); }
+.nav-count svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.nav-count-checkins { --tone: var(--green-rgb); }
+@media (max-width: 640px) { .nav-count { padding: 3px 7px 3px 6px; font-size: 11.5px; } .nav-count svg { width: 13px; height: 13px; } }
 
 .nav-account-icon {
     display: grid;
@@ -2739,7 +2746,16 @@ body::after {
 
 .game-button { margin-top: 8px; }
 
-.game-art { display: flex; align-items: center; height: 54px; margin-bottom: 4px; }
+/* A card's art drawn in line, in the card's tone, with its glow. */
+.game-art-line .art-svg { height: 52px; width: auto; fill: none; stroke: rgb(var(--tone)); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; color: rgb(var(--tone)); filter: drop-shadow(0 0 10px rgba(var(--tone), 0.5)); }
+/* Total Recall's clamps open and close around the head. */
+.recall-clamp { animation: recall-clamps 4s ease-in-out infinite; }
+.recall-clamp-right { animation-name: recall-clamps-right; }
+@keyframes recall-clamps { 0%, 20% { transform: none; } 50%, 70% { transform: translateX(-7px); } 100% { transform: none; } }
+@keyframes recall-clamps-right { 0%, 20% { transform: none; } 50%, 70% { transform: translateX(7px); } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .recall-clamp { animation: none; } }
+/* Every card's art stands the same height, so every title starts at the same line. */
+.game-art { display: flex; align-items: center; height: 64px; margin-bottom: 4px; }
 
 .game-dot { width: 22px; height: 22px; border-radius: 50%; background: rgb(var(--tone)); box-shadow: 0 0 16px rgba(var(--tone), 0.8); }
 
@@ -4322,10 +4338,10 @@ body::after {
 /* ── The Mask ───────────────────────────────────────────────────────── */
 
 .game-mask { --tone: var(--green-rgb); }
-/* The Mask's art is as tall as his gag, so the tongue never falls over the title. */
-.game-art-mask { height: 112px; }
+/* The Mask's art is as tall as the others, and his gag falls over the title: the jaw and the tongue in front of it. */
+.game-art-mask { position: relative; z-index: 2; align-items: flex-start; overflow: visible; }
 .mask-face { overflow: visible; filter: drop-shadow(0 0 12px rgba(var(--green-rgb), 0.5)); }
-.mask-face.mask-art { width: 64px; height: 112px; }
+.mask-face.mask-art { width: 64px; height: 112px; margin-top: 4px; }
 /* The gag, every six seconds: the eyes shoot out on their stalks, the jaw drops, the throat opens, the tongue rolls
    out down to the floor, and all of it snaps back. */
 .mask-eye { transform-box: fill-box; transform-origin: 50% 100%; animation: mask-eyes 6s ease-in-out infinite; }
@@ -4358,15 +4374,19 @@ body::after {
 .game-art-duel { gap: 10px; }
 .game-art-duel .game-art-poster + .game-art-poster { transform: rotate(8deg); }
 .game-art-versus { font-family: var(--font-display); font-size: 22px; color: rgb(var(--tone)); text-transform: uppercase; }
-.game-art-lineup { gap: 6px; align-items: flex-end; }
-.game-art-lineup span { width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgb(var(--tone)); background: rgba(var(--tone), 0.15); box-shadow: 0 0 10px rgba(var(--tone), 0.45); }
-.game-art-lineup span:nth-child(2), .game-art-lineup span:nth-child(4) { margin-bottom: 6px; }
-.game-art-lineup span:nth-child(3) { background: rgb(var(--tone)); }
+/* Five silhouettes in a line-up, head and shoulders, the one in the middle lit. */
+.game-art-lineup { gap: 7px; align-items: flex-end; }
+.game-art-lineup span { position: relative; width: 22px; height: 30px; opacity: 0.55; }
+.game-art-lineup span::before { content: ""; position: absolute; top: 0; left: 6px; width: 10px; height: 10px; border-radius: 50%; background: rgb(var(--tone)); box-shadow: 0 0 8px rgba(var(--tone), 0.5); }
+.game-art-lineup span::after { content: ""; position: absolute; bottom: 0; left: 0; width: 22px; height: 14px; border-radius: 11px 11px 3px 3px; background: rgb(var(--tone)); box-shadow: 0 0 10px rgba(var(--tone), 0.45); }
+.game-art-lineup span:nth-child(2), .game-art-lineup span:nth-child(4) { height: 36px; }
+.game-art-lineup span:nth-child(2)::before, .game-art-lineup span:nth-child(4)::before { width: 12px; height: 12px; left: 5px; }
+.game-art-lineup span:nth-child(3) { opacity: 1; }
 .game-art-memento { gap: 6px; }
 .game-art-memento .game-art-poster:nth-child(1) { transform: translateY(6px) rotate(-6deg); }
 .game-art-memento .game-art-poster:nth-child(3) { transform: translateY(-6px) rotate(5deg); }
 .game-art-memento .game-art-poster:nth-child(4) { transform: translateY(4px); }
-.game-art-score { gap: 5px; align-items: flex-end; height: 54px; }
+.game-art-score { gap: 5px; align-items: flex-end; }
 .game-art-score span { width: 7px; border-radius: 4px; background: rgb(var(--tone)); box-shadow: 0 0 10px rgba(var(--tone), 0.5); }
 .game-art-score span:nth-child(1) { height: 16px; }
 .game-art-score span:nth-child(2) { height: 32px; }
@@ -4435,16 +4455,16 @@ body::after {
 .community-hero .play-wall { opacity: 1; }
 /* The keyboard behind the title: the rows set in like a real one's, each key a cap with its letter; a key pressed
    lights up and sinks for a moment; what was typed shows on the line above. Dimmed on the manage tab. */
-.keyboard-wall { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 12px; padding: 0 0 48px; pointer-events: none; opacity: 0.5; -webkit-mask-image: linear-gradient(90deg, transparent, #000 25%, #000 85%, transparent); mask-image: linear-gradient(90deg, transparent, #000 25%, #000 85%, transparent); }
-.keyboard-screen { display: flex; align-items: center; gap: 2px; min-height: 30px; font-family: var(--font-display); font-size: 24px; letter-spacing: 1px; text-transform: uppercase; color: rgba(var(--violet-rgb), 0.95); text-shadow: 0 0 14px rgba(var(--violet-rgb), 0.6); white-space: nowrap; }
+.keyboard-wall { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 10px; padding: 0 0 12px; pointer-events: none; opacity: 0.5; -webkit-mask-image: linear-gradient(90deg, transparent, #000 25%, #000 85%, transparent); mask-image: linear-gradient(90deg, transparent, #000 25%, #000 85%, transparent); }
+.keyboard-screen { display: flex; align-items: center; gap: 2px; min-height: 30px; font-family: var(--font-display); font-size: 26px; letter-spacing: 1px; text-transform: uppercase; color: rgba(var(--violet-rgb), 0.95); text-shadow: 0 0 14px rgba(var(--violet-rgb), 0.6); white-space: nowrap; }
 .keyboard-caret { width: 10px; height: 24px; background: rgba(var(--violet-rgb), 0.8); animation: keyboard-caret 1s steps(2) infinite; }
 @keyframes keyboard-caret { to { opacity: 0; } }
-.keyboard { display: flex; flex-direction: column; align-items: center; gap: 7px; }
-.key-row { display: flex; gap: 7px; }
-.key-row:nth-child(2) { padding-left: 20px; }
-.key-row:nth-child(3) { padding-left: 60px; }
-.key { display: flex; align-items: center; justify-content: center; width: 36px; height: 32px; border-radius: 7px; border: 1.5px solid rgba(var(--violet-rgb), 0.5); border-bottom-width: 4px; background: rgba(var(--violet-rgb), 0.08); color: rgba(var(--violet-rgb), 0.8); font-size: 13px; font-weight: 700; transition: transform 0.08s ease, background 0.08s ease, box-shadow 0.08s ease; }
-.key-space { width: 260px; }
+.keyboard { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.key-row { display: flex; gap: 8px; }
+.key-row:nth-child(2) { padding-left: 24px; }
+.key-row:nth-child(3) { padding-left: 72px; }
+.key { display: flex; align-items: center; justify-content: center; width: 42px; height: 36px; border-radius: 8px; border: 1.5px solid rgba(var(--violet-rgb), 0.5); border-bottom-width: 4px; background: rgba(var(--violet-rgb), 0.08); color: rgba(var(--violet-rgb), 0.8); font-size: 13px; font-weight: 700; transition: transform 0.08s ease, background 0.08s ease, box-shadow 0.08s ease; }
+.key-space { width: 300px; }
 .key.pressed { transform: translateY(3px); border-bottom-width: 1.5px; background: rgba(var(--violet-rgb), 0.6); color: #fff; box-shadow: 0 0 18px rgba(var(--violet-rgb), 0.8); }
 @media (max-width: 640px) { .key { width: 26px; height: 24px; font-size: 11px; } .key-row { gap: 5px; } .key-row:nth-child(2) { padding-left: 14px; } .key-row:nth-child(3) { padding-left: 42px; } .key-space { width: 160px; } .keyboard-screen { font-size: 18px; } }
 .community-hero .play-hero-content { padding-bottom: 28px; }
