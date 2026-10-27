@@ -94,7 +94,7 @@ data class LevelStanding(val level: String, val score: Double, val next: String?
 
 /** Why a user cannot play a game yet: the level it needs, and how many movies they still have to watch for it. */
 data class GameLock(val title: String, val level: Level, val toGo: Int) {
-    val text: String get() = if (toGo > 0) "Unlocks at ${level.label} · ${if (toGo == 1) "1 movie" else "$toGo movies"} to go" else "Unlocks at ${level.label} · its rites to go"
+    val text: String get() = if (toGo > 0) "Unlocks at ${level.label} · ${if (toGo == 1) "1 movie" else "$toGo movies"} to go" else "Unlocks at ${level.label}"
 }
 
 /**

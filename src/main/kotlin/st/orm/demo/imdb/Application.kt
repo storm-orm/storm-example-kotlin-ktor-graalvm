@@ -390,7 +390,8 @@ private fun Application.configureStorm() {
                     "db/migration/V47__goat.sql",
                     "db/migration/V48__levels_by_the_rites.sql",
                     "db/migration/V49__levels_by_the_movies_and_the_rites.sql",
-                    "db/migration/V50__invite_acceptances.sql"
+                    "db/migration/V50__invite_acceptances.sql",
+                    "db/migration/V51__swipe_decision_time.sql"
                 )))
                 .load()
                 .migrate()

@@ -39,6 +39,8 @@
                 <div class="movie-card-info">
                     <div class="movie-card-title" th:text="${result.movie.primaryTitle}">Heat</div>
                     <div class="movie-card-year" th:text="${round.match.mode.name() == 'FRIEND'} ? ${result.movie.startYear} : |Wanted by ${result.wantedBy.size()}|">Wanted by 3</div>
+                    <!-- How quickly the ones who wanted it decided, on average: a tie goes to the quickest. -->
+                    <div class="movie-card-year swipe-speed" th:if="${result.seconds != null}" th:text="|Decided in ${result.seconds}|">Decided in 0.9 s</div>
                 </div>
             </a>
         </div>
@@ -53,15 +55,28 @@
     <div class="container">
         <div class="section-header">
             <h2 class="section-title">Who Swiped</h2>
+            <span class="section-note">each one's wants, the quickest yes first, once they are done</span>
         </div>
-        <div class="stat-card quiz-board hl-board">
-            <div class="quiz-board-row" th:each="player : ${round.players}">
-                <span th:replace="~{fragments/community :: avatar(${player.user}, '')}"></span>
-                <span class="quiz-board-name" th:text="${player.user.name}">Alice</span>
-                <span class="quiz-board-score" th:text="|${round.swipedBy(player)}/${round.deckSize}|">12/30</span>
+        <!-- Each player's part: how far they got, and their wants once they finished, shown once the viewer finished too. -->
+        <div class="player-swipes-grid">
+            <div class="stat-card player-swipes" th:each="part : ${round.byPlayer}">
+                <div class="quiz-board-row">
+                    <span th:replace="~{fragments/community :: avatar(${part.player.user}, '')}"></span>
+                    <span class="quiz-board-name" th:text="${part.player.user.id == account.id} ? 'You' : ${part.player.user.name}">Alice</span>
+                    <span class="quiz-board-score" th:text="${part.finished} ? 'Done' : |${part.swiped}/${round.deckSize}|">12/30</span>
+                </div>
+                <p class="stat-note" th:if="${!part.finished}">Still swiping.</p>
+                <p class="stat-note" th:if="${part.finished and !part.shown}">Done: their wants show once you are done too.</p>
+                <p class="stat-note" th:if="${part.shown and part.wanted.isEmpty()}">Wanted nothing of this deck.</p>
+                <div class="player-wants" th:if="${part.shown and !part.wanted.isEmpty()}">
+                    <a class="player-want" th:each="want : ${part.wanted}" th:href="@{/movie/{id}(id=${want.movie.id})}" th:title="${want.movie.primaryTitle}">
+                        <div th:replace="~{fragments/cards :: posterThumb(${want.movie.id}, ${want.movie.primaryTitle})}"></div>
+                        <span class="player-want-time" th:text="${want.decidedMs == 2147483647} ? '' : ${want.seconds}">0.9 s</span>
+                    </a>
+                </div>
             </div>
-            <p class="stat-note hl-board-note" th:if="${round.match.mode.name() == 'CLUB' and !round.over}">Every member can swipe this round until it closes; they join as they swipe.</p>
         </div>
+        <p class="stat-note hl-board-note" th:if="${round.match.mode.name() == 'CLUB' and !round.over}">Every member can swipe this round until it closes; they join as they swipe.</p>
     </div>
 </section>
 

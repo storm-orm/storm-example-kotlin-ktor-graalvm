@@ -161,6 +161,21 @@ class PlayService(
     /** When a match last moved: the latest of its players' moves, or its start. */
     private fun lastMoveOf(match: GameMatch, players: List<GamePlayer>): Instant = (players.map { it.updatedAt } + match.createdAt).max()
 
+    /**
+     * Whether the user has a game going already with these opponents: one
+     * open match per friend, and one per club, so nobody is buried in games.
+     * On one's own, as many as the room allows ([makeRoom]).
+     */
+    suspend fun hasOpenWith(user: User, opponents: Opponents): Boolean = transaction(readOnly = true) {
+        if (opponents.mode == GameMode.SOLO) return@transaction false
+        val mine = gamePlayerRepository.findOpen(user).map { it.match }.filter { it.endedAt == null && it.mode == opponents.mode }
+        when (opponents.mode) {
+            GameMode.CLUB -> mine.any { it.club?.id == opponents.clubId }
+            GameMode.FRIEND -> gamePlayerRepository.findPlayersOf(mine).values.any { players -> players.any { it.user.id == opponents.friendId } }
+            GameMode.SOLO -> false
+        }
+    }
+
     /** Ends a match whose last move, or start, is more than [IDLE] ago; as it is otherwise. */
     private fun endIfIdle(match: GameMatch, players: List<GamePlayer>, now: Instant): GameMatch {
         if (match.endedAt != null) return match

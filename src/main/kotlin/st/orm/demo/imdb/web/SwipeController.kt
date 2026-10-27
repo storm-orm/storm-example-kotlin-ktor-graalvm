@@ -26,7 +26,7 @@ fun Route.swipeRoutes(swipeService: SwipeService) {
         post("/api/swipe") {
             val form = call.receiveParameters()
             val way = form["way"]?.let { runCatching { SwipeWay.valueOf(it) }.getOrNull() } ?: return@post call.respond(HttpStatusCode.BadRequest)
-            swipeService.swipe(call.currentUser(), form.getOrFail("movie"), way)
+            swipeService.swipe(call.currentUser(), form.getOrFail("movie"), way, decidedMs = form["ms"]?.toIntOrNull()?.coerceIn(0, SwipeService.LONGEST_MS))
             call.respond(HttpStatusCode.NoContent)
         }
     }

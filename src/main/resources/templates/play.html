@@ -53,6 +53,7 @@
             <span class="attention-badge" th:if="${attention.games > 0}" th:text="${attention.games == 1} ? '1 waits on you' : |${attention.games} wait on you|">2 wait on you</span>
             <a class="section-link" th:href="@{/play/archive}">Finished games →</a>
         </div>
+        <p class="notice game-full" th:if="${busy}">One game at a time with the same friend or club: finish or close the one you have going with them first.</p>
         <p class="notice game-full" th:if="${full}" th:text="|You have ${maxOpen} games going with others. Close one to start another.|">
             You have 8 games going with others. Close one to start another.</p>
         <div class="game-list" th:unless="${play.games.isEmpty()}">

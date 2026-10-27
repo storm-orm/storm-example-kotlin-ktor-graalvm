@@ -28,13 +28,16 @@ data class Swipe(
     @FK @Persist(insertable = false, updatable = false) val user: Ref<User>,
     @FK @Persist(insertable = false, updatable = false) val movie: Ref<Movie>,
     val way: SwipeWay,
-    val swipedAt: Instant
+    val swipedAt: Instant,
+    /** How long the poster was looked at before it went, in milliseconds, as the page measured it; null for a swipe without. */
+    val decidedMs: Int? = null
 ) : Entity<SwipePk> {
-    constructor(user: User, movie: Movie, way: SwipeWay, swipedAt: Instant) : this(
+    constructor(user: User, movie: Movie, way: SwipeWay, swipedAt: Instant, decidedMs: Int? = null) : this(
         id = SwipePk(userId = user.id, movieId = movie.id),
         user = user.ref(),
         movie = movie.ref(),
         way = way,
-        swipedAt = swipedAt
+        swipedAt = swipedAt,
+        decidedMs = decidedMs
     )
 }

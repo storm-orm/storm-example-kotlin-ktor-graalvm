@@ -71,6 +71,21 @@ object GameRules {
 
     val all: List<GameRule> get() = rules.values.toList()
 
+    /** A match to start with a friend from their page: the path it starts at, and the game's name. */
+    data class Challenge(val path: String, val title: String)
+
+    /** The matches a friend can be challenged to, in the order of the levels, a game of two kinds once. */
+    val challenges: List<Challenge> get() = rules.values.distinctBy { it.title }.map { Challenge(pathOf(it.game), it.title) }
+
+    private fun pathOf(game: Game): String = when (game) {
+        Game.HIGHER_LOWER -> "/play/higher-lower"
+        Game.SWIPE -> "/play/swipe"
+        Game.CHAIN -> "/play/chain"
+        Game.CONNECT -> "/play/connect"
+        Game.DRAFT -> "/play/draft"
+        Game.CAST, Game.REEL -> "/play/cast"
+    }
+
     /** Every game once, by name, for the lists that tell about them. */
     val named: List<GameRule> get() = rules.values.distinctBy { it.title }
 }

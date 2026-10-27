@@ -458,6 +458,7 @@ CREATE TABLE swipe (
     movie_id   VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
     way        VARCHAR NOT NULL,
     swiped_at  TIMESTAMP NOT NULL,
+    decided_ms INTEGER,
     PRIMARY KEY (user_id, movie_id)
 );
 CREATE INDEX idx_swipe_movie_id ON swipe (movie_id);
@@ -473,6 +474,7 @@ CREATE TABLE swipe_round_swipe (
     movie_id  VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
     way       VARCHAR NOT NULL,
     swiped_at TIMESTAMP NOT NULL,
+    decided_ms INTEGER,
     PRIMARY KEY (match_id, user_id, movie_id)
 );
 

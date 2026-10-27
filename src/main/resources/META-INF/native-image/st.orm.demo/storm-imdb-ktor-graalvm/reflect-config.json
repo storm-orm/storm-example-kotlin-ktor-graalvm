@@ -1446,6 +1446,18 @@
     "allDeclaredFields": true
   },
   {
+    "name": "st.orm.demo.imdb.service.TimedMovie",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.PlayerSwipes",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
     "name": "st.orm.demo.imdb.service.SharedDaily",
     "allDeclaredConstructors": true,
     "allPublicMethods": true,
@@ -1675,6 +1687,12 @@
   },
   {
     "name": "st.orm.demo.imdb.model.Level",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.GameRules$Challenge",
     "allDeclaredConstructors": true,
     "allPublicMethods": true,
     "allDeclaredFields": true

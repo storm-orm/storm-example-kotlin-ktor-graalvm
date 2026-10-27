@@ -82,6 +82,7 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
         call.noteGamesWaiting(play.games.count { it.yourMove })
         call.respondPage(ThymeleafContent("play", mapOf("play" to play, "full" to full, "maxOpen" to PlayService.MAX_OPEN,
             "locks" to locks, "levels" to GameRules.levelOf.mapValues { it.value.label }, "level" to level, "badgeCount" to badgeCount, "locked" to call.request.queryParameters["locked"]?.let { locks[it] },
+            "busy" to (call.request.queryParameters["busy"] != null),
             "refused" to call.request.queryParameters["refused"]?.let { name -> GameRules.all.firstOrNull { it.game.name == name } })))
     }
 
@@ -113,6 +114,8 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
             if (opponents.mode != GameMode.SOLO && user.name == null) return@post call.respondRedirect("/signin?rd=/play")
             // A game the visitor's level does not reach yet: the Play page says what it takes.
             if (!levelService.canStart(call.levelProgress(), game)) return@post call.respondRedirect("/play?locked=${game.name}#games")
+            // One game at a time with a friend or a club: a second one is not started while the first is going.
+            if (playService.hasOpenWith(user, opponents)) return@post call.respondRedirect("/play?busy=${game.name}#your-games")
             // At the most games open, the oldest on one's own closes; with all of them played with others, none starts.
             if (!playService.makeRoom(user)) return@post call.respondRedirect("/play?full#your-games")
             val match = start(user, opponents, params)
@@ -184,7 +187,7 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
         val matchId = call.parameters.getOrFail<Long>("id")
         val form = call.receiveParameters()
         val way = form["way"]?.let { runCatching { SwipeWay.valueOf(it) }.getOrNull() } ?: return@post call.respond(HttpStatusCode.BadRequest)
-        swipeService.swipeInRound(call.currentUser(), matchId, form.getOrFail("movie"), way)
+        swipeService.swipeInRound(call.currentUser(), matchId, form.getOrFail("movie"), way, decidedMs = form["ms"]?.toIntOrNull()?.coerceIn(0, SwipeService.LONGEST_MS))
         call.respond(HttpStatusCode.NoContent)
     }
 

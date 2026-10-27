@@ -32,6 +32,7 @@ import st.orm.template.entityId
 import st.orm.template.transaction
 import java.time.Duration
 import java.time.Instant
+import java.util.Locale
 import kotlin.random.Random
 
 /** A poster of a deck: the movie, and its genres, which the card shows under it. */
@@ -57,11 +58,31 @@ data class TasteTwin(val user: User, val shared: Int, val agreed: Int) {
     val percent: Int get() = if (shared == 0) 0 else agreed * 100 / shared
 }
 
-/** The deck on one's own: the next posters, what the swipes say so far, and whose taste agrees most. */
-data class SwipeView(val cards: List<SwipeCard>, val summary: SwipeSummary, val twins: List<TasteTwin>, val company: Company)
+/** A movie wanted, and how long it took to say so: the quickest yes first. */
+data class TimedMovie(val movie: Movie, val decidedMs: Int) {
+    /** The time as the page says it: "0.9 s". */
+    val seconds: String get() = "%.1f s".format(Locale.ENGLISH, decidedMs / 1000.0)
+}
 
-/** A movie of a round as its results show it: who swiped right on it. */
-data class RoundResult(val movie: Movie, val wantedBy: List<User>)
+/** The deck on one's own: the next posters, what the swipes say so far, the quickest yeses, and whose taste agrees most. */
+data class SwipeView(val cards: List<SwipeCard>, val summary: SwipeSummary, val quickest: List<TimedMovie>, val twins: List<TasteTwin>, val company: Company)
+
+/**
+ * A movie of a round as its results show it: who swiped right on it, and
+ * how quickly they decided on average, which breaks a tie: the movie
+ * wanted without a second thought beats the one pondered.
+ */
+data class RoundResult(val movie: Movie, val wantedBy: List<User>, val decidedMs: Int?) {
+    val seconds: String? get() = decidedMs?.let { "%.1f s".format(Locale.ENGLISH, it / 1000.0) }
+}
+
+/**
+ * A player's part of a round: how far they got, and once they finished,
+ * the movies they wanted, the quickest yes first. The wants show once the
+ * viewer finished too, or the round closed, so nobody swipes with the
+ * others' answers in view.
+ */
+data class PlayerSwipes(val player: GamePlayer, val swiped: Int, val finished: Boolean, val shown: Boolean, val wanted: List<TimedMovie>)
 
 /**
  * A swipe round with a friend or a club, for a player: the posters they
@@ -76,6 +97,8 @@ data class SwipeRoundView(
     val swiped: Map<String, Int>,
     val deckSize: Int,
     val results: List<RoundResult>,
+    /** Each player's part, the viewer first, the finished before the rest. */
+    val byPlayer: List<PlayerSwipes>,
     val over: Boolean,
     val hoursLeft: Long?
 ) {
@@ -136,7 +159,14 @@ class SwipeService(
             // The best known first, a little shuffled, so a deck does not deal the same order to everyone.
             .chunked(SHUFFLE_CHUNK).flatMap { it.shuffled() }
             .take(DECK)
-        SwipeView(cardsOf(movies), summaryOf(swipes), twinsOf(user), matchService.companyOf(user))
+        SwipeView(cardsOf(movies), summaryOf(swipes), quickestOf(swipes), twinsOf(user), matchService.companyOf(user))
+    }
+
+    /** The visitor's quickest yeses, the movies wanted in the least time, with the movie read for each. */
+    private fun quickestOf(swipes: List<Swipe>): List<TimedMovie> {
+        val quick = swipes.filter { it.way == SwipeWay.WANT && it.decidedMs != null }.sortedBy { it.decidedMs }.take(QUICKEST)
+        val movies = movieRepository.findAllById(quick.map { it.movie.entityId() }).associateBy { it.id }
+        return quick.mapNotNull { swipe -> movies[swipe.movie.entityId()]?.let { TimedMovie(it, swipe.decidedMs!!) } }
     }
 
     /**
@@ -144,10 +174,10 @@ class SwipeService(
      * takes it out of the recommendations, up marks it watched some time
      * ago. Runs in the route's transaction, as the list toggles do.
      */
-    suspend fun swipe(user: User, movieId: String, way: SwipeWay, now: Instant = Instant.now()) {
+    suspend fun swipe(user: User, movieId: String, way: SwipeWay, now: Instant = Instant.now(), decidedMs: Int? = null) {
         val movie = movieRepository.findById(movieId) ?: return
         val stored = userRepository.touch(user, now)
-        val swipe = Swipe(stored, movie, way, now)
+        val swipe = Swipe(stored, movie, way, now, decidedMs)
         if (swipeRepository.existsById(SwipePk(userId = stored.id, movieId = movie.id))) swipeRepository.update(swipe) else swipeRepository.insert(swipe)
         when (way) {
             SwipeWay.WANT -> if (!watchlistRepository.contains(stored, movie)) watchlistService.toggle(stored, movie.id)
@@ -250,10 +280,22 @@ class SwipeService(
         val mine = swipes.filter { it.user.entityId() == user.id }.map { it.movie.entityId() }.toSet()
         val wanted = swipes.filter { it.way == SwipeWay.WANT }.groupBy({ it.movie.entityId() }, { it.user.entityId() })
         val users = players.associate { it.user.id to it.user }
+        // How long each player took over each poster, the first poster's time evened out (decisionTimes).
+        val times = swipes.groupBy { it.user.entityId() }.mapValues { (_, theirs) -> decisionTimes(theirs) }
         val results = cards.mapNotNull { movie ->
             val by = wanted[movie.id].orEmpty().mapNotNull(users::get)
-            RoundResult(movie, by).takeIf { by.isNotEmpty() }
+            val decided = by.mapNotNull { times[it.id]?.get(movie.id) }
+            RoundResult(movie, by, decided.takeIf { it.isNotEmpty() }?.average()?.toInt()).takeIf { by.isNotEmpty() }
         }
+        val viewerDone = players.firstOrNull { it.user.id == user.id }?.finished == true
+        val byMovie = cards.associateBy { it.id }
+        val byPlayer = players.map { player ->
+            val theirs = swipes.filter { it.user.entityId() == player.user.id }
+            val wants = theirs.filter { it.way == SwipeWay.WANT }
+                .map { TimedMovie(byMovie.getValue(it.movie.entityId()), times.getValue(player.user.id)[it.movie.entityId()] ?: Int.MAX_VALUE) }
+                .sortedBy { it.decidedMs }
+            PlayerSwipes(player, theirs.size, player.finished, shown = player.finished && (viewerDone || over), wanted = wants)
+        }.sortedWith(compareByDescending<PlayerSwipes> { it.player.user.id == user.id }.thenByDescending { it.finished })
         SwipeRoundView(
             match = match,
             cards = if (over) emptyList() else cardsOf(cards.filter { it.id !in mine }),
@@ -261,25 +303,40 @@ class SwipeService(
             swiped = swipes.groupingBy { it.user.entityId() }.eachCount(),
             deckSize = cards.size,
             results = when (match.mode) {
-                // With a friend: the matches, the movies both want.
-                GameMode.FRIEND -> results.filter { it.wantedBy.size == players.size }
-                // With a club: the most wanted, the ballot of a movie night.
-                else -> results.sortedByDescending { it.wantedBy.size }.take(BALLOT)
+                // With a friend: the matches, the movies both want, the ones decided quickest first.
+                GameMode.FRIEND -> results.filter { it.wantedBy.size == players.size }.sortedBy { it.decidedMs ?: Int.MAX_VALUE }
+                // With a club: the most wanted, the ballot of a movie night; a tie goes to the one decided quickest.
+                else -> results.sortedWith(compareByDescending<RoundResult> { it.wantedBy.size }.thenBy { it.decidedMs ?: Int.MAX_VALUE }).take(BALLOT)
             },
+            byPlayer = byPlayer,
             over = over,
             hoursLeft = match.closesAt?.let { Duration.between(now, it).toHours().coerceAtLeast(0) }
         )
     }
 
     /** Swipes a movie of the round; a club's member joins the round with their first swipe. Nothing once it is closed. */
-    suspend fun swipeInRound(user: User, matchId: Long, movieId: String, way: SwipeWay, now: Instant = Instant.now()) = transaction {
+    /**
+     * How long a player took over each poster of a round, by movie: as the
+     * page measured it, except the first poster, which took the page's
+     * loading and the rules' reading too: it gets the median of the others,
+     * so a slow start costs nobody their quickest yes.
+     */
+    private fun decisionTimes(swipes: List<SwipeRoundSwipe>): Map<String, Int> {
+        val timed = swipes.filter { it.decidedMs != null }.sortedBy { it.swipedAt }
+        if (timed.isEmpty()) return emptyMap()
+        val rest = timed.drop(1).map { it.decidedMs!! }.sorted()
+        val median = if (rest.isEmpty()) timed.first().decidedMs!! else rest[rest.size / 2]
+        return timed.mapIndexed { i, swipe -> swipe.movie.entityId() to (if (i == 0) minOf(swipe.decidedMs!!, median) else swipe.decidedMs!!) }.toMap()
+    }
+
+    suspend fun swipeInRound(user: User, matchId: Long, movieId: String, way: SwipeWay, now: Instant = Instant.now(), decidedMs: Int? = null) = transaction {
         val match = matchService.visibleMatch(user, matchId)?.takeIf { it.game == Game.SWIPE && !it.isOver(now) } ?: return@transaction
         val movie = swipeRoundCardRepository.findCards(match).map { it.movie }.firstOrNull { it.id == movieId } ?: return@transaction
         val stored = userRepository.touch(user, now)
         val player = gamePlayerRepository.findById(GamePlayerPk(matchId = match.id, userId = stored.id))
             ?: (if (match.mode == GameMode.CLUB) GamePlayer(match, stored, gamePlayerRepository.findPlayers(match).size, now).also(gamePlayerRepository::insert) else null)
             ?: return@transaction
-        val swipe = SwipeRoundSwipe(match, stored, movie, way, now)
+        val swipe = SwipeRoundSwipe(match, stored, movie, way, now, decidedMs)
         if (swipeRoundSwipeRepository.existsById(SwipeRoundSwipePk(matchId = match.id, userId = stored.id, movieId = movie.id))) swipeRoundSwipeRepository.update(swipe)
         else swipeRoundSwipeRepository.insert(swipe)
         // Every poster swiped: the player's part is done.
@@ -300,5 +357,9 @@ class SwipeService(
         private const val SUMMARY_GENRES = 3
         /** A taste twin has swiped at least this many of the same movies. */
         private const val TWIN_MINIMUM = 5
+        /** The quickest yeses the deck on one's own shows. */
+        private const val QUICKEST = 6
+        /** The longest a swipe counts as taking: anything past it was a poster left open, not a decision. */
+        const val LONGEST_MS = 120_000
     }
 }

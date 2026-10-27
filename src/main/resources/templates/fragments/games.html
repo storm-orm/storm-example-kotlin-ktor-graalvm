@@ -46,6 +46,8 @@
 
 <!-- A deck of posters to swipe: right to want, left to pass, up for seen; posted to [action] as the visitor goes (app.js). -->
 <div th:fragment="deck(cards, action)" class="swipe-deck" data-swipe-deck th:data-swipe-action="${action}">
+    <!-- How many posters are left in the stack; the script keeps it up to date. -->
+    <span class="swipe-left" data-swipe-left th:text="${cards.size() == 1} ? 'Last one' : |${cards.size()} left|">30 left</span>
     <div class="swipe-stack">
         <div class="swipe-card" th:each="card, i : ${cards}" th:data-movie-id="${card.movie.id}" th:style="|--i: ${i.index}|">
             <div class="poster">

@@ -35,6 +35,18 @@
                 </p>
             </div>
 
+            <!-- The quickest yeses: the movies wanted without a second thought, the quickest first. -->
+            <div class="stat-card" th:unless="${swipe.quickest.isEmpty()}">
+                <h2>Love at first sight</h2>
+                <p class="stat-note">The posters you wanted quickest: the first one wins by speed.</p>
+                <div class="player-wants">
+                    <a class="player-want" th:each="want : ${swipe.quickest}" th:href="@{/movie/{id}(id=${want.movie.id})}" th:title="${want.movie.primaryTitle}">
+                        <div th:replace="~{fragments/cards :: posterThumb(${want.movie.id}, ${want.movie.primaryTitle})}"></div>
+                        <span class="player-want-time" th:text="${want.seconds}">0.9 s</span>
+                    </a>
+                </div>
+            </div>
+
             <!-- Taste twins: whose swipes agree with the visitor's most, among friends and club members. -->
             <div class="stat-card" th:unless="${swipe.twins.isEmpty()}">
                 <h2>Taste twins</h2>

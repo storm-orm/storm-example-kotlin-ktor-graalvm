@@ -1,5 +1,7 @@
 package st.orm.demo.imdb.service
 
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -77,6 +79,8 @@ data class FriendView(
     val typed: List<String>
 ) {
     val keyboard: List<List<String>> get() = CommunityService.KEYBOARD
+    /** The matches the friend can be challenged to. */
+    val challenges: List<GameRules.Challenge> get() = GameRules.challenges
 }
 
 /**
@@ -99,9 +103,13 @@ class CommunityService(
     private val principalRepository: PrincipalRepository
 ) {
     suspend fun overview(user: User, now: Instant = Instant.now()): CommunityView {
-        val friends = friendService.friendsOf(user)
-        val clubs = clubService.clubsOf(user)
-        val games = playService.playOf(user, now).games.filter { it.match.mode != GameMode.SOLO }
+        // The friends, the clubs and the games, each its own transaction, read side by side.
+        val (friends, clubs, games) = coroutineScope {
+            val friends = async { friendService.friendsOf(user) }
+            val clubs = async { clubService.clubsOf(user) }
+            val games = async { playService.playOf(user, now).games.filter { it.match.mode != GameMode.SOLO } }
+            Triple(friends.await(), clubs.await(), games.await())
+        }
         return transaction(readOnly = true) {
             val memberships = clubMemberRepository.findMembers(clubs.clubs.map { it.membership.club }).filter { it.user.id != user.id }
             val sharingMembers = memberships.groupBy({ it.user.id }, { it.sharesSeen })
@@ -129,8 +137,12 @@ class CommunityService(
 
     /** A friend's page; null for anyone who is not the visitor's friend. */
     suspend fun friendOf(user: User, friendId: String, now: Instant = Instant.now()): FriendView? {
-        val friend = transaction(readOnly = true) { userRepository.findById(friendId)?.takeIf { friendshipRepository.areFriends(user, it) } } ?: return null
-        val games = playService.playOf(user, now).games.filter { it.match.mode == GameMode.FRIEND }
+        val (friend, games) = coroutineScope {
+            val friend = async { transaction(readOnly = true) { userRepository.findById(friendId)?.takeIf { friendshipRepository.areFriends(user, it) } } }
+            val games = async { playService.playOf(user, now).games.filter { it.match.mode == GameMode.FRIEND } }
+            friend.await() to games.await()
+        }
+        if (friend == null) return null
         return transaction(readOnly = true) {
             FriendView(
                 friend = friend,

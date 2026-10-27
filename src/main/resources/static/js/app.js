@@ -1788,9 +1788,13 @@ function setupSwipeDecks() {
     document.querySelectorAll('[data-swipe-deck]').forEach(deck => {
         const action = deck.dataset.swipeAction;
         const remaining = () => [...deck.querySelectorAll('.swipe-card:not(.gone)')];
+        const left = deck.querySelector('[data-swipe-left]');
+        // When the poster on top came into view: a swipe is timed from then, and sent with its time.
+        let shownAt = performance.now();
         const update = () => {
             const cards = remaining();
             cards.forEach((card, i) => card.style.setProperty('--i', String(i)));
+            if (left) left.textContent = cards.length === 0 ? '' : (cards.length === 1 ? 'Last one' : `${cards.length} left`);
             if (cards.length === 0) {
                 deck.querySelector('[data-swipe-done]').hidden = false;
                 deck.querySelector('[data-swipe-buttons]').hidden = true;
@@ -1798,9 +1802,11 @@ function setupSwipeDecks() {
         };
         const send = (card, way) => {
             if (!card) return;
+            const ms = Math.round(performance.now() - shownAt);
+            shownAt = performance.now();
             card.style.transform = '';
             card.classList.add('gone', 'gone-' + way.toLowerCase());
-            fetch(action, { method: 'POST', body: new URLSearchParams({ movie: card.dataset.movieId, way }) }).catch(() => {});
+            fetch(action, { method: 'POST', body: new URLSearchParams({ movie: card.dataset.movieId, way, ms: String(ms) }) }).catch(() => {});
             setTimeout(() => card.remove(), 400);
             update();
         };
