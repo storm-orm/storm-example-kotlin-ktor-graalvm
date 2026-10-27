@@ -1,6 +1,7 @@
 package st.orm.demo.imdb.repository
 
 import st.orm.GenerateMetamodel
+import st.orm.Page
 import st.orm.demo.imdb.model.Game
 import st.orm.demo.imdb.model.GameMatch
 import st.orm.demo.imdb.model.GameMode
@@ -12,8 +13,8 @@ import st.orm.repository.EntityRepository
 import st.orm.repository.select
 import st.orm.template.and
 import st.orm.template.eq
-import st.orm.template.greater
-import java.time.Instant
+import st.orm.template.isNotNull
+import st.orm.template.isNull
 
 /**
  * Query result shape: the best score of a set of games, none while there
@@ -31,12 +32,17 @@ interface GamePlayerRepository : EntityRepository<GamePlayer, GamePlayerPk> {
             .orderBy(GamePlayer_.turnOrder)
             .resultList
 
-    /** The user's matches started since [since], each with its match, the newest first: their games. */
-    fun findRecent(user: User, since: Instant, limit: Int): List<GamePlayer> =
-        select((GamePlayer_.user eq user) and (GamePlayer_.match.createdAt greater since))
+    /** The user's games still open to them, each with its match, the newest first. */
+    fun findOpen(user: User): List<GamePlayer> =
+        select((GamePlayer_.user eq user) and GamePlayer_.closedAt.isNull())
             .orderByDescending(GamePlayer_.match.createdAt)
-            .limit(limit)
             .resultList
+
+    /** The user's closed games, each with its match, the last closed first, a page at a time: their archive. */
+    fun findClosed(user: User, page: Int, size: Int): Page<GamePlayer> =
+        select((GamePlayer_.user eq user) and GamePlayer_.closedAt.isNotNull())
+            .orderByDescending(GamePlayer_.closedAt)
+            .page(page, size)
 
     /** The user's best score in a game played on their own: the streak to beat. */
     fun findBestSolo(user: User, game: Game): Int =

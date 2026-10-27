@@ -112,8 +112,9 @@ class DraftService(
         val match = matchService.visibleMatch(user, matchId)?.takeIf { it.game == Game.DRAFT } ?: return@transaction null
         val theme = draftThemeRepository.getById(match)
         val drafters = draftersOf(match)
-        val picks = catchUp(match, theme, drafters, now)
-        val turn = turnOf(drafters, picks.size)
+        // A draft closed before its end is over as it stands.
+        val picks = if (match.endedAt != null) draftPickRepository.findPicks(match) else catchUp(match, theme, drafters, now)
+        val turn = if (match.endedAt != null) null else turnOf(drafters, picks.size)
         val over = turn == null
         val ratings = if (over) ratingRepository.findByMovies(picks.map { it.movie.ref() }).associate { it.movie.id to it.averageRating } else emptyMap()
         DraftView(
@@ -138,6 +139,7 @@ class DraftService(
 
     /** Whose turn it is in a draft, for the lists of one's games, inside their transaction; null once it is over. */
     fun turnIn(match: GameMatch, now: Instant): Drafter? {
+        if (match.endedAt != null) return null
         val drafters = draftersOf(match)
         val picks = draftPickRepository.findPicks(match)
         if (match.mode == GameMode.SOLO) return turnOf(drafters, picks.size)
@@ -151,7 +153,7 @@ class DraftService(
      * not picked yet. On one's own the house picks at once after them.
      */
     suspend fun pick(user: User, matchId: Long, movieId: String, now: Instant = Instant.now()): DraftMove = transaction {
-        val match = matchService.visibleMatch(user, matchId)?.takeIf { it.game == Game.DRAFT } ?: return@transaction DraftMove.OVER
+        val match = matchService.visibleMatch(user, matchId)?.takeIf { it.game == Game.DRAFT && it.endedAt == null } ?: return@transaction DraftMove.OVER
         val theme = draftThemeRepository.getById(match)
         val drafters = draftersOf(match)
         var picks = catchUp(match, theme, drafters, now)

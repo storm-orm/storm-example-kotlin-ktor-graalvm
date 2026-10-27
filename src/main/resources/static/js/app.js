@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSwipeDecks();
     setupMatchWatch();
     setupGrid();
+    setupConfirms();
 });
 
 // Under the mouse a poster gives a little: it tilts toward the cursor, a light follows the cursor
@@ -1877,6 +1878,15 @@ function setupGrid() {
             input.name = 'movie';
             input.value = tile.dataset.gridTile;
             form.append(input);
+        });
+    });
+}
+
+// A form that asks first, such as closing a game with a friend, which ends it for them too.
+function setupConfirms() {
+    document.querySelectorAll('form[data-confirm]').forEach(form => {
+        form.addEventListener('submit', event => {
+            if (!window.confirm(form.dataset.confirm)) event.preventDefault();
         });
     });
 }

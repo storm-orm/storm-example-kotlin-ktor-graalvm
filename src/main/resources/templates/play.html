@@ -22,23 +22,33 @@
     </div>
 </header>
 
-<!-- The visitor's games, the ones waiting on them first. -->
-<section class="section" th:unless="${play.games.isEmpty()}" id="your-games">
+<!-- The visitor's open games, the ones waiting on them first, each with a way to close it; under them the few
+     that closed last, and the way to the archive. -->
+<section class="section" th:unless="${play.games.isEmpty() and play.finished.isEmpty()}" id="your-games">
     <div class="container">
         <div class="section-header">
             <h2 class="section-title">Your Games</h2>
+            <a class="section-link" th:href="@{/play/archive}">Finished games →</a>
         </div>
-        <div class="game-list">
-            <a class="game-entry" th:each="entry : ${play.games}" th:href="@{/play/matches/{id}(id=${entry.match.id})}"
-               th:classappend="${entry.yourMove} ? 'your-move'">
-                <span class="game-entry-icon" th:text="${entry.icon}" aria-hidden="true">🎬</span>
-                <span class="game-entry-text">
-                    <span class="game-entry-title" th:text="${entry.title}">Higher or Lower</span>
-                    <span class="game-entry-with" th:text="${entry.with}">With Alice</span>
-                </span>
-                <span class="game-entry-status" th:text="${entry.status}">Your turn</span>
-            </a>
+        <p class="notice game-full" th:if="${full}" th:text="|You have ${maxOpen} games going with others. Close one to start another.|">
+            You have 8 games going with others. Close one to start another.</p>
+        <div class="game-list" th:unless="${play.games.isEmpty()}">
+            <div class="game-row" th:each="entry : ${play.games}">
+                <a th:replace="~{fragments/games :: entry(${entry})}"></a>
+                <form th:if="${entry.mine}" th:action="@{/play/matches/{id}/close(id=${entry.match.id})}" method="post" class="game-close"
+                      th:data-confirm="${entry.match.mode.name() == 'FRIEND'} ? 'Close this game? It ends for your friend too.' : null">
+                    <button type="submit" class="game-close-button"
+                            th:title="${entry.match.mode.name() == 'CLUB'} ? 'Leave this game: the club plays on' : 'Close this game: it ends as it stands'"
+                            aria-label="Close this game">×</button>
+                </form>
+            </div>
         </div>
+        <th:block th:unless="${play.finished.isEmpty()}">
+            <h3 class="game-list-heading">Recently Finished</h3>
+            <div class="game-list finished">
+                <th:block th:each="entry : ${play.finished}"><a th:replace="~{fragments/games :: entry(${entry})}"></a></th:block>
+            </div>
+        </th:block>
     </div>
 </section>
 

@@ -87,5 +87,16 @@
     </div>
 </aside>
 
+<!-- One of the visitor's games: what it is, who it is with, and how it stands. -->
+<a th:fragment="entry(entry)" class="game-entry" th:href="@{/play/matches/{id}(id=${entry.match.id})}"
+   th:classappend="${entry.yourMove} ? 'your-move'">
+    <span class="game-entry-icon" th:text="${entry.icon}" aria-hidden="true">🎬</span>
+    <span class="game-entry-text">
+        <span class="game-entry-title" th:text="${entry.title}">Higher or Lower</span>
+        <span class="game-entry-with" th:text="${entry.with}">With Alice</span>
+    </span>
+    <span class="game-entry-status" th:text="${entry.status}">Your turn</span>
+</a>
+
 </body>
 </html>

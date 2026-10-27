@@ -182,13 +182,59 @@ class GamesTest {
         // The house went through Keanu Reeves again, as Alice did: an escape, without points.
         assertEquals(0, chain.housePoints)
 
-        val quiz = QuizService(
+        // The Matrix Reloaded (2003) to The Matrix (1999): four years, four points; over, so among the finished games.
+        val play = runBlocking { plays(orm).playOf(alice, now) }
+        assertTrue(play.games.isEmpty())
+        assertEquals(listOf("Over: 4 points"), play.finished.map { it.status })
+    }
+
+    private fun plays(orm: ORMTemplate) = PlayService(
+        matches(orm), orm.repository(), orm.repository(), chains(orm), drafts(orm), connects(orm), orm.repository(),
+        QuizService(
             orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(),
             orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository()
         )
-        val play = PlayService(matches(orm), orm.repository(), orm.repository(), service, drafts(orm), connects(orm), orm.repository(), quiz)
-        // The Matrix Reloaded (2003) to The Matrix (1999): four years, four points.
-        assertEquals(listOf("Over: 4 points"), runBlocking { play.playOf(alice, now) }.games.map { it.status })
+    )
+
+    @Test
+    fun `a game closed on one's own or with a friend ends, and in a club the others play on`(orm: ORMTemplate) {
+        val service = higherLower(orm)
+        val play = plays(orm)
+        val alice = orm.insertUser("alice-close", name = "Alice")
+        val bob = orm.insertUser("bob-close", name = "Bob")
+        orm.repository<FriendshipRepository>().befriend(alice, bob, now)
+        val solo = runBlocking { service.start(alice, Opponents(GameMode.SOLO), now) }!!
+        val challenge = runBlocking { service.start(alice, Opponents(GameMode.FRIEND, friendId = bob.id), now) }!!
+        val club = orm.repository<ClubRepository>().insertAndFetch(Club(name = "Office", createdAt = now))
+        orm.repository<ClubMemberRepository>().insert(listOf(ClubMember(club, alice, true, now), ClubMember(club, bob, false, now)))
+        val round = runBlocking { service.start(alice, Opponents(GameMode.CLUB, clubId = club.id), now) }!!
+        runBlocking { service.answer(bob, round.id, true, now) }
+        assertEquals(3, runBlocking { play.playOf(alice, now) }.games.size)
+
+        listOf(solo, challenge, round).forEach { runBlocking { play.close(alice, it.id, now) } }
+        val after = runBlocking { play.playOf(alice, now) }
+        assertTrue(after.games.isEmpty())
+        assertEquals(3, runBlocking { play.archiveOf(alice, 0, now) }.games.size)
+        // The friend's game ended for Bob too; the club's round goes on for him.
+        assertTrue(runBlocking { service.matchOf(bob, challenge.id, now) }!!.over)
+        assertFalse(runBlocking { service.matchOf(bob, round.id, now) }!!.over)
+        assertEquals(listOf(round.id), runBlocking { play.playOf(bob, now) }.games.map { it.match.id })
+    }
+
+    @Test
+    fun `at the most open games a new one closes the oldest on one's own, and waits when all are with others`(orm: ORMTemplate) {
+        val service = higherLower(orm)
+        val play = plays(orm)
+        val alice = orm.insertUser("alice-room", name = "Alice")
+        val bob = orm.insertUser("bob-room", name = "Bob")
+        orm.repository<FriendshipRepository>().befriend(alice, bob, now)
+        val first = runBlocking { service.start(alice, Opponents(GameMode.SOLO), now) }!!
+        repeat(PlayService.MAX_OPEN - 1) { i -> runBlocking { service.start(alice, Opponents(GameMode.FRIEND, friendId = bob.id), now.plusSeconds(i + 1L)) } }
+        assertTrue(runBlocking { play.makeRoom(alice, now) })
+        // The game on her own made room, and is in the archive.
+        assertEquals(listOf(first.id), runBlocking { play.archiveOf(alice, 0, now) }.games.map { it.match.id })
+        runBlocking { service.start(alice, Opponents(GameMode.FRIEND, friendId = bob.id), now.plusSeconds(60)) }
+        assertFalse(runBlocking { play.makeRoom(alice, now) })
     }
 
     @Test

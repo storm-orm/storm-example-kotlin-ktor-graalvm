@@ -15,7 +15,7 @@ data class GamePlayerPk(
 /**
  * A player of a match, keyed by the pair: their place in the turns, where
  * a game takes turns, their score, whether they played their part to the
- * end, and the hints they took. The match and the user come with the row: the lists of one's
+ * end, the hints they took, and when the game closed for them. The match and the user come with the row: the lists of one's
  * games show the match, and the boards name the players.
  */
 data class GamePlayer(
@@ -30,7 +30,9 @@ data class GamePlayer(
     val hints: Int = 0,
     /** The link the player's latest hints are for, and how many of its actors they showed. */
     val hintAt: Int? = null,
-    val hintShown: Int = 0
+    val hintShown: Int = 0,
+    /** When the game closed for the player, ended or closed by them: it is in their archive since. */
+    val closedAt: Instant? = null
 ) : Entity<GamePlayerPk> {
     constructor(match: GameMatch, user: User, turnOrder: Int, now: Instant) : this(
         id = GamePlayerPk(matchId = match.id, userId = user.id),

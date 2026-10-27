@@ -46,7 +46,20 @@ private fun Parameters.opponents(): Opponents = when (this["mode"]) {
  */
 fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerService, chainService: ChainService, draftService: DraftService, swipeService: SwipeService, movieNightService: MovieNightService, connectService: ConnectService) {
     get("/play") {
-        call.respondPage(ThymeleafContent("play", mapOf("play" to playService.playOf(call.currentUser()))))
+        val full = call.request.queryParameters["full"] != null
+        call.respondPage(ThymeleafContent("play", mapOf("play" to playService.playOf(call.currentUser()), "full" to full, "maxOpen" to PlayService.MAX_OPEN)))
+    }
+
+    // The visitor's finished games, a page at a time.
+    get("/play/archive") {
+        val page = call.request.queryParameters["page"]?.toIntOrNull()?.coerceAtLeast(0) ?: 0
+        call.respondPage(ThymeleafContent("play-archive", mapOf("archive" to playService.archiveOf(call.currentUser(), page))))
+    }
+
+    // An open game closed from the list: it ends, or, in a club, the visitor leaves it.
+    post("/play/matches/{id}/close") {
+        playService.close(call.currentUser(), call.parameters.getOrFail<Long>("id"))
+        call.respondRedirect("/play#your-games")
     }
 
     for ((path, start) in listOf<Pair<String, suspend (User, Opponents) -> GameMatch?>>(
@@ -60,6 +73,8 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
             val opponents = call.receiveParameters().opponents()
             val user = call.currentUser()
             if (opponents.mode != GameMode.SOLO && user.name == null) return@post call.respondRedirect("/signin?rd=/play")
+            // At the most games open, the oldest on one's own closes; with all of them played with others, none starts.
+            if (!playService.makeRoom(user)) return@post call.respondRedirect("/play?full#your-games")
             val match = start(user, opponents) ?: return@post call.respondRedirect("/play")
             call.respondRedirect("/play/matches/${match.id}")
         }
