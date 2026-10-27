@@ -228,6 +228,26 @@ class GamesTest {
     }
 
     @Test
+    fun `a match nobody moved in for a week ends by itself and goes to the archive`(orm: ORMTemplate) {
+        castOfThree(orm)
+        val play = plays(orm)
+        val alice = orm.insertUser("alice-idle", name = "Alice")
+        val bob = orm.insertUser("bob-idle", name = "Bob")
+        orm.repository<FriendshipRepository>().befriend(alice, bob, now)
+        // The Matrix to The Shawshank Redemption: the one pair of the fixture a few links apart.
+        val movies = orm.repository<MovieRepository>()
+        val match = runBlocking { connects(orm).startWith(alice, Opponents(GameMode.FRIEND, friendId = bob.id), movies.getById("tt0133093"), movies.getById("tt0111161"), now) }!!
+        assertEquals(listOf(match.id), runBlocking { play.playOf(alice, now.plus(Duration.ofDays(6))) }.games.map { it.match.id })
+        val later = now.plus(Duration.ofDays(8))
+        assertTrue(runBlocking { play.playOf(alice, later) }.games.isEmpty())
+        val archived = runBlocking { play.archiveOf(alice, 0, later) }.games.single()
+        assertEquals(match.id, archived.match.id)
+        assertTrue(archived.status.startsWith("Not connected"))
+        // Ended for Bob too.
+        assertTrue(runBlocking { connects(orm).puzzleOf(bob, match.id) }!!.over)
+    }
+
+    @Test
     fun `at the most open games a new one closes the oldest on one's own, and waits when all are with others`(orm: ORMTemplate) {
         val service = higherLower(orm)
         val play = plays(orm)

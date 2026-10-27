@@ -156,7 +156,7 @@ class ConnectService(
         return when {
             links.last().movie.id == puzzle.target.id -> true to "Connected in ${links.size - 1}, par ${puzzle.par}" +
                 (if (links.any { it.throughBacon }) ", with a Bacon bonus" else "")
-            match.endedAt != null -> true to "Given up: par was ${puzzle.par}"
+            match.endedAt != null -> true to "Not connected: par was ${puzzle.par}"
             else -> false to "${puzzle.start.primaryTitle} to ${puzzle.target.primaryTitle}: add a link"
         }
     }

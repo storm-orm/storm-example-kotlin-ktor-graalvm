@@ -125,15 +125,28 @@ class PlayService(
         ArchiveView(closed.content().map { closedEntryOf(user, it, now) }, page, closed.hasNext())
     }
 
-    /** The visitor's open games as they stand at [now]; the ones found over close, to the archive. */
+    /**
+     * The visitor's open games as they stand at [now]; the ones found over
+     * close, to the archive. A match nobody moved in for [IDLE] ends here,
+     * whatever its game: the list never grows with games left behind.
+     */
     private fun openGamesOf(user: User, now: Instant): List<GameEntry> =
         gamePlayerRepository.findOpen(user).mapNotNull { me ->
-            val entry = entryOf(user, me.match, me, now)
+            val match = endIfIdle(me.match, now)
+            val entry = entryOf(user, match, me, now)
             if (entry.over) {
                 gamePlayerRepository.update(me.copy(closedAt = now))
                 null
             } else entry
         }
+
+    /** Ends a match whose last move, or start, is more than [IDLE] ago; as it is otherwise. */
+    private fun endIfIdle(match: GameMatch, now: Instant): GameMatch {
+        if (match.endedAt != null) return match
+        val lastMove = (gamePlayerRepository.findPlayers(match).map { it.updatedAt } + match.createdAt).max()
+        if (Duration.between(lastMove, now) <= IDLE) return match
+        return match.copy(endedAt = now).also(gameMatchRepository::update)
+    }
 
     private fun close(me: GamePlayer, now: Instant) {
         if (me.match.mode != GameMode.CLUB && me.match.endedAt == null) gameMatchRepository.update(me.match.copy(endedAt = now))
@@ -243,6 +256,8 @@ class PlayService(
         const val MAX_OPEN = 8
         private val RECENT: Duration = Duration.ofDays(21)
         private const val LIMIT = 12
+        /** A match nobody moved in for this long ends by itself. */
+        val IDLE: Duration = Duration.ofDays(7)
         /** The games that closed last, under the open ones. */
         private const val FINISHED_SHOWN = 3
         private const val ARCHIVE_PAGE = 20
