@@ -1757,6 +1757,7 @@ img { display: block; }
 .view-tabs a { padding: 7px 16px; border-radius: 999px; color: var(--text-muted); font-size: 14px; font-weight: 500; }
 
 .view-tabs a.active { background: var(--surface-raised); color: var(--accent-strong); }
+.section-header .view-tabs { margin: 0; align-self: center; }
 
 /* The welcome on the home page, for a visitor with nothing marked or saved yet. */
 .welcome {
@@ -4309,6 +4310,8 @@ body::after {
 /* ── The Mask ───────────────────────────────────────────────────────── */
 
 .game-mask { --tone: var(--green-rgb); }
+/* The Mask's art is as tall as his gag, so the tongue never falls over the title. */
+.game-art-mask { height: 112px; }
 .mask-face { overflow: visible; filter: drop-shadow(0 0 12px rgba(var(--green-rgb), 0.5)); }
 .mask-face.mask-art { width: 64px; height: 112px; }
 /* The gag, every six seconds: the eyes shoot out on their stalks, the jaw drops, the throat opens, the tongue rolls

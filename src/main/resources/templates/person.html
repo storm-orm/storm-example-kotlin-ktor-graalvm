@@ -80,7 +80,11 @@
     <div class="container">
         <div class="section-header">
             <h2 class="section-title">Filmography</h2>
-            <span class="section-note">sorted by rating</span>
+            <!-- By rating, or by year, the newest first. -->
+            <nav class="view-tabs filmography-tabs">
+                <a th:href="@{/person/{id}(id=${person.id})} + '#filmography-section'" th:classappend="${!byYear} ? 'active'">By rating</a>
+                <a th:href="@{/person/{id}(id=${person.id}, sort='year')} + '#filmography-section'" th:classappend="${byYear} ? 'active'">By year</a>
+            </nav>
         </div>
         <div class="empty-state" th:if="${filmography.isEmpty()}">No rated movies on record.</div>
         <div class="credit-list">

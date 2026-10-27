@@ -200,11 +200,12 @@ interface PrincipalRepository : EntityRepository<Principal, PrincipalPk> {
      * the movie as a Ref, so the movie is selected alongside it: the join it
      * needs is the one the rating join already asks for.
      */
-    fun findFilmography(person: Person) =
+    /** A person's movies with their ratings: the best rated first, or the newest first when [byYear]. */
+    fun findFilmography(person: Person, byYear: Boolean = false) =
         select<FilmographyEntry, _, _> { "${Principal::class}, ${Movie::class}, ${Rating_.averageRating}" }
             .innerJoin<Rating>().on<Movie>()
             .where(Principal_.person eq person)
-            .orderByDescending(Rating_.averageRating)
+            .let { if (byYear) it.orderByDescending(Principal_.movie.startYear).orderByDescending(Rating_.averageRating) else it.orderByDescending(Rating_.averageRating) }
             .resultList
 
     /** Movie count and average rating across a person's filmography. */
