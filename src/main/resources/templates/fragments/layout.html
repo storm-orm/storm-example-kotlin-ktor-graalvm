@@ -35,7 +35,7 @@
             </a>
         </div>
         <!-- Five places: Movies and My Movies open a menu of their pages; each of those pages names its own under its title. -->
-        <div class="nav-links" th:with="movies=${#lists.contains({'for-you','browse','recent','search'}, active)}, mine=${#lists.contains({'seen','watchlist','lists','insights','wrapped'}, active)}">
+        <div class="nav-links" th:with="movies=${active == 'for-you' or active == 'browse' or active == 'recent' or active == 'search'}, mine=${active == 'seen' or active == 'watchlist' or active == 'lists' or active == 'insights' or active == 'wrapped'}">
             <a th:href="@{/}" th:classappend="${active == 'home'} ? 'active'">Home</a>
             <div class="nav-group">
                 <a th:href="@{/for-you}" th:classappend="${movies} ? 'active'" aria-haspopup="true">Movies</a>
@@ -80,7 +80,7 @@
 
 <!-- The pages of a section, above a page's title: "Movies · For You / Browse / Recently Added", the page itself lit. -->
 <nav th:fragment="sectionNav(active)" class="section-nav" aria-label="Section"
-     th:with="movies=${#lists.contains({'for-you','browse','recent'}, active)}">
+     th:with="movies=${active == 'for-you' or active == 'browse' or active == 'recent'}">
     <span class="section-nav-name" th:text="${movies} ? 'Movies' : 'My Movies'">Movies</span>
     <th:block th:if="${movies}">
         <a th:href="@{/for-you}" th:classappend="${active == 'for-you'} ? 'active'">For You</a>
