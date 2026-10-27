@@ -1998,12 +1998,17 @@ function setupCastSuggest(form) {
         const query = input.value.trim();
         if (query.length < 2) { hide(); return; }
         timer = setTimeout(async () => {
-            const response = await fetch('/api/search/names?query=' + encodeURIComponent(query));
+            // Role Call suggests people from the whole catalogue, Reel Call movies by their titles.
+            const titles = picker.dataset.castSuggest === 'titles';
+            const response = await fetch((titles ? '/api/search/titles' : '/api/search/names') + '?query=' + encodeURIComponent(query));
             if (!response.ok || input.value.trim() !== query) return;
-            const items = (await response.json()).persons;
-            panel.replaceChildren(...items.map(person => {
-                const option = suggestionLink('#', 'person', 'Person', person.name, null, '/api/photo/' + person.id);
-                option.dataset.name = person.name;
+            const found = await response.json();
+            const items = titles
+                ? found.movies.map(m => ({ name: m.title, year: m.year, image: '/api/poster/' + m.id, kind: 'movie', label: 'Movie' }))
+                : found.persons.map(p => ({ name: p.name, year: null, image: '/api/photo/' + p.id, kind: 'person', label: 'Person' }));
+            panel.replaceChildren(...items.map(item => {
+                const option = suggestionLink('#', item.kind, item.label, item.name, item.year, item.image);
+                option.dataset.name = item.name;
                 option.addEventListener('mousedown', event => { event.preventDefault(); choose(option); });
                 return option;
             }));

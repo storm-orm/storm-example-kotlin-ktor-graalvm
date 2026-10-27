@@ -9,11 +9,15 @@ import org.junit.jupiter.api.Test
 import st.orm.demo.imdb.model.Club
 import st.orm.demo.imdb.model.ClubMember
 import st.orm.demo.imdb.model.Credit
+import st.orm.demo.imdb.model.Game
 import st.orm.demo.imdb.model.GameMode
 import st.orm.demo.imdb.model.Level
+import st.orm.demo.imdb.model.MovieSeen
 import st.orm.demo.imdb.repository.ClubMemberRepository
 import st.orm.demo.imdb.repository.ClubRepository
 import st.orm.demo.imdb.repository.FriendshipRepository
+import st.orm.demo.imdb.repository.MovieRepository
+import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.service.CastMatcher
 import st.orm.demo.imdb.service.CastPhase
 import st.orm.demo.imdb.service.CastService
@@ -68,7 +72,7 @@ class CastServiceTest {
         val alice = orm.supporting("alice-cast", "Alice")
         val match = runBlocking { service.start(alice, Opponents(GameMode.SOLO), now) }!!
         var round = runBlocking { service.roundOf(alice, match.id, now) }!!
-        assertEquals("The Shawshank Redemption", round.movie.primaryTitle)
+        assertEquals("The Shawshank Redemption", round.movie!!.primaryTitle)
         assertEquals(CastPhase.NAMING, round.phase)
         assertEquals(2, round.creditCount)
 
@@ -81,6 +85,35 @@ class CastServiceTest {
         // The whole cast shown, the named first.
         assertEquals(listOf("Tim Robbins" to true, "Morgan Freeman" to false), round.reveal.map { it.credit.name to it.named })
         assertNull(runBlocking { service.name(alice, match.id, "Morgan Freeman", now) })
+    }
+
+    @Test
+    fun `reel call asks for the movies of someone top-billed in what the players watched, titles matched like names`(orm: ORMTemplate) {
+        // The Matrix and its sequel watched: Keanu Reeves, Laurence Fishburne or Lana Wachowski, each in both, is the question.
+        val service = CastService(
+            matchService(orm),
+            orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(),
+            orm.repository(), orm.repository(), orm.repository(), tmdbService(orm, TmdbClient(null, jacksonObjectMapper())), poolService(orm),
+            minimumVotes = 500_000, minimumCredits = 2
+        )
+        val alice = orm.supporting("alice-reel", "Alice")
+        val movies = orm.repository<MovieRepository>()
+        orm.repository<MovieSeenRepository>().insert(listOf(MovieSeen(alice, movies.getById("tt0133093"), now), MovieSeen(alice, movies.getById("tt0234215"), now)))
+        val match = runBlocking { service.start(alice, Opponents(GameMode.SOLO), now, game = Game.REEL) }!!
+        var round = runBlocking { service.roundOf(alice, match.id, now) }!!
+        assertTrue(round.reel)
+        assertTrue(round.person!!.primaryName in setOf("Keanu Reeves", "Laurence Fishburne", "Lana Wachowski"), round.person!!.primaryName)
+        assertEquals(2, round.creditCount)
+
+        assertEquals(NameVerdict.RIGHT, runBlocking { service.name(alice, match.id, "matrix", now) })
+        assertEquals(NameVerdict.ALREADY, runBlocking { service.name(alice, match.id, "The Matrix", now) })
+        assertEquals(NameVerdict.RIGHT, runBlocking { service.name(alice, match.id, "the matrix reloaded", now) })
+        assertEquals(NameVerdict.WRONG, runBlocking { service.name(alice, match.id, "Speed", now) })
+        runBlocking { service.stop(alice, match.id, now) }
+        round = runBlocking { service.roundOf(alice, match.id, now) }!!
+        assertEquals(2, round.right)
+        assertEquals(listOf("The Matrix", "The Matrix Reloaded"), round.reveal.filter { it.named }.map { it.credit.name }.sorted())
+        assertTrue(round.reveal.all { it.movieId != null })
     }
 
     @Test

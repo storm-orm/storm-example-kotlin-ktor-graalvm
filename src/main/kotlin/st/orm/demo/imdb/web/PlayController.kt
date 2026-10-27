@@ -96,7 +96,8 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
         Triple("/play/draft", Game.DRAFT) { user, opponents -> draftService.start(user, opponents) },
         Triple("/play/swipe", Game.SWIPE) { user, opponents -> swipeService.startRound(user, opponents) },
         Triple("/play/connect", Game.CONNECT) { user, opponents -> connectService.start(user, opponents) },
-        Triple("/play/cast", Game.CAST) { user, opponents -> castService.start(user, opponents) }
+        Triple("/play/cast", Game.CAST) { user, opponents -> castService.start(user, opponents) },
+        Triple("/play/reel", Game.REEL) { user, opponents -> castService.start(user, opponents, game = Game.REEL) }
     )) {
         post(path) {
             val opponents = call.receiveParameters().opponents()

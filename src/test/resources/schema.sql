@@ -513,8 +513,9 @@ CREATE INDEX idx_daily_play_day_game ON daily_play (puzzle_on, game);
 
 -- Name That Cast: the movie the house picked for a match.
 CREATE TABLE cast_round (
-    match_id BIGINT PRIMARY KEY REFERENCES game_match (id) ON DELETE CASCADE,
-    movie_id VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE
+    match_id  BIGINT PRIMARY KEY REFERENCES game_match (id) ON DELETE CASCADE,
+    movie_id  VARCHAR REFERENCES movie (id) ON DELETE CASCADE,
+    person_id VARCHAR REFERENCES person (id) ON DELETE CASCADE
 );
 
 -- How many of the cast each player says they can name: the highest names them.

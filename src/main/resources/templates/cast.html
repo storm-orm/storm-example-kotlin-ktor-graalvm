@@ -1,23 +1,20 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Role Call')}"></head>
+<head th:replace="~{fragments/layout :: head(${round.title})}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
 
 <header class="page-header">
     <div class="container">
         <a class="back-link" th:href="@{/play}">← Play</a>
-        <h1 class="page-title">Role Call</h1>
-        <p class="page-subtitle">
+        <h1 class="page-title" th:text="${round.title}">Role Call</h1>
+        <p class="page-subtitle" th:with="what=${round.reel} ? 'their movies' : 'the cast, the director counting too'">
             <th:block th:switch="${round.match.mode.name()}">
-                <th:block th:case="'SOLO'">On your own: name as many of the cast as you can, the director counting too.
-                    Three wrong names and it is over.</th:block>
+                <th:block th:case="'SOLO'" th:text="|On your own: name as many of ${what} as you can. Three wrong names and it is over.|">On your own.</th:block>
                 <th:block th:case="'FRIEND'">Against a friend.</th:block>
                 <th:block th:case="*" th:text="|With ${round.match.club.name}.|">With the club.</th:block>
             </th:block>
-            <th:block th:if="${round.match.mode.name() != 'SOLO'}">How many of the cast can you name, the director counting too?
-                Everyone bids in their own time, and the bids stay hidden until the bidding closes. The highest bid then
-                names them, while the others follow along: reach the bid to win, three wrong names and the round is lost.</th:block>
+            <th:block th:if="${round.match.mode.name() != 'SOLO'}" th:text="|How many of ${what} can you name? Everyone bids in their own time, and the bids stay hidden until the bidding closes. The highest bid then names them, while the others follow along: reach the bid to win, three wrong names and the round is lost.|">How many can you name?</th:block>
         </p>
         <p th:replace="~{fragments/games :: poolNote(${round.match}, null)}"></p>
     </div>
@@ -25,20 +22,30 @@
 
 <section class="section">
     <div class="container cast-layout">
-        <!-- The movie the house picked: its cast is the question. -->
-        <a class="cast-movie" th:href="@{/movie/{id}(id=${round.movie.id})}" target="_blank" rel="noopener"
+        <!-- The movie the house picked: its cast is the question; not to be opened until it is over. -->
+        <a class="cast-movie" th:if="${round.movie != null}" th:href="@{/movie/{id}(id=${round.movie.id})}" target="_blank" rel="noopener"
            th:classappend="${round.phase.name() != 'OVER'} ? 'veiled-link'" th:tabindex="${round.phase.name() != 'OVER'} ? '-1'">
             <div th:replace="~{fragments/cards :: veiledPoster(${round.movie.id}, ${round.movie.primaryTitle}, ${round.phase.name() != 'OVER'})}"></div>
             <span class="cast-movie-title" th:text="${round.movie.primaryTitle}">The Matrix</span>
             <span class="cast-movie-year" th:text="${round.movie.startYear}">1999</span>
             <span class="cast-movie-credits" th:text="|${round.creditCount} people in the credits|">54 people in the credits</span>
         </a>
+        <!-- The person the house picked: their movies are the question; their page, which lists them, not to be opened until it is over. -->
+        <a class="cast-movie cast-person" th:if="${round.person != null}" th:href="@{/person/{id}(id=${round.person.id})}" target="_blank" rel="noopener"
+           th:classappend="${round.phase.name() != 'OVER'} ? 'veiled-link'" th:tabindex="${round.phase.name() != 'OVER'} ? '-1'">
+            <span class="avatar avatar-large cast-avatar">
+                <span th:text="${#strings.substring(round.person.primaryName, 0, 1)}">K</span>
+                <img th:src="@{/api/photo/{id}(id=${round.person.id})}" alt="" loading="lazy" onerror="this.classList.add('failed')">
+            </span>
+            <span class="cast-movie-title" th:text="${round.person.primaryName}">Keanu Reeves</span>
+            <span class="cast-movie-credits" th:text="|${round.creditCount} well-known movies|">24 well-known movies</span>
+        </a>
 
         <div class="stat-card cast-stage">
             <!-- Bidding: each player's bid, hidden until the bidding closes. -->
             <th:block th:if="${round.phase.name() == 'BIDDING'}">
                 <p class="quiz-verdict">Place your bid</p>
-                <h2 class="chain-status-title">How many of its cast and directors can you name?</h2>
+                <h2 class="chain-status-title" th:text="${round.reel} ? 'How many of their movies can you name?' : 'How many of its cast and directors can you name?'">How many can you name?</h2>
                 <form class="cast-bid" th:if="${round.youBid}" th:action="@{/play/matches/{id}/bid(id=${round.match.id})}" method="post">
                     <input type="number" name="count" min="1" th:max="${round.creditCount}" th:value="${round.myBid}" required
                            aria-label="How many you can name" class="cast-bid-input">
@@ -60,22 +67,22 @@
             <th:block th:if="${round.phase.name() == 'NAMING'}">
                 <p class="quiz-verdict" th:if="${round.target != null}"
                    th:text="${round.youName} ? |You bid ${round.target}: name them| : |${round.namer.name} bid ${round.target} and is naming them|">You bid 8</p>
-                <p class="quiz-verdict" th:if="${round.target == null}">Name the cast</p>
+                <p class="quiz-verdict" th:if="${round.target == null}" th:text="${round.reel} ? 'Name the movies' : 'Name the cast'">Name the cast</p>
                 <h2 class="chain-status-title">
                     <span data-cast-right th:text="${round.right}">3</span><th:block th:if="${round.target != null}" th:text="| of ${round.target}|"> of 8</th:block> named
                     · <span data-cast-strikes-left th:text="${round.strikesLeft}">3</span> wrong left
                 </h2>
                 <form class="cast-name" th:if="${round.youName}" th:action="@{/play/matches/{id}/name(id=${round.match.id})}" method="post" data-cast-name>
-                    <div class="picker search-box cast-picker" data-cast-suggest>
-                        <input type="text" name="name" placeholder="An actor or the director…" autocomplete="off" required autofocus
-                               aria-label="A name in the cast" class="cast-name-input">
+                    <div class="picker search-box cast-picker" th:data-cast-suggest="${round.reel} ? 'titles' : 'names'">
+                        <input type="text" name="name" th:placeholder="${round.reel} ? 'A movie title…' : 'An actor or the director…'" autocomplete="off" required autofocus
+                               th:aria-label="${round.reel} ? 'A movie of theirs' : 'A name in the cast'" class="cast-name-input">
                         <div class="search-suggestions" hidden></div>
                     </div>
                     <button type="submit" class="button button-primary">Name</button>
                 </form>
                 <!-- What came of the namer's last name; the script fills it in as they go. -->
                 <p class="cast-said" data-cast-said th:if="${round.youName}"
-                   th:text="${said == 'right'} ? 'In the cast!' : (${said == 'wrong'} ? 'Not in the cast.' : (${said == 'already'} ? 'Named already.' : (${said == 'unclear'} ? 'More than one in the cast has that name: give the full name.' : '')))"></p>
+                   th:text="${said == 'right'} ? 'In the cast!' : (${said == 'wrong'} ? (${round.reel} ? 'Not one of theirs.' : 'Not in the cast.') : (${said == 'already'} ? 'Named already.' : (${said == 'unclear'} ? 'More than one in the cast has that name: give the full name.' : '')))"></p>
                 <form th:if="${round.youName}" th:action="@{/play/matches/{id}/stop(id=${round.match.id})}" method="post">
                     <button type="submit" class="link-button" th:text="${round.target == null} ? 'Stop here' : 'Give up'">Stop here</button>
                 </form>
@@ -130,13 +137,14 @@
 <section class="section" th:unless="${round.reveal.isEmpty()}">
     <div class="container">
         <div class="section-header">
-            <h2 class="section-title">The Whole Cast</h2>
+            <h2 class="section-title" th:text="${round.reel} ? 'All Their Movies' : 'The Whole Cast'">The Whole Cast</h2>
             <span class="section-note" th:text="|${round.right} of ${round.creditCount} named|">9 of 54 named</span>
         </div>
         <ul class="cast-reveal">
             <li th:each="person : ${round.reveal}" th:classappend="${person.named} ? 'named'">
                 <a th:if="${person.personId != null}" th:href="@{/person/{id}(id=${person.personId})}" th:text="${person.credit.name}">Keanu Reeves</a>
-                <span th:if="${person.personId == null}" th:text="${person.credit.name}">Keanu Reeves</span>
+                <a th:if="${person.movieId != null}" th:href="@{/movie/{id}(id=${person.movieId})}" th:text="${person.credit.name}">The Matrix</a>
+                <span th:if="${person.personId == null and person.movieId == null}" th:text="${person.credit.name}">Keanu Reeves</span>
                 <span class="cast-reveal-role" th:text="${person.credit.director} ? 'Director' : ${person.credit.character}">Neo</span>
             </li>
         </ul>

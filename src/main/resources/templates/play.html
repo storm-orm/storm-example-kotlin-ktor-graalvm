@@ -189,6 +189,20 @@
             </th:block>
             <span class="game-lock" th:if="${locks['CAST'] != null}" th:text="${locks['CAST'].text}">Unlocks at Bit Part · 12 movies to go</span>
         </div>
+
+        <!-- Reel Call: Role Call the other way round, a person from the house, their movies to name. -->
+        <div class="game-card game-reel">
+            <span class="game-art game-art-cast" aria-hidden="true">
+                <span class="game-art-poster"></span><span class="game-art-poster"></span><span class="game-art-bid">24</span>
+            </span>
+            <span class="game-title">Reel Call</span>
+            <span class="game-text">The house picks an actor or a director. How many of their movies can you name? Bid against your
+                friend or your club: the highest bid has to name them all. On your own, name as many as you know.</span>
+            <th:block th:if="${locks['REEL'] == null}">
+            <form th:replace="~{fragments/games :: startForm('/play/reel', 'Challenge', 'Start a round')}"></form>
+            </th:block>
+            <span class="game-lock" th:if="${locks['REEL'] != null}" th:text="${locks['REEL'].text}">Unlocks at Supporting</span>
+        </div>
     </div>
 </section>
 

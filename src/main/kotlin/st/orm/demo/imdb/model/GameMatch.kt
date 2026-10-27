@@ -7,7 +7,7 @@ import java.time.Instant
 import st.orm.demo.imdb.service.PoolKind
 
 /** The games played as matches. */
-enum class Game { HIGHER_LOWER, CHAIN, DRAFT, SWIPE, CONNECT, CAST }
+enum class Game { HIGHER_LOWER, CHAIN, DRAFT, SWIPE, CONNECT, CAST, REEL }
 
 /** Who a match is played with: on one's own, with a friend, or with a club. */
 enum class GameMode { SOLO, FRIEND, CLUB }

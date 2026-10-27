@@ -11,6 +11,7 @@ import st.orm.demo.imdb.model.GameMode
 import st.orm.demo.imdb.model.GamePlayer
 import st.orm.demo.imdb.model.GamePlayerPk
 import st.orm.demo.imdb.model.Movie
+import st.orm.demo.imdb.model.Person
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.repository.ACTING_CATEGORIES
 import st.orm.demo.imdb.repository.CastAnswerRepository
@@ -23,6 +24,8 @@ import st.orm.demo.imdb.repository.GamePlayerRepository
 import st.orm.demo.imdb.repository.PrincipalRepository
 import st.orm.demo.imdb.repository.RatingRepository
 import st.orm.demo.imdb.repository.UserRepository
+import st.orm.template.entityId
+import st.orm.template.ref
 import st.orm.template.transaction
 import java.time.Duration
 import java.time.Instant
@@ -33,8 +36,8 @@ enum class CastPhase { BIDDING, NAMING, OVER }
 /** A player's bid as the round shows it: how many, once the bidding is over; before that, only that they bid. */
 data class CastBidView(val user: User, val count: Int?, val you: Boolean)
 
-/** Someone in the credits, as the end of a round shows them: named or not, and their page when the catalogue knows them. */
-data class CastReveal(val credit: Credit, val named: Boolean, val personId: String?)
+/** Someone in the credits, or a movie of them, as the end of a round shows it: named or not, and its page when the catalogue knows it. */
+data class CastReveal(val credit: Credit, val named: Boolean, val personId: String?, val movieId: String? = null)
 
 /**
  * A round of Role Call for a player: the movie, where the round is,
@@ -43,7 +46,9 @@ data class CastReveal(val credit: Credit, val named: Boolean, val personId: Stri
  */
 data class CastView(
     val match: GameMatch,
-    val movie: Movie,
+    /** The movie whose cast is the question, in Role Call; or the person whose movies are, in Reel Call. */
+    val movie: Movie?,
+    val person: Person?,
     val phase: CastPhase,
     val bids: List<CastBidView>,
     val myBid: Int?,
@@ -61,6 +66,11 @@ data class CastView(
     val best: Int
 ) {
     val strikesLeft: Int get() = CastService.STRIKES - strikes
+    /** Whether the round is of a person, their movies to name. */
+    val reel: Boolean get() = person != null
+    val title: String get() = if (reel) "Reel Call" else "Role Call"
+    /** What is to be named: "actors and the director", or "movies". */
+    val named: String get() = if (reel) "movies" else "cast"
 }
 
 /** A name given, for the page that follows the namer as they go. */
@@ -109,35 +119,43 @@ class CastService(
      * taste, with its whole cast asked of TMDB for a signed-in host; null
      * when the friend or the club is not the host's, or no movie has cast enough.
      */
-    suspend fun start(host: User, opponents: Opponents, now: Instant = Instant.now()): GameMatch? {
-        val rule = GameRules.of(Game.CAST)
+    suspend fun start(host: User, opponents: Opponents, now: Instant = Instant.now(), game: Game = Game.CAST): GameMatch? {
+        val rule = GameRules.of(game)
         // A movie every player watched, which every player at the level is; the host's taste when they share too few.
         val pool = transaction(readOnly = true) {
             val players = matchService.playersOf(host, opponents, rule)?.second ?: return@transaction null
             poolService.poolOf(host, players, rule.pool, minimumVotes, POOL, minimum = MINIMUM_SHARED)
         } ?: return null
-        // The credits are asked outside any transaction, so no connection waits on TMDB.
-        val movie = pool.movies.shuffled().take(TRIES).firstOrNull { creditsOf(it, askTmdb = host.name != null, now).size >= minimumCredits }
-            ?: return null
+        // Role Call: a movie with cast enough, its credits asked outside any transaction, so no connection waits on TMDB.
+        // Reel Call: someone top-billed in the pool's movies with well-known movies enough to name.
+        val movie = if (game == Game.CAST) pool.movies.shuffled().take(TRIES).firstOrNull { movieCredits(it, askTmdb = host.name != null, now).size >= minimumCredits } ?: return null else null
+        val person = if (game == Game.REEL) transaction(readOnly = true) { personFor(pool) } ?: return null else null
         return transaction {
             val stored = userRepository.touch(host, now)
             val (club, players) = matchService.playersOf(stored, opponents, rule) ?: return@transaction null
             val (match, _) = matchService.start(
-                GameMatch(game = Game.CAST, mode = opponents.mode, club = club, host = stored, createdAt = now, closesAt = null, endedAt = null),
+                GameMatch(game = game, mode = opponents.mode, club = club, host = stored, createdAt = now, closesAt = null, endedAt = null),
                 // A club's members join the round as they bid.
                 if (opponents.mode == GameMode.CLUB) listOf(stored) else players,
                 now,
                 pool
             )
-            castRoundRepository.insert(CastRound(match, movie))
+            castRoundRepository.insert(CastRound(match, movie, person))
             match
         }
+    }
+
+    /** Someone top-billed in the pool's movies, at random among those with movies enough to name; null when nobody has. */
+    private fun personFor(pool: MoviePool): Person? {
+        val billed = principalRepository.findTasteCredits(pool.movies.map { it.ref() }, TOP_BILLED).map { it.person }.distinctBy { it.id }
+        val known = principalRepository.countWellKnownCredits(billed.map { it.ref() }, REEL_VOTES).filter { it.credits >= minimumCredits }.map { it.person.entityId() }.toSet()
+        return billed.filter { it.id in known }.randomOrNull()
     }
 
     /** The round for the visitor, or null when they may not look at it. */
     suspend fun roundOf(user: User, matchId: Long, now: Instant = Instant.now()): CastView? {
         val round = roundFor(user, matchId) ?: return null
-        val credits = creditsOf(round.movie, askTmdb = false, now)
+        val credits = creditsOf(round, askTmdb = false, now)
         return transaction(readOnly = true) {
             val match = round.match
             val bids = castBidRepository.findBids(match)
@@ -148,6 +166,7 @@ class CastService(
             CastView(
                 match = match,
                 movie = round.movie,
+                person = round.person,
                 phase = state.phase,
                 bids = bids.map { CastBidView(it.user, it.count.takeIf { state.phase != CastPhase.BIDDING }, it.user.id == user.id) },
                 myBid = bids.firstOrNull { it.user.id == user.id }?.count,
@@ -161,8 +180,8 @@ class CastService(
                 youBid = state.phase == CastPhase.BIDDING && canJoin(user, match),
                 hoursLeft = state.until?.let { Duration.between(now, it).toHours().coerceAtLeast(0) },
                 creditCount = credits.size,
-                reveal = if (over) revealOf(round.movie, credits, named) else emptyList(),
-                best = if (match.mode == GameMode.SOLO) gamePlayerRepository.findBestSolo(user, Game.CAST) else 0
+                reveal = if (over) revealOf(round, credits, named) else emptyList(),
+                best = if (match.mode == GameMode.SOLO) gamePlayerRepository.findBestSolo(user, match.game) else 0
             )
         }
     }
@@ -174,7 +193,7 @@ class CastService(
      */
     suspend fun bid(user: User, matchId: Long, count: Int, now: Instant = Instant.now()): Boolean {
         val round = roundFor(user, matchId)?.takeIf { it.match.mode != GameMode.SOLO } ?: return false
-        val most = creditsOf(round.movie, askTmdb = false, now).size
+        val most = creditsOf(round, askTmdb = false, now).size
         return transaction {
             val match = round.match
             val state = stateOf(match, castBidRepository.findBids(match), castAnswerRepository.findAnswers(match), now)
@@ -193,7 +212,7 @@ class CastService(
      */
     suspend fun name(user: User, matchId: Long, answer: String, now: Instant = Instant.now()): NameVerdict? {
         val round = roundFor(user, matchId) ?: return null
-        val credits = creditsOf(round.movie, askTmdb = false, now)
+        val credits = creditsOf(round, askTmdb = false, now)
         return transaction {
             val match = round.match
             val bids = castBidRepository.findBids(match)
@@ -229,7 +248,7 @@ class CastService(
 
     /** Where the round stands for the page that follows the namer; null when the visitor may not look at it. */
     suspend fun liveOf(user: User, matchId: Long, now: Instant = Instant.now()): CastLive? = transaction(readOnly = true) {
-        val match = matchService.visibleMatch(user, matchId)?.takeIf { it.game == Game.CAST } ?: return@transaction null
+        val match = matchService.visibleMatch(user, matchId)?.takeIf { it.game == Game.CAST || it.game == Game.REEL } ?: return@transaction null
         val bids = castBidRepository.findBids(match)
         val answers = castAnswerRepository.findAnswers(match)
         val state = stateOf(match, bids, answers, now)
@@ -332,14 +351,22 @@ class CastService(
 
     /** The round of a match the visitor may look at, with its movie. */
     private suspend fun roundFor(user: User, matchId: Long): CastRound? = transaction(readOnly = true) {
-        matchService.visibleMatch(user, matchId)?.takeIf { it.game == Game.CAST }?.let(castRoundRepository::findById)
+        matchService.visibleMatch(user, matchId)?.takeIf { it.game == Game.CAST || it.game == Game.REEL }?.let(castRoundRepository::findById)
     }
 
     /**
-     * A movie's credits: TMDB's directors and whole cast, as stored, or asked
-     * when [askTmdb]; else IMDb's directors and top-billed.
+     * What a round asks to be named: a movie's credits, TMDB's directors and
+     * whole cast, as stored, or asked when [askTmdb], else IMDb's directors
+     * and top-billed; or a person's well-known movies, each as a credit
+     * named by its title, with its year where the character goes.
      */
-    private suspend fun creditsOf(movie: Movie, askTmdb: Boolean, now: Instant): List<Credit> =
+    private suspend fun creditsOf(round: CastRound, askTmdb: Boolean, now: Instant): List<Credit> {
+        round.movie?.let { return movieCredits(it, askTmdb, now) }
+        val person = round.person ?: return emptyList()
+        return transaction(readOnly = true) { moviesOf(person) }.map { Credit(it.primaryTitle, it.startYear?.toString(), director = false) }.distinctBy { it.name }
+    }
+
+    private suspend fun movieCredits(movie: Movie, askTmdb: Boolean, now: Instant): List<Credit> =
         tmdbService.credits(movie.id, askTmdb, now)?.people
             ?: transaction(readOnly = true) {
                 principalRepository.findCast(movie)
@@ -349,11 +376,21 @@ class CastService(
                     .distinctBy { it.name }
             }
 
-    /** The whole cast at the end, the named first, each with their page when IMDb's credits of the movie name them too. */
-    private fun revealOf(movie: Movie, credits: List<Credit>, named: Set<String>): List<CastReveal> {
-        val people = principalRepository.findCast(movie).associate { CastMatcher.normalize(it.person.primaryName) to it.person.id }
-        return credits.map { CastReveal(it, it.name in named, people[CastMatcher.normalize(it.name)]) }
-            .sortedBy { !it.named }
+    /** A person's well-known movies, the best known first. */
+    private fun moviesOf(person: Person): List<Movie> {
+        val movies = principalRepository.findFilmography(person).map { it.movie }.distinctBy { it.id }
+        return ratingRepository.findByMovies(movies.map { it.ref() }).filter { it.voteCount >= REEL_VOTES }.sortedByDescending { it.voteCount }.map { it.movie }
+    }
+
+    /** The whole cast, or all the movies, at the end, the named first, each with its page where the catalogue has it. */
+    private fun revealOf(round: CastRound, credits: List<Credit>, named: Set<String>): List<CastReveal> {
+        val movie = round.movie
+        if (movie != null) {
+            val people = principalRepository.findCast(movie).associate { CastMatcher.normalize(it.person.primaryName) to it.person.id }
+            return credits.map { CastReveal(it, it.name in named, people[CastMatcher.normalize(it.name)]) }.sortedBy { !it.named }
+        }
+        val movies = round.person?.let { moviesOf(it) }.orEmpty().associate { CastMatcher.normalize(it.primaryTitle) to it.id }
+        return credits.map { CastReveal(it, it.name in named, null, movies[CastMatcher.normalize(it.name)]) }.sortedBy { !it.named }
     }
 
     companion object {
@@ -365,6 +402,10 @@ class CastService(
         private const val MINIMUM_CREDITS = 8
         /** The movies the players must share for the round to be played from them. */
         private const val MINIMUM_SHARED = 8
+        /** The actors of a movie who may be the question of Reel Call: the top-billed. */
+        private const val TOP_BILLED = 4
+        /** The votes a movie needs to count among a person's movies to name. */
+        private const val REEL_VOTES = 10_000
         private const val POOL = 300
         private const val TRIES = 5
         private const val MAX_ANSWER = 80

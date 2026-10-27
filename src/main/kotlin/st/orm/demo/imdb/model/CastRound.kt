@@ -6,17 +6,20 @@ import st.orm.GenerationStrategy.NONE
 import st.orm.PK
 import st.orm.Persist
 import st.orm.Ref
+import st.orm.demo.imdb.model.Person
 import st.orm.template.ref
 import java.time.Instant
 
 /**
- * A round of Role Call: the movie the house picked. A dependent
- * one-to-one: the key is the match itself. The players' bids are its
- * [CastBid]s and the names given its [CastAnswer]s.
+ * A round of Role Call, of the movie the house picked, whose cast is to be
+ * named; or of Reel Call, of the person the house picked, whose movies
+ * are. A dependent one-to-one: the key is the match itself. The players'
+ * bids are its [CastBid]s and the names given its [CastAnswer]s.
  */
 data class CastRound(
     @PK(generation = NONE) @FK val match: GameMatch,
-    @FK val movie: Movie
+    @FK val movie: Movie?,
+    @FK val person: Person? = null
 ) : Entity<GameMatch>
 
 data class CastBidPk(

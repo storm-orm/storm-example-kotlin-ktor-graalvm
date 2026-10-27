@@ -31,6 +31,7 @@ data class GameEntry(val match: GameMatch, val with: String, val status: String,
         Game.SWIPE -> "Swipe Round"
         Game.CONNECT -> "Connect"
         Game.CAST -> "Role Call"
+        Game.REEL -> "Reel Call"
     }
 
     /** The game's emoji, for the lists. */
@@ -41,6 +42,7 @@ data class GameEntry(val match: GameMatch, val with: String, val status: String,
         Game.SWIPE -> "🍿"
         Game.CONNECT -> "📽️"
         Game.CAST -> "🎭"
+        Game.REEL -> "🎥"
     }
 }
 
@@ -172,7 +174,7 @@ class PlayService(
             Game.CHAIN -> chainService.versionOf(match, players, now)
             Game.DRAFT -> draftService.versionOf(match, now)
             Game.CONNECT -> connectService.versionOf(match)
-            Game.CAST -> castService.versionOf(match, now)
+            Game.CAST, Game.REEL -> castService.versionOf(match, now)
             Game.HIGHER_LOWER, Game.SWIPE -> ""
         }
         "${match.endedAt}|${match.isOver(now)}|$standing|$game"
@@ -217,7 +219,7 @@ class PlayService(
                     else -> GameEntry(match, with, "${turn.name}'s pick", yourMove = false)
                 }
             }
-            Game.CAST -> castService.standingOf(user, match, now).let { (over, standing, yourMove) ->
+            Game.CAST, Game.REEL -> castService.standingOf(user, match, now).let { (over, standing, yourMove) ->
                 GameEntry(match, with, standing, yourMove = yourMove, over = over)
             }
             Game.CHAIN -> {

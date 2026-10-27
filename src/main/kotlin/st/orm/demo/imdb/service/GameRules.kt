@@ -35,7 +35,8 @@ object GameRules {
         GameRule(Game.CHAIN, "Movie Chain", Level.BIT_PART, PoolKind.UNION),
         GameRule(Game.CONNECT, "Connect", Level.BIT_PART, PoolKind.UNION),
         GameRule(Game.DRAFT, "Movie Draft", Level.SUPPORTING, PoolKind.UNION),
-        GameRule(Game.CAST, "Role Call", Level.SUPPORTING, PoolKind.INTERSECTION)
+        GameRule(Game.CAST, "Role Call", Level.SUPPORTING, PoolKind.INTERSECTION),
+        GameRule(Game.REEL, "Reel Call", Level.SUPPORTING, PoolKind.INTERSECTION)
     ).associateBy { it.game }
 
     fun of(game: Game): GameRule = rules.getValue(game)

@@ -4332,3 +4332,9 @@ body::after {
 .rite-icon { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .levels-held { color: var(--yellow); }
 .levels-motto { margin: 10px 0 4px; font-family: var(--font-display); font-size: 20px; letter-spacing: 0.5px; text-transform: uppercase; line-height: 1.2; color: var(--accent-strong); }
+
+/* Reel Call: the person the house picked, their photo where the poster would be. */
+.game-reel { --tone: var(--cyan-rgb); }
+.cast-person { align-items: center; text-align: center; }
+.cast-avatar { width: 120px; height: 120px; font-size: 44px; margin-bottom: 8px; }
+.veiled-link .cast-avatar { box-shadow: none; }

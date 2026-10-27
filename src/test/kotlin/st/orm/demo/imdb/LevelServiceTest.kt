@@ -35,7 +35,7 @@ class LevelServiceTest {
         val alice = orm.insertUser("alice-level", name = "Alice")
         val movies = orm.repository<MovieRepository>().findAll()
         assertEquals(Level.EXTRA, runBlocking { service.progressOf(alice) }.level)
-        assertEquals(setOf(Game.CHAIN, Game.CONNECT, Game.DRAFT, Game.CAST), runBlocking { service.locksOf(alice) }.values.map { it.game }.toSet())
+        assertEquals(setOf(Game.CHAIN, Game.CONNECT, Game.DRAFT, Game.CAST, Game.REEL), runBlocking { service.locksOf(alice) }.values.map { it.game }.toSet())
         assertEquals("Unlocks at Bit Part · 25 movies to go", runBlocking { service.locksOf(alice) }.getValue("CHAIN").text)
 
         orm.repository<MovieSeenRepository>().insert(movies.map { MovieSeen(alice, it, now) })
