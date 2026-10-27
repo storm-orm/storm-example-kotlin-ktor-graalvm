@@ -3,6 +3,7 @@ package st.orm.demo.imdb.service
 import kotlinx.serialization.Serializable
 import st.orm.demo.imdb.model.Badge
 import st.orm.demo.imdb.model.ClubInvite_
+import st.orm.demo.imdb.model.DailyGame
 import st.orm.demo.imdb.model.FriendInvite_
 import st.orm.demo.imdb.model.Game
 import st.orm.demo.imdb.model.Level
@@ -93,13 +94,13 @@ data class LevelProgress(
 @Serializable
 data class LevelStanding(val level: String, val score: Double, val next: String?, val toNext: Int, val fraction: Double, val newBadges: List<String> = emptyList())
 
-/** Why a user cannot start a game: the level it needs, and how many movies they still have to watch for it. */
-data class GameLock(val game: Game, val level: Level, val toGo: Int) {
-    val text: String get() = "Unlocks at ${level.label} · ${if (toGo == 1) "1 movie" else "$toGo movies"} to go"
+/** Why a user cannot play a game yet: the level it needs, and how many movies they still have to watch for it. */
+data class GameLock(val title: String, val level: Level, val toGo: Int) {
+    val text: String get() = if (toGo > 0) "Unlocks at ${level.label} · ${if (toGo == 1) "1 movie" else "$toGo movies"} to go" else "Unlocks at ${level.label} · its rites to go"
 }
 
-/** A rung of the ladder on the levels page: the level, the games it unlocks, its rites as the user stands with them, and whether the user is there yet. */
-data class LevelRung(val level: Level, val unlocks: List<GameRule>, val rites: List<RiteStatus>, val reached: Boolean, val current: Boolean)
+/** A rung of the ladder on the levels page: the level, the games it unlocks by name, its rites as the user stands with them, and whether the user is there yet. */
+data class LevelRung(val level: Level, val unlocks: List<String>, val rites: List<RiteStatus>, val reached: Boolean, val current: Boolean)
 
 /**
  * The walk the Star level sets a star in: Hollywood's, on the Boulevard and
@@ -154,16 +155,19 @@ class LevelService(
         friendInviteRepository.findAll(FriendInvite_.inviter eq user).sumOf { it.acceptedCount } +
             clubInviteRepository.findAll(ClubInvite_.inviter eq user).sumOf { it.acceptedCount }
 
-    /** The games a user at [progress] cannot start yet, by the game's name, each with why. */
+    /** The games a user at [progress] cannot play yet, matches and dailies, by the game's name, each with why. */
     fun locksOf(progress: LevelProgress): Map<String, GameLock> =
-        GameRules.all.filter { !progress.level.reaches(it.level) }
-            .associate { it.game.name to GameLock(it.game, it.level, ceil(it.level.threshold - progress.score).toInt().coerceAtLeast(1)) }
+        GameRules.levelOf.filterValues { !progress.level.reaches(it) }
+            .mapValues { (name, level) -> GameLock(name, level, ceil(level.threshold - progress.score).toInt().coerceAtLeast(0)) }
 
     /** The games the user cannot start yet, by the game's name, each with why. */
     suspend fun locksOf(user: User): Map<String, GameLock> = locksOf(progressOf(user))
 
     /** Whether a user at [progress] may start a game: their level reaches the game's. */
     fun canStart(progress: LevelProgress, game: Game): Boolean = progress.level.reaches(GameRules.of(game).level)
+
+    /** Whether a user at [progress] may play a daily: their level reaches its. */
+    fun canPlay(progress: LevelProgress, daily: DailyGame): Boolean = progress.level.reaches(GameRules.of(daily).level)
 
     /** Whether the user may start a game: their level reaches the game's. */
     suspend fun canStart(user: User, game: Game): Boolean = canStart(progressOf(user), game)

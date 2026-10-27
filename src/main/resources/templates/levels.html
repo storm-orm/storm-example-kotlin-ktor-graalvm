@@ -52,7 +52,7 @@
                     <!-- Two rows, told apart: the games the level opens, and the rites it asks for. -->
                     <span class="level-rung-unlocks" th:unless="${rung.unlocks.isEmpty()}">
                         <span class="level-rung-label">Unlocks</span>
-                        <span class="level-unlock" th:each="rule : ${rung.unlocks}" th:text="${rule.title}">Chain Reaction</span>
+                        <span class="level-unlock" th:each="title : ${rung.unlocks}" th:text="${title}">Chain Reaction</span>
                     </span>
                     <span class="level-rung-unlocks" th:if="${rung.unlocks.isEmpty() and rung.level.name() == 'LEAD'}">
                         <span class="level-rung-label">Unlocks</span>

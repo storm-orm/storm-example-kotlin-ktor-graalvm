@@ -8,6 +8,9 @@ import org.junit.jupiter.api.Test
 import st.orm.demo.imdb.model.Badge
 import st.orm.demo.imdb.model.CheckIn
 import st.orm.demo.imdb.model.Game
+import st.orm.demo.imdb.service.LevelRites
+import st.orm.demo.imdb.service.GameRules
+import st.orm.demo.imdb.model.DailyGame
 import st.orm.demo.imdb.model.Level
 import st.orm.demo.imdb.model.MovieSeen
 import st.orm.demo.imdb.model.UserBadge
@@ -35,7 +38,7 @@ class LevelServiceTest {
         val alice = orm.insertUser("alice-level", name = "Alice")
         val movies = orm.repository<MovieRepository>().findAll()
         assertEquals(Level.EXTRA, runBlocking { service.progressOf(alice) }.level)
-        assertEquals(setOf(Game.CHAIN, Game.CONNECT, Game.DRAFT, Game.CAST, Game.REEL), runBlocking { service.locksOf(alice) }.values.map { it.game }.toSet())
+        assertEquals(setOf("CHAIN", "CONNECT", "DRAFT", "CAST", "REEL", "CONNECTIONS", "USUAL_SUSPECTS", "MEMENTO", "THE_MASK", "AMADEUS"), runBlocking { service.locksOf(alice) }.keys)
         assertEquals("Unlocks at Bit Part · 25 movies to go", runBlocking { service.locksOf(alice) }.getValue("CHAIN").text)
 
         orm.repository<MovieSeenRepository>().insert(movies.map { MovieSeen(alice, it, now) })
@@ -95,8 +98,26 @@ class LevelServiceTest {
         val view = runBlocking { service(orm).levelsOf(alice) }
         assertEquals(Level.entries.size, view.rungs.size)
         assertTrue(view.rungs.first().current)
-        assertEquals(listOf("Top Gun", "Love at First Sight"), view.rungs.first().unlocks.map { it.title })
-        assertEquals(listOf("Chain Reaction", "Six Degrees of Separation"), view.rungs[1].unlocks.map { it.title })
+        assertEquals(listOf("Top Gun", "Love at First Sight", "The Outsiders", "Face/Off"), view.rungs.first().unlocks)
+        assertEquals(listOf("Chain Reaction", "Six Degrees of Separation", "The Breakfast Club"), view.rungs[1].unlocks)
         assertFalse(view.rungs[1].reached)
+    }
+
+    @Test
+    fun `no level is held by a game it has not unlocked, every rite being earned below its level`() {
+        // Where each badge is earned: the game, or nothing, for the check-ins, the company and the sponsorship.
+        val earnedIn = mapOf(
+            Badge.DECK_DONE to Game.SWIPE, Badge.HOT_STREAK to Game.HIGHER_LOWER, Badge.WINNER to Game.HIGHER_LOWER, Badge.CHAMPION to Game.HIGHER_LOWER,
+            Badge.CHAIN_GANG to Game.CHAIN, Badge.BACON_NUMBER to Game.CHAIN, Badge.WILLIS_NUMBER to Game.CHAIN, Badge.NICHOLSON_NUMBER to Game.CHAIN, Badge.STREEP_NUMBER to Game.CHAIN,
+            Badge.CAST_CALL to Game.CAST
+        )
+        val earnedInDaily = mapOf(
+            Badge.FIRST_DAILY to DailyGame.ODD_ONE_OUT, Badge.DAILY_WEEK to DailyGame.ODD_ONE_OUT, Badge.ODD_EYE to DailyGame.ODD_ONE_OUT,
+            Badge.PERFECT_GRID to DailyGame.CONNECTIONS, Badge.YOU_ARE_ENOUGH to DailyGame.THE_MASK
+        )
+        for (level in Level.entries) for (badge in LevelRites.of(level).badges) {
+            val needs = earnedIn[badge]?.let { GameRules.of(it).level } ?: earnedInDaily[badge]?.let { GameRules.of(it).level } ?: Level.EXTRA
+            assertTrue(needs.ordinal < level.ordinal, "${badge.title}, a rite of ${level.label}, is earned in a game of ${needs.label}")
+        }
     }
 }

@@ -117,7 +117,7 @@ fun Application.configureRouting() {
         movieRoutes(movieService, watchlistService, movieSeenService)
         personRoutes(personService)
         quizRoutes(quizService)
-        dailyPuzzleRoutes(dailyPuzzleService)
+        dailyPuzzleRoutes(dailyPuzzleService, levelService)
         playRoutes(playService, higherLowerService, chainService, draftService, swipeService, movieNightService, connectService, castService, levelService, badgeService, searchService)
         levelRoutes(levelService, badgeService)
         swipeRoutes(swipeService)

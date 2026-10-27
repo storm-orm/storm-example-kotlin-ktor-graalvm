@@ -3394,6 +3394,9 @@ body::after {
 }
 
 .game-modes { color: var(--text-muted); font-size: 13px; }
+/* The title with the level the game opens at beside it. */
+.game-title-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.game-level { padding: 3px 9px; border-radius: 999px; border: 1px solid rgba(var(--tone), 0.5); color: rgb(var(--tone)); font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
 
 .game-modes a { color: var(--accent-strong); }
 

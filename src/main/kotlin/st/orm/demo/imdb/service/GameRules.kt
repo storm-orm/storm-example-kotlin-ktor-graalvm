@@ -1,5 +1,6 @@
 package st.orm.demo.imdb.service
 
+import st.orm.demo.imdb.model.DailyGame
 import st.orm.demo.imdb.model.Game
 import st.orm.demo.imdb.model.Level
 
@@ -27,8 +28,25 @@ data class GameRule(val game: Game, val title: String, val level: Level, val poo
     val everyoneNeedsLevel: Boolean get() = pool == PoolKind.INTERSECTION
 }
 
-/** The rules of every game, in the order of the levels. */
+/** What a daily asks of its player: the level it unlocks at. Its movies are the best known of their taste. */
+data class DailyRule(val daily: DailyGame, val title: String, val level: Level)
+
+/**
+ * The rules of every game, in the order of the levels. A level's rites are
+ * earned in games unlocked below it, so nobody is ever held at a level by a
+ * game they cannot play yet (LevelServiceTest proves it).
+ */
 object GameRules {
+    private val dailies = listOf(
+        DailyRule(DailyGame.ODD_ONE_OUT, "The Outsiders", Level.EXTRA),
+        DailyRule(DailyGame.FACE_OFF, "Face/Off", Level.EXTRA),
+        DailyRule(DailyGame.CONNECTIONS, "The Breakfast Club", Level.BIT_PART),
+        DailyRule(DailyGame.USUAL_SUSPECTS, "The Usual Suspects", Level.SUPPORTING),
+        DailyRule(DailyGame.MEMENTO, "Memento", Level.LEAD),
+        DailyRule(DailyGame.THE_MASK, "The Mask", Level.LEAD),
+        DailyRule(DailyGame.AMADEUS, "Amadeus", Level.STAR)
+    ).associateBy { it.daily }
+
     private val rules = listOf(
         GameRule(Game.HIGHER_LOWER, "Top Gun", Level.EXTRA, PoolKind.UNION),
         GameRule(Game.SWIPE, "Love at First Sight", Level.EXTRA, PoolKind.RECOMMENDED),
@@ -42,8 +60,14 @@ object GameRules {
 
     fun of(game: Game): GameRule = rules.getValue(game)
 
-    /** The games a level unlocks, in their order, a game of two kinds once. */
-    fun unlockedAt(level: Level): List<GameRule> = rules.values.filter { it.level == level }.distinctBy { it.title }
+    fun of(daily: DailyGame): DailyRule = dailies.getValue(daily)
+
+    /** The games a level unlocks, by name, in their order, a game of two kinds once: the matches, then the dailies. */
+    fun unlockedAt(level: Level): List<String> =
+        (rules.values.filter { it.level == level }.map { it.title } + dailies.values.filter { it.level == level }.map { it.title }).distinct()
+
+    /** Every game's level by the game's name, match or daily, for the cards that say it. */
+    val levelOf: Map<String, Level> get() = rules.values.associate { it.game.name to it.level } + dailies.values.associate { it.daily.name to it.level }
 
     val all: List<GameRule> get() = rules.values.toList()
 
