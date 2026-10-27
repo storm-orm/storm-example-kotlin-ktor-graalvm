@@ -54,8 +54,8 @@
                     <a th:href="@{/insights}" th:classappend="${active == 'insights' or active == 'wrapped'} ? 'active'">About You</a>
                 </div>
             </div>
-            <a th:href="@{/play}" th:classappend="${active == 'play'} ? 'active'">Play</a>
-            <a th:if="${account.name != null}" th:href="@{/community}" th:classappend="${active == 'community'} ? 'active'">Community<span class="nav-badge" th:if="${requestCount > 0}" th:text="${requestCount}" th:title="|${requestCount} friend request${requestCount == 1 ? '' : 's'}|">1</span></a>
+            <a th:href="@{/play}" th:classappend="${active == 'play'} ? 'active'">Play<span class="nav-badge" th:if="${attention.games > 0}" th:text="${attention.games}" th:title="|${attention.games} ${attention.games == 1 ? 'game waits' : 'games wait'} on you|">2</span></a>
+            <a th:if="${account.name != null}" th:href="@{/community}" th:classappend="${active == 'community'} ? 'active'">Community<span class="nav-badge" th:if="${attention.community > 0}" th:text="${attention.community}" th:title="|${attention.community} to answer: friend requests and nights|">1</span></a>
         </div>
         <div class="search-box" data-search-box>
             <!-- The full placeholder where the box fits it, else the short one (fitPlaceholders in app.js). -->

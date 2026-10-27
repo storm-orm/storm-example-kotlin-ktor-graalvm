@@ -3,6 +3,7 @@
 <head th:replace="~{fragments/layout :: head('Levels')}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
+<svg th:replace="~{fragments/badges :: sprite}"></svg>
 
 <!-- The visitor's own watched movies drift behind the title: what the level is made of. -->
 <header class="play-hero levels-hero">
@@ -39,18 +40,26 @@
     <div class="container levels-layout">
         <!-- The ladder: every level, what it takes and what it opens, the visitor's own lit. -->
         <ol class="level-ladder">
-            <li class="level-rung" th:each="rung : ${levels.rungs}" th:classappend="${rung.current} ? 'current' : (${rung.reached} ? 'reached' : 'ahead')">
+            <li class="level-rung" th:each="rung : ${levels.rungs}" th:classappend="(${rung.current} ? 'current' : (${rung.reached} ? 'reached' : 'ahead')) + (${rung.level.name() == 'WALK_OF_FAME'} ? ' walk' : '')">
                 <span class="level-rung-mark" aria-hidden="true"></span>
                 <span class="level-rung-threshold" th:text="${rung.level.threshold == 0} ? 'Start' : ${#numbers.formatInteger(rung.level.threshold, 1, 'COMMA')}">100</span>
                 <span class="level-rung-body">
                     <span class="level-rung-name" th:text="${rung.level.label}">Supporting</span>
-                    <span class="level-rung-blurb" th:text="${rung.level.blurb}">A hundred movies.</span>
+                    <span class="level-rung-blurb" th:text="${rung.level.name() == 'WALK_OF_FAME'} ? ${levels.walk.blurb} : ${rung.level.blurb}">A hundred movies.</span>
                     <span class="level-rung-unlocks" th:unless="${rung.unlocks.isEmpty()}">
                         <span class="level-unlock" th:each="rule : ${rung.unlocks}" th:text="${rule.title}">Movie Chain</span>
                     </span>
                     <span class="level-rung-unlocks" th:if="${rung.unlocks.isEmpty() and rung.level.name() == 'LEAD'}">
                         <span class="level-unlock">The harder rounds</span>
                     </span>
+                    <!-- The top of the bill: a star in the pavement, with the visitor's name once they are there. -->
+                    <a class="walk-star" th:if="${rung.level.name() == 'WALK_OF_FAME'}" th:href="${levels.walk.link}" target="_blank" rel="noopener"
+                       th:classappend="${rung.reached} ? 'set'" th:title="|${levels.walk.name}: ${levels.walk.place}|">
+                        <span class="walk-star-shape" aria-hidden="true"><span class="walk-star-emblem"></span></span>
+                        <span class="walk-star-name" th:text="${rung.reached} ? ${account.name} : 'Your name here'">Your name here</span>
+                        <span class="walk-star-walk" th:text="${levels.walk.name}">Hollywood Walk of Fame</span>
+                    </a>
+                    <span class="level-rung-blurb walk-place" th:if="${rung.level.name() == 'WALK_OF_FAME'}" th:text="${levels.walk.place}">Hollywood Boulevard, at the corner of Vine Street</span>
                 </span>
                 <span class="level-rung-you" th:if="${rung.current}">You</span>
             </li>
@@ -93,8 +102,8 @@
         <div class="badge-shelf" th:each="shelf : ${badges.shelves}">
             <h3 class="badge-shelf-title" th:text="${shelf.category.label}">Watching</h3>
             <div class="badge-grid">
-                <div class="badge" th:each="item : ${shelf.badges}" th:classappend="${item.earned} ? 'earned'" th:title="${item.badge.blurb}">
-                    <span class="badge-medal" aria-hidden="true"><span th:text="${item.badge.mark}">90s</span></span>
+                <div class="badge" th:each="item : ${shelf.badges}" th:classappend="(${item.earned} ? 'earned ' : '') + |tone-${item.badge.tone}|" th:title="${item.badge.blurb}">
+                    <span class="badge-medal" aria-hidden="true"><svg class="badge-icon"><use th:attr="href=|#badge-${item.badge.icon}|"/></svg></span>
                     <span class="badge-text">
                         <span class="badge-title" th:text="${item.badge.title}">Nineties Kid</span>
                         <span class="badge-blurb" th:text="${item.badge.blurb}">Ten movies from the 1990s.</span>

@@ -13,6 +13,7 @@ import io.ktor.util.AttributeKey
 import io.ktor.util.date.GMTDate
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.service.AccountService
+import st.orm.demo.imdb.service.AttentionService
 import st.orm.demo.imdb.service.Countries
 import st.orm.demo.imdb.service.Country
 import st.orm.demo.imdb.service.FreepodSignIn
@@ -41,6 +42,7 @@ private val LevelServiceKey = AttributeKey<LevelService>("LevelService")
 private val AccountIdKey = AttributeKey<String>("AccountId")
 private val LevelProgressKey = AttributeKey<LevelProgress>("LevelProgress")
 private val WallServiceKey = AttributeKey<WallService>("WallService")
+private val AttentionServiceKey = AttributeKey<AttentionService>("AttentionService")
 
 /** The pages with a wall of posters behind their title, and what each wall is made of. */
 private val WALLS = mapOf(
@@ -63,7 +65,9 @@ fun Application.configureAccounts() {
     val streamingService: StreamingService by dependencies
     val levelService: LevelService by dependencies
     val wallService: WallService by dependencies
+    val attentionService: AttentionService by dependencies
     attributes.put(WallServiceKey, wallService)
+    attributes.put(AttentionServiceKey, attentionService)
     attributes.put(AccountServiceKey, accountService)
     attributes.put(FreepodSignInKey, freepodSignIn)
     attributes.put(FriendServiceKey, friendService)
@@ -95,12 +99,18 @@ suspend fun ApplicationCall.respondPage(content: ThymeleafContent) {
         "account" to user,
         "level" to level,
         "wall" to wall,
+        "attention" to application.attributes[AttentionServiceKey].attentionOf(user),
         "requestCount" to requestCount,
         "hostedOnFreepod" to application.attributes[FreepodSignInKey].enabled,
         "tmdb" to application.attributes[TmdbServiceKey].enabled,
         "hasServices" to hasServices
     )
     respond(ThymeleafContent(content.template, content.model + layout))
+}
+
+/** The Play page worked the visitor's games out: the menu's count follows at once. */
+suspend fun ApplicationCall.noteGamesWaiting(games: Int) {
+    application.attributes[AttentionServiceKey].noteGames(currentUser(), games)
 }
 
 /** Where the visitor stands with the levels, worked out once per request: the layout's ring and the pages share it. */

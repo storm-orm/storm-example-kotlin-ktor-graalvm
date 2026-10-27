@@ -47,6 +47,7 @@
     <div class="container">
         <div class="section-header">
             <h2 class="section-title">Your Games</h2>
+            <span class="attention-badge" th:if="${attention.games > 0}" th:text="${attention.games == 1} ? '1 waits on you' : |${attention.games} wait on you|">2 wait on you</span>
             <a class="section-link" th:href="@{/play/archive}">Finished games →</a>
         </div>
         <p class="notice game-full" th:if="${full}" th:text="|You have ${maxOpen} games going with others. Close one to start another.|">

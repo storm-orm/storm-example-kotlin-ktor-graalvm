@@ -70,7 +70,9 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
         val user = call.currentUser()
         val level = call.levelProgress()
         val locks = levelService.locksOf(level)
-        call.respondPage(ThymeleafContent("play", mapOf("play" to playService.playOf(user), "full" to full, "maxOpen" to PlayService.MAX_OPEN,
+        val play = playService.playOf(user)
+        call.noteGamesWaiting(play.games.count { it.yourMove })
+        call.respondPage(ThymeleafContent("play", mapOf("play" to play, "full" to full, "maxOpen" to PlayService.MAX_OPEN,
             "locks" to locks, "level" to level, "badgeCount" to badgeService.countOf(user), "locked" to call.request.queryParameters["locked"]?.let { locks[it] },
             "refused" to call.request.queryParameters["refused"]?.let { name -> GameRules.all.firstOrNull { it.game.name == name } })))
     }

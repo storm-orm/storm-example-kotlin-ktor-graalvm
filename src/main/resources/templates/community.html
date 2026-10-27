@@ -7,7 +7,7 @@
 <header class="page-header">
     <div class="container">
         <div class="page-title-row">
-            <h1 class="page-title">Community</h1>
+            <h1 class="page-title">Community<span class="attention-badge" th:if="${attention.community > 0}" th:text="${attention.community == 1} ? '1 to answer' : |${attention.community} to answer|">2 to answer</span></h1>
             <!-- With a community, its cog leads to the friends, the clubs, the invites and the sharing. -->
             <a th:if="${view != null and view.hasCommunity and !manage}" th:replace="~{fragments/community :: manageLink(@{/community(manage='')}, 'Manage your friends and clubs')}"></a>
         </div>

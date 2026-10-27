@@ -11,6 +11,7 @@ import st.orm.template.and
 import st.orm.template.eq
 import st.orm.template.greaterEq
 import st.orm.template.inList
+import st.orm.template.isNull
 
 interface MovieNightRepository : EntityRepository<MovieNight, Long> {
 
@@ -22,6 +23,11 @@ interface MovieNightRepository : EntityRepository<MovieNight, Long> {
             .orderBy(MovieNight_.nightOn)
             .limit(1)
             .optionalResult
+
+    /** The nights of these clubs still to decide, from [today] on. */
+    fun findOpenOf(clubs: List<Club>, today: LocalDate): List<MovieNight> =
+        if (clubs.isEmpty()) emptyList()
+        else findAll((MovieNight_.club inList clubs) and (MovieNight_.nightOn greaterEq today) and MovieNight_.winner.isNull())
 
     /** How many nights the user hosted. */
     fun countHostedBy(user: User): Long =

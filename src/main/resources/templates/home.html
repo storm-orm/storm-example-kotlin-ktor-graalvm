@@ -103,6 +103,14 @@
                 <span class="tonight-note" th:text="${tonight.country != null} ? |What plays in ${tonight.country.inSentence} this week| : 'Set your country to see what plays near you'">What plays in the Netherlands this week</span>
             </span>
         </a>
+        <a class="tonight-door door-level" th:if="${level != null}" th:href="@{/play/levels}">
+            <span class="level-ring tonight-ring" th:style="|--progress: ${level.fraction}|"><span th:text="${#numbers.formatInteger(level.fraction * 100, 1)} + '%'">42%</span></span>
+            <span class="tonight-text">
+                <span class="tonight-eyebrow">Your level</span>
+                <span class="tonight-title" th:text="${level.level.label}">Supporting</span>
+                <span class="tonight-note" th:text="${level.nextText}">117 more to Lead</span>
+            </span>
+        </a>
         <a class="tonight-door door-club"
            th:href="${tonight.night != null} ? @{/nights/{id}(id=${tonight.night.id})} : (${tonight.club != null} ? @{/clubs/{id}/nights/new(id=${tonight.club.id})} : @{/community})">
             <span class="tonight-art" aria-hidden="true"><span class="tonight-seats"><span></span><span></span><span></span></span></span>

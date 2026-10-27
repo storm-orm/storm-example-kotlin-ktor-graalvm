@@ -1720,5 +1720,23 @@
     "allDeclaredConstructors": true,
     "allPublicMethods": true,
     "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.Attention",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.WalkOfFame",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.WallKind",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
   }
 ]

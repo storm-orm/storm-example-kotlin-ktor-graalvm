@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import st.orm.demo.imdb.model.Game
 import st.orm.demo.imdb.model.Level
 import st.orm.demo.imdb.model.Movie
+import st.orm.demo.imdb.model.Tag
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.repository.CheckInRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
@@ -40,8 +41,15 @@ data class GameLock(val game: Game, val level: Level, val toGo: Int) {
 /** A rung of the ladder on the levels page: the level, the games it unlocks, and whether the user is there yet. */
 data class LevelRung(val level: Level, val unlocks: List<GameRule>, val reached: Boolean, val current: Boolean)
 
-/** The levels page: the user's progress, the ladder, every game's rule, and the posters of their latest watched movies, for the wall. */
-data class LevelsView(val progress: LevelProgress, val rungs: List<LevelRung>, val rules: List<GameRule>, val posters: List<Movie>) {
+/**
+ * The walk the top level sets a star in: Hollywood's, on the Boulevard and
+ * Vine Street, or, for a taste of Bollywood alone, Bandra's Walk of the
+ * Stars on the Bandstand, with the page that tells about it.
+ */
+data class WalkOfFame(val name: String, val place: String, val link: String, val blurb: String)
+
+/** The levels page: the user's progress, the ladder, its top's walk, every game's rule, and the posters of their latest watched movies, for the wall. */
+data class LevelsView(val progress: LevelProgress, val rungs: List<LevelRung>, val walk: WalkOfFame, val rules: List<GameRule>, val posters: List<Movie>) {
     /** The wall's rows of posters, a third of them each. */
     val posterRows: List<List<Movie>> get() = posters.chunked(((posters.size + 2) / 3).coerceAtLeast(1))
 }
@@ -96,12 +104,29 @@ class LevelService(
         LevelsView(
             progress,
             Level.entries.map { LevelRung(it, GameRules.unlockedAt(it), progress.level.reaches(it), it == progress.level) },
+            walkOf(user),
             GameRules.all,
             movieSeenRepository.findMostRecent(user, WALL_POSTERS).map { it.movie }
         )
     }
 
+    /** The walk the user's star goes in: Bandra's for a taste of Bollywood alone, Hollywood's for everyone else. */
+    fun walkOf(user: User): WalkOfFame {
+        val hidden = user.movieFilter?.hiddenTags.orEmpty()
+        return if (Tag.HOLLYWOOD in hidden && Tag.BOLLYWOOD !in hidden) BANDRA else HOLLYWOOD
+    }
+
     companion object {
+        val HOLLYWOOD = WalkOfFame(
+            "Hollywood Walk of Fame", "Hollywood Boulevard, at the corner of Vine Street",
+            "https://en.wikipedia.org/wiki/Hollywood_Walk_of_Fame",
+            "Two thousand movies: your own star in the terrazzo, somewhere along Hollywood Boulevard, a few blocks from Vine."
+        )
+        val BANDRA = WalkOfFame(
+            "Walk of the Stars", "Bandstand Promenade, Bandra, Mumbai",
+            "https://en.wikipedia.org/wiki/Walk_of_the_Stars",
+            "Two thousand movies: your own star on the Bandstand in Bandra, where Bollywood takes its evening walk by the sea."
+        )
         /** What a check-in adds to a watched movie's one point. */
         const val CHECK_IN_EXTRA = 0.5
         private const val WALL_POSTERS = 36

@@ -13,7 +13,8 @@ enum class Level(val threshold: Int, val label: String, val blurb: String) {
     SUPPORTING(100, "Supporting", "A hundred movies: enough to draft from, and to know a cast by heart."),
     LEAD(250, "Lead", "The name above the title: the hard rounds open up."),
     STAR(500, "Star", "Five hundred movies watched: the house takes you seriously."),
-    LEGEND(1000, "Legend", "A thousand movies. There is nothing left to unlock, only to watch.");
+    LEGEND(1000, "Legend", "A thousand movies. One step left: your star in the pavement."),
+    WALK_OF_FAME(2000, "Walk of Fame", "Two thousand movies: your own star, set in the pavement where the stars are.");
 
     /** The level after this one, or null at the top. */
     val next: Level? get() = entries.getOrNull(ordinal + 1)

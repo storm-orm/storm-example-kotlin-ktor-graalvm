@@ -6,6 +6,7 @@ import io.micrometer.core.instrument.observation.DefaultMeterObservationHandler
 import io.micrometer.observation.ObservationRegistry
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import st.orm.demo.imdb.service.AccountService
+import st.orm.demo.imdb.service.AttentionService
 import st.orm.demo.imdb.service.BadgeService
 import st.orm.demo.imdb.service.BrowseService
 import st.orm.demo.imdb.service.LevelService
@@ -150,6 +151,7 @@ fun Application.configureDependencies() {
         provide { LevelService(resolve(), resolve(), resolve()) }
         provide { PoolService(resolve(), resolve(), resolve()) }
         provide { WallService(resolve(), resolve(), resolve()) }
+        provide { AttentionService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { BadgeService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { CastService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PlayService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
