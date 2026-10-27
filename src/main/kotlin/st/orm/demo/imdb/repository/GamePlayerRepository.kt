@@ -37,6 +37,10 @@ interface GamePlayerRepository : EntityRepository<GamePlayer, GamePlayerPk> {
     fun findMine(user: User, matches: List<GameMatch>): List<GamePlayer> =
         if (matches.isEmpty()) emptyList() else findAll((GamePlayer_.user eq user) and (GamePlayer_.match inList matches))
 
+    /** Every game the user ever played, each with its match. */
+    fun findAllOf(user: User): List<GamePlayer> =
+        findAll(GamePlayer_.user eq user)
+
     /** The user's games still open to them, each with its match, the newest first. */
     fun findOpen(user: User): List<GamePlayer> =
         select((GamePlayer_.user eq user) and GamePlayer_.closedAt.isNull())

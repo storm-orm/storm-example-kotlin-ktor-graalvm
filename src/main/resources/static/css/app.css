@@ -4323,3 +4323,11 @@ body::after {
 .friend-head { display: flex; align-items: center; gap: 20px; margin-top: 10px; }
 .friend-head .avatar-large { width: 80px; height: 80px; font-size: 30px; flex-shrink: 0; }
 .friend-start { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+
+/* The rites of a level, under what it unlocks: a chip each, lit once done. */
+.level-rites { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.level-rite { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 7px; border-radius: 999px; border: 1px dashed rgba(255, 255, 255, 0.25); color: var(--text-muted); font-size: 12.5px; }
+.level-rite.done { border: 1px solid rgba(var(--yellow-rgb), 0.55); color: var(--yellow); }
+.rite-icon { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.levels-held { color: var(--yellow); }
+.levels-motto { margin: 10px 0 4px; font-family: var(--font-display); font-size: 20px; letter-spacing: 0.5px; text-transform: uppercase; line-height: 1.2; color: var(--accent-strong); }

@@ -148,11 +148,11 @@ fun Application.configureDependencies() {
         provide { PuzzleFactory(resolve()) }
         provide { DailyPuzzleService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { ConnectService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
-        provide { LevelService(resolve(), resolve(), resolve()) }
+        provide { LevelService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PoolService(resolve(), resolve(), resolve()) }
         provide { WallService(resolve(), resolve(), resolve()) }
         provide { AttentionService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
-        provide { BadgeService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { BadgeService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { CastService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PlayService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { QuizService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }

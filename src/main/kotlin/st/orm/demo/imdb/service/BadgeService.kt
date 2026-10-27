@@ -1,8 +1,11 @@
 package st.orm.demo.imdb.service
 
+import java.util.concurrent.ConcurrentHashMap
 import st.orm.demo.imdb.model.Badge
 import st.orm.demo.imdb.model.BadgeCategory
 import st.orm.demo.imdb.model.DailyGame
+import st.orm.demo.imdb.model.Game
+import st.orm.demo.imdb.model.GameMode
 import st.orm.demo.imdb.model.KEVIN_BACON
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.model.UserBadge
@@ -14,14 +17,18 @@ import st.orm.demo.imdb.repository.CheckInRepository
 import st.orm.demo.imdb.repository.ClubMemberRepository
 import st.orm.demo.imdb.repository.DailyPlayRepository
 import st.orm.demo.imdb.repository.FriendshipRepository
+import st.orm.demo.imdb.repository.GamePlayerRepository
 import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieLanguageRepository
 import st.orm.demo.imdb.repository.MovieNightRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
+import st.orm.demo.imdb.repository.SwipeRepository
+import st.orm.demo.imdb.repository.SwipeRoundSwipeRepository
 import st.orm.demo.imdb.repository.UserBadgeRepository
 import st.orm.template.entityId
 import st.orm.template.eq
 import st.orm.template.transaction
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -66,8 +73,22 @@ class BadgeService(
     private val castAnswerRepository: CastAnswerRepository,
     private val friendshipRepository: FriendshipRepository,
     private val clubMemberRepository: ClubMemberRepository,
-    private val movieNightRepository: MovieNightRepository
+    private val movieNightRepository: MovieNightRepository,
+    private val gamePlayerRepository: GamePlayerRepository,
+    private val swipeRepository: SwipeRepository,
+    private val swipeRoundSwipeRepository: SwipeRoundSwipeRepository
 ) {
+    /** When each user's badges were last awarded, for the pages that award now and then. */
+    private val awarded = ConcurrentHashMap<String, Instant>()
+
+    /** Awards the user's badges unless that was done within the last little while: for the pages seen often. */
+    suspend fun awardIfDue(user: User, now: Instant = Instant.now()): List<Badge> {
+        val last = awarded[user.id]
+        if (last != null && Duration.between(last, now) < AWARD_EVERY) return emptyList()
+        awarded[user.id] = now
+        return award(user, now)
+    }
+
 
     /** The user's wall, the badges reached since last time stored as earned now. */
     suspend fun wallOf(user: User, now: Instant = Instant.now()): BadgeWall = transaction {
@@ -89,7 +110,7 @@ class BadgeService(
     /** Every badge's progress, inside the caller's transaction, the ones newly reached stored. */
     private fun progressIn(user: User, now: Instant): List<BadgeProgress> {
         val earned = userBadgeRepository.findAll(user).associate { it.badge to it.earnedAt }.toMutableMap()
-        val counts = countsOf(user)
+        val counts = countsOf(user, now)
         return Badge.entries.map { badge ->
             val done = counts[badge] ?: 0
             if (done >= badge.goal && badge !in earned) {
@@ -101,7 +122,7 @@ class BadgeService(
     }
 
     /** How far the user is with each badge, as what it counts. */
-    private fun countsOf(user: User): Map<Badge, Int> {
+    private fun countsOf(user: User, now: Instant): Map<Badge, Int> {
         val counts = mutableMapOf<Badge, Int>()
         // Watching: the decades, the genres, the languages.
         val years = movieSeenRepository.findAll(user).mapNotNull { it.movie.startYear }
@@ -131,6 +152,15 @@ class BadgeService(
         counts[Badge.PERFECT_GRID] = dailies.count { it.id.game == DailyGame.CONNECTIONS && it.score == 4 && it.mistakes == 0 }
         counts[Badge.ODD_EYE] = dailies.count { it.id.game == DailyGame.ODD_ONE_OUT && it.score == DailyPuzzleService.ODD_PUZZLES }
         counts[Badge.DAILY_WEEK] = longestRun(dailies.map { it.id.puzzleOn }.toSortedSet().toList()) { a, b -> a.plusDays(1) == b }
+        counts[Badge.FIRST_DAILY] = dailies.size
+        counts[Badge.DECK_DONE] = swipeRepository.findAll(user).size + swipeRoundSwipeRepository.findByUser(user).size
+        val played = gamePlayerRepository.findAllOf(user)
+        counts[Badge.HOT_STREAK] = played.filter { it.match.game == Game.HIGHER_LOWER }.maxOfOrNull { it.score } ?: 0
+        // A win: a Higher or Lower or Movie Chain with others that is over, the user's score above everyone else's.
+        val wins = played.filter { it.match.mode != GameMode.SOLO && it.match.game in SCORED_GAMES && it.match.isOver(now) }
+            .count { me -> gamePlayerRepository.findPlayers(me.match).all { it.user.id == me.user.id || it.score < me.score } }
+        counts[Badge.WINNER] = wins
+        counts[Badge.CHAMPION] = wins
         val rightByMatch = castAnswerRepository.findByUser(user).filter { it.right }.groupingBy { it.match.entityId() }.eachCount()
         counts[Badge.CAST_CALL] = castBidRepository.findByUser(user).count { it.count >= CAST_CALL_BID && (rightByMatch[it.match.entityId()] ?: 0) >= it.count }
         // Together.
@@ -164,6 +194,9 @@ class BadgeService(
     companion object {
         /** The bid a Name That Cast round has to be won at for its badge. */
         const val CAST_CALL_BID = 10
+        /** The games a win counts in: the ones with a score to compare. */
+        private val SCORED_GAMES = setOf(Game.HIGHER_LOWER, Game.CHAIN)
+        private val AWARD_EVERY: Duration = Duration.ofMinutes(10)
         private val DAY: ChronoUnit = ChronoUnit.DAYS
     }
 }

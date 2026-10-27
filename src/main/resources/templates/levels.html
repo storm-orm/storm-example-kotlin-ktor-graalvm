@@ -25,6 +25,8 @@
             <div>
                 <p class="wrapped-eyebrow">Your level</p>
                 <h1 class="page-title levels-title" th:text="${levels.progress.level.label}">Supporting</h1>
+                <p class="levels-lede levels-held" th:if="${levels.progress.held}"
+                   th:text="|Your points reach ${levels.progress.byPoints.label}; ${levels.progress.nextText}.|">Your points reach Supporting; 2 rites to go.</p>
                 <p class="levels-lede">
                     <strong th:text="${#numbers.formatDecimal(levels.progress.score, 1, 1)}">143.5</strong> points:
                     <span th:text="${levels.progress.watched == 1} ? '1 movie watched' : |${#numbers.formatInteger(levels.progress.watched, 1, 'COMMA')} movies watched|">137 movies watched</span>,
@@ -52,6 +54,15 @@
                     <span class="level-rung-unlocks" th:if="${rung.unlocks.isEmpty() and rung.level.name() == 'LEAD'}">
                         <span class="level-unlock">The harder rounds</span>
                     </span>
+                    <!-- What the level asks beyond the points: badges from the games, and people invited who came. -->
+                    <span class="level-rites" th:unless="${rung.rites.isEmpty()}">
+                        <span class="level-rite" th:each="rite : ${rung.rites}" th:classappend="${rite.done} ? 'done'"
+                              th:title="${rite.badge != null} ? ${rite.badge.blurb} : 'People who joined through your invite links'">
+                            <svg class="rite-icon" th:if="${rite.badge != null}"><use th:attr="href=|#badge-${rite.badge.icon}|"/></svg>
+                            <svg class="rite-icon" th:if="${rite.badge == null}"><use href="#badge-friends"/></svg>
+                            <span th:text="${rite.text}">Hot Streak</span>
+                        </span>
+                    </span>
                     <!-- The top of the bill: a star in the pavement, with the visitor's name once they are there. -->
                     <span class="walk-star" th:if="${rung.level.name() == 'WALK_OF_FAME'}"
                           th:classappend="${rung.reached} ? 'set'" th:title="|${levels.walk.name}: ${levels.walk.place}|">
@@ -68,9 +79,11 @@
         <aside class="levels-aside">
             <div class="stat-card levels-how">
                 <h2 class="section-title">How it counts</h2>
+                <p class="levels-motto" th:text="|You can't get here by yourself: make friends to make it in ${levels.walk.town}.|">You can't get here by yourself: make friends to make it in Hollywood.</p>
                 <ul class="levels-rules">
                     <li><strong>1 point</strong> for every movie you have watched, imported or ticked.</li>
                     <li><strong>1½ points</strong> for a movie you checked in: watching with us counts more.</li>
+                    <li>Each level also asks for a rite or two from the games, and from Supporting on, for people who came through your invites: 1, then 5, 10, 15 and 25. The points keep counting meanwhile.</li>
                     <li>A level reached is yours to keep.</li>
                     <li>A game needs the level of whoever starts it. One played from what <em>everyone</em> watched, like Name That Cast, needs every player there.</li>
                 </ul>

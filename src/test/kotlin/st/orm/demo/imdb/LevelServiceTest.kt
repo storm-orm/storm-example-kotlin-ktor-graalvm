@@ -5,13 +5,16 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import st.orm.demo.imdb.model.Badge
 import st.orm.demo.imdb.model.CheckIn
 import st.orm.demo.imdb.model.Game
 import st.orm.demo.imdb.model.Level
 import st.orm.demo.imdb.model.MovieSeen
+import st.orm.demo.imdb.model.UserBadge
 import st.orm.demo.imdb.repository.CheckInRepository
 import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
+import st.orm.demo.imdb.repository.UserBadgeRepository
 import st.orm.demo.imdb.repository.UserRepository
 import st.orm.demo.imdb.service.LevelService
 import st.orm.repository.repository
@@ -24,7 +27,7 @@ class LevelServiceTest {
 
     private val now = Instant.parse("2026-10-27T18:00:00Z")
 
-    private fun service(orm: ORMTemplate) = LevelService(orm.repository(), orm.repository(), orm.repository())
+    private fun service(orm: ORMTemplate) = levelService(orm)
 
     @Test
     fun `a movie watched counts one, checked in one and a half, and the level reached is kept`(orm: ORMTemplate) {
@@ -53,6 +56,37 @@ class LevelServiceTest {
         assertEquals(Level.SUPPORTING, kept.level)
         assertTrue(runBlocking { service.canStart(orm.repository<UserRepository>().getById(alice.id), Game.CAST) })
         assertFalse(runBlocking { service.locksOf(orm.repository<UserRepository>().getById(alice.id)) }.containsKey("DRAFT"))
+    }
+
+    @Test
+    fun `the points alone do not lift a level, its rites must be done and the people invited must have come`(orm: ORMTemplate) {
+        val service = service(orm)
+        val alice = orm.insertUser("alice-rites", name = "Alice")
+        val movies = orm.repository<MovieRepository>().findAll()
+        // Thirty points, from six movies checked in five times... no: six watched and twenty-four more as history is
+        // not in the fixture, so the points come from check-ins of the six: 6 + 6 × ½ = 9, lifted by hand below.
+        orm.repository<MovieSeenRepository>().insert(movies.map { MovieSeen(alice, it, now) })
+        orm.repository<CheckInRepository>().insert(movies.map { CheckIn(alice, it, now) })
+        val users = orm.repository<UserRepository>()
+        var progress = runBlocking { service.progressOf(users.getById(alice.id)) }
+        assertEquals(Level.EXTRA, progress.level)
+        assertFalse(progress.held)
+
+        // With the points of Bit Part but none of its rites, the level is held back, and says what is left.
+        orm.repository<MovieSeenRepository>().insert((1..20).map { i -> MovieSeen(alice, orm.repository<MovieRepository>().insertAndFetch(st.orm.demo.imdb.model.Movie("tt77700$i", "Extra $i", "Extra $i", 2000, 100)), now) })
+        progress = runBlocking { service.progressOf(users.getById(alice.id)) }
+        assertEquals(Level.BIT_PART, progress.byPoints)
+        assertEquals(Level.EXTRA, progress.level)
+        assertTrue(progress.held)
+        assertEquals("2 rites to go for Bit Part", progress.nextText)
+
+        // The rites done, the level follows.
+        orm.repository<UserBadgeRepository>().insert(listOf(UserBadge(alice, Badge.DECK_DONE, now), UserBadge(alice, Badge.HOT_STREAK, now)))
+        progress = runBlocking { service.progressOf(users.getById(alice.id)) }
+        assertEquals(Level.BIT_PART, progress.level)
+        assertFalse(progress.held)
+        // Supporting asks for someone invited too: the ladder says so.
+        assertEquals(listOf("Chain Gang", "First Daily", "0 of 1 invited"), progress.rites.map { it.text })
     }
 
     @Test

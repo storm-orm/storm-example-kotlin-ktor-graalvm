@@ -7,6 +7,7 @@ import st.orm.demo.imdb.model.SwipeRoundCard_
 import st.orm.demo.imdb.model.SwipeRoundSwipe
 import st.orm.demo.imdb.model.SwipeRoundSwipePk
 import st.orm.demo.imdb.model.SwipeRoundSwipe_
+import st.orm.demo.imdb.model.User
 import st.orm.repository.EntityRepository
 import st.orm.template.eq
 
@@ -20,6 +21,10 @@ interface SwipeRoundCardRepository : EntityRepository<SwipeRoundCard, SwipeRound
 }
 
 interface SwipeRoundSwipeRepository : EntityRepository<SwipeRoundSwipe, SwipeRoundSwipePk> {
+
+    /** Every swipe the user made in any round. */
+    fun findByUser(user: User): List<SwipeRoundSwipe> =
+        findAll(SwipeRoundSwipe_.user eq user)
 
     /** Every swipe of a round, by all its players. */
     fun findSwipes(match: GameMatch): List<SwipeRoundSwipe> =

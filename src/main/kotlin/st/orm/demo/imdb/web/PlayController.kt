@@ -68,6 +68,7 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
     get("/play") {
         val full = call.request.queryParameters["full"] != null
         val user = call.currentUser()
+        badgeService.awardIfDue(user)
         val level = call.levelProgress()
         val locks = levelService.locksOf(level)
         val play = playService.playOf(user)

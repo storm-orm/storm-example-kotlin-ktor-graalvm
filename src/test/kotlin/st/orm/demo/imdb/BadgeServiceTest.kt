@@ -26,7 +26,8 @@ class BadgeServiceTest {
 
     private fun service(orm: ORMTemplate) = BadgeService(
         orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(),
-        orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository()
+        orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(),
+        orm.repository(), orm.repository(), orm.repository()
     )
 
     @Test
