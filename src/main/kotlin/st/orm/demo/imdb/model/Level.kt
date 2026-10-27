@@ -22,8 +22,8 @@ enum class Honour(val mark: String, val title: String) {
 
 /**
  * How far a user has come as a watcher, named by the billing ranks of a
- * cast: every movie watched counts one, a movie checked in one and a half,
- * and the sum reaches each level's [threshold] in turn. A level reached is
+ * cast: every movie watched counts one, a check-in as watched, and the
+ * count reaches each level's [threshold] in turn, its rites met too. A level reached is
  * kept: unmarking movies later does not take it away. The levels unlock
  * the games, the harder the game, the higher the level; the top four
  * come with an [honour].

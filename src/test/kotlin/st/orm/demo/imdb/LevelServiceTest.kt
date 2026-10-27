@@ -30,7 +30,7 @@ class LevelServiceTest {
     private fun service(orm: ORMTemplate) = levelService(orm)
 
     @Test
-    fun `a movie watched counts one, checked in one and a half, and the level reached is kept`(orm: ORMTemplate) {
+    fun `a movie watched counts one, a check-in as watched, and the level reached is kept`(orm: ORMTemplate) {
         val service = service(orm)
         val alice = orm.insertUser("alice-level", name = "Alice")
         val movies = orm.repository<MovieRepository>().findAll()
@@ -39,15 +39,15 @@ class LevelServiceTest {
         assertEquals("Unlocks at Bit Part · 25 movies to go", runBlocking { service.locksOf(alice) }.getValue("CHAIN").text)
 
         orm.repository<MovieSeenRepository>().insert(movies.map { MovieSeen(alice, it, now) })
-        // Two of the six checked in, one of them twice: 6 + 2 × ½ = 7.
+        // Two of the six checked in, one of them twice: the score is the six watched.
         orm.repository<CheckInRepository>().insert(listOf(CheckIn(alice, movies[0], now), CheckIn(alice, movies[0], now), CheckIn(alice, movies[1], now)))
         val progress = runBlocking { service.progressOf(alice) }
-        assertEquals(7.0, progress.score)
+        assertEquals(6.0, progress.score)
         assertEquals(6, progress.watched)
         assertEquals(2, progress.checkedIn)
-        assertEquals(18, progress.toNext)
+        assertEquals(19, progress.toNext)
         assertEquals(Level.BIT_PART, progress.next)
-        assertEquals(7.0 / 25, progress.fraction, 0.001)
+        assertEquals(6.0 / 25, progress.fraction, 0.001)
 
         // Lifted to Supporting by hand, as by a long history, the level stays when the movies go.
         orm.repository<UserRepository>().update(orm.repository<UserRepository>().getById(alice.id).copy(level = Level.SUPPORTING))
@@ -78,15 +78,15 @@ class LevelServiceTest {
         assertEquals(Level.BIT_PART, progress.byPoints)
         assertEquals(Level.EXTRA, progress.level)
         assertTrue(progress.held)
-        assertEquals("2 rites to go for Bit Part", progress.nextText)
+        assertEquals("3 rites to go for Bit Part", progress.nextText)
 
         // The rites done, the level follows.
-        orm.repository<UserBadgeRepository>().insert(listOf(UserBadge(alice, Badge.DECK_DONE, now), UserBadge(alice, Badge.HOT_STREAK, now)))
+        orm.repository<UserBadgeRepository>().insert(listOf(UserBadge(alice, Badge.DECK_DONE, now), UserBadge(alice, Badge.HOT_STREAK, now), UserBadge(alice, Badge.CHECKED_IN, now)))
         progress = runBlocking { service.progressOf(users.getById(alice.id)) }
         assertEquals(Level.BIT_PART, progress.level)
         assertFalse(progress.held)
         // Supporting asks for someone invited too: the ladder says so.
-        assertEquals(listOf("Chain Gang", "First Daily", "0 of 1 invited"), progress.rites.map { it.text })
+        assertEquals(listOf("Chain Gang", "First Daily", "Double Bill", "0 of 1 invited"), progress.rites.map { it.text })
     }
 
     @Test

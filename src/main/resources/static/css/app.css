@@ -4175,7 +4175,7 @@ body::after {
 .poster-veil.veiled .poster { overflow: hidden; }
 /* Just enough blur that the names in the credits cannot be read, while the poster still looks like itself. */
 .poster-veil.veiled .poster img { filter: blur(1.8px); transform: scale(1.02); }
-.poster-veil.deep .poster img { filter: blur(9px); transform: scale(1.08); }
+.poster-veil.deep .poster img { filter: blur(5px); transform: scale(1.06); }
 .poster-veil-label { position: absolute; left: 50%; bottom: 10px; z-index: 3; transform: translateX(-50%); padding: 5px 11px; border-radius: 999px; background: rgba(12, 10, 18, 0.82); border: 1px solid rgba(255, 255, 255, 0.18); color: #fff; font-size: 10.5px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; white-space: nowrap; pointer-events: none; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5); }
 .veiled-link { pointer-events: none; cursor: default; }
 .veiled-link .poster { box-shadow: none; }
@@ -4425,7 +4425,8 @@ body::after {
 .friend-start { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
 
 /* The rites of a level, under what it unlocks: a chip each, lit once done. */
-.level-rites { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.level-rites { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.level-rung-label { align-self: center; margin-right: 2px; font-size: 10.5px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-muted); }
 .level-rite { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 7px; border-radius: 999px; border: 1px dashed rgba(255, 255, 255, 0.25); color: var(--text-muted); font-size: 12.5px; }
 .level-rite.done { border: 1px solid rgba(var(--yellow-rgb), 0.55); color: var(--yellow); }
 /* The star's pay link: a rite chip that is a button, underlined so it reads as one, until it is paid. */

@@ -31,7 +31,7 @@
             <span class="level-text">
                 <span class="level-eyebrow">Your level</span>
                 <span class="level-name" th:text="${level.level.label}">Supporting</span>
-                <span class="level-next" th:text="|${#numbers.formatDecimal(level.score, 1, 1)} points · ${level.nextText}|">143.5 points · 107 more to Lead</span>
+                <span class="level-next" th:text="|${#numbers.formatInteger(level.watched, 1, 'COMMA')} movies · ${level.nextText}|">143 movies · 107 more to Lead</span>
             </span>
             <span class="level-link"><th:block th:text="${badgeCount == 1} ? '1 badge' : |${badgeCount} badges|">3 badges</th:block> · Levels &amp; badges →</span>
         </a>

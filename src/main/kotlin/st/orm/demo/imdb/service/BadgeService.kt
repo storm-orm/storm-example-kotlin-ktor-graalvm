@@ -153,10 +153,17 @@ class BadgeService(
         counts[Badge.WORLD_CINEMA] = movieLanguageRepository.countSeen(user).size
         counts[Badge.YIPPEE_KI_YAY] = principalRepository.countSeenWith(user, refById<Person>(BRUCE_WILLIS)).toInt()
         // Checking in: the days, and the weeks in a row.
-        val days = checkInRepository.findAll(user).map { LocalDate.ofInstant(it.watchedAt, ZoneOffset.UTC) }
+        val checkIns = checkInRepository.findAll(user)
+        val days = checkIns.map { LocalDate.ofInstant(it.watchedAt, ZoneOffset.UTC) }
         counts[Badge.CHECKED_IN] = days.size
         counts[Badge.NIGHT_SHIFT] = days.size
-        counts[Badge.DOUBLE_BILL] = days.groupingBy { it }.eachCount().values.maxOrNull() ?: 0
+        counts[Badge.FIFTY_NIGHTS] = days.size
+        counts[Badge.HUNDRED_NIGHTS] = days.size
+        val mostInADay = days.groupingBy { it }.eachCount().values.maxOrNull() ?: 0
+        counts[Badge.DOUBLE_BILL] = mostInADay
+        counts[Badge.MARATHON] = mostInADay
+        counts[Badge.OPENING_NIGHT] = checkIns.count { it.movie.startYear == LocalDate.ofInstant(it.watchedAt, ZoneOffset.UTC).year }
+        counts[Badge.YEAR_ROUND] = longestRun(days.map { it.year * 12L + it.monthValue - 1 }.toSortedSet().toList()) { a, b -> a + 1 == b }
         counts[Badge.REGULAR] = longestRun(days.map { it.get(IsoFields.WEEK_BASED_YEAR) * 100L + it.get(IsoFields.WEEK_OF_WEEK_BASED_YEAR) }.toSortedSet().toList()) { a, b -> next(a) == b }
         // Playing.
         val links = chainLinkRepository.findByPlayer(user)

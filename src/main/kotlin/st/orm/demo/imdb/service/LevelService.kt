@@ -33,14 +33,15 @@ data class RiteStatus(val badge: Badge?, val invited: Int, val needed: Int, val 
 /** The rites of every level: badges from the games, and the people invited. */
 object LevelRites {
     private val rites = mapOf(
-        Level.BIT_PART to LevelRite(listOf(Badge.DECK_DONE, Badge.HOT_STREAK), 0),
-        Level.SUPPORTING to LevelRite(listOf(Badge.CHAIN_GANG, Badge.FIRST_DAILY), 1),
-        Level.LEAD to LevelRite(listOf(Badge.WINNER, Badge.PERFECT_GRID), 5),
+        // Every level asks for check-ins too, more as it goes: watching with the site is what the levels are about.
+        Level.BIT_PART to LevelRite(listOf(Badge.DECK_DONE, Badge.HOT_STREAK, Badge.CHECKED_IN), 0),
+        Level.SUPPORTING to LevelRite(listOf(Badge.CHAIN_GANG, Badge.FIRST_DAILY, Badge.DOUBLE_BILL), 1),
+        Level.LEAD to LevelRite(listOf(Badge.WINNER, Badge.PERFECT_GRID, Badge.NIGHT_SHIFT), 5),
         // From Star on, each level has a chain link of its own: Bacon, Willis, Nicholson, and Streep at the top.
-        Level.STAR to LevelRite(listOf(Badge.CAST_CALL, Badge.ODD_EYE, Badge.BACON_NUMBER, Badge.STAR_SPONSOR), 10),
-        Level.SUPER_STAR to LevelRite(listOf(Badge.DAILY_WEEK, Badge.WILLIS_NUMBER), 15),
-        Level.LEGEND to LevelRite(listOf(Badge.NIGHT_HOST, Badge.CHAMPION, Badge.NICHOLSON_NUMBER), 20),
-        Level.GOAT to LevelRite(listOf(Badge.STREEP_NUMBER), 25)
+        Level.STAR to LevelRite(listOf(Badge.CAST_CALL, Badge.ODD_EYE, Badge.BACON_NUMBER, Badge.REGULAR, Badge.STAR_SPONSOR), 10),
+        Level.SUPER_STAR to LevelRite(listOf(Badge.DAILY_WEEK, Badge.WILLIS_NUMBER, Badge.FIFTY_NIGHTS), 15),
+        Level.LEGEND to LevelRite(listOf(Badge.NIGHT_HOST, Badge.CHAMPION, Badge.NICHOLSON_NUMBER, Badge.YEAR_ROUND), 20),
+        Level.GOAT to LevelRite(listOf(Badge.STREEP_NUMBER, Badge.HUNDRED_NIGHTS), 25)
     )
 
     fun of(level: Level): LevelRite = rites[level] ?: LevelRite(emptyList(), 0)
@@ -57,11 +58,12 @@ object LevelRites {
 }
 
 /**
- * Where a user stands: their level, their score, the movies watched and
- * checked in that make it, how far the next level is, as a share of the
- * way from this level to the next, for the ring around the avatar, and the
- * level the points alone would give ([byPoints]) with what still holds the
- * user back from it ([rites]), when something does.
+ * Where a user stands: their level, their score, which is the movies
+ * watched, a check-in counting as watched, the movies checked in among
+ * them, how far the next level is, as a share of the way from this level
+ * to the next, for the ring around the avatar, and the level the movies
+ * alone would give ([byPoints]) with what still holds the user back from
+ * it ([rites]), when something does.
  */
 data class LevelProgress(
     val level: Level,
@@ -74,7 +76,7 @@ data class LevelProgress(
     /** Whether the points reach a level the rites do not yet. */
     val held: Boolean get() = byPoints.reaches(level) && byPoints != level
     val next: Level? get() = level.next
-    /** The movies still to watch for the next level, a check-in counting one and a half; 0 at the top. */
+    /** The movies still to watch for the next level; 0 at the top. */
     val toNext: Int get() = next?.let { ceil(it.threshold - score).toInt().coerceAtLeast(0) } ?: 0
     /** The way from this level to the next, from 0 to 1; full at the top. */
     val fraction: Double get() = next?.let { ((score - level.threshold) / (it.threshold - level.threshold)).coerceIn(0.0, 1.0) } ?: 1.0
@@ -113,11 +115,11 @@ data class LevelsView(val progress: LevelProgress, val rungs: List<LevelRung>, v
 }
 
 /**
- * The levels: a user's score is the movies they watched, one each, and a
- * half more for every movie they checked in, so watching on the site counts
- * more than an imported history. The level the score reaches is kept on the
- * user, raised whenever it is looked at and never lowered, and decides which
- * games they can start ([GameRules]).
+ * The levels: a user's score is the movies they watched, one each, a
+ * check-in counting as watched; the check-ins earn badges of their own,
+ * which the levels ask for. The level the score and the rites reach is
+ * kept on the user, raised whenever it is looked at and never lowered, and
+ * decides which games they can start ([GameRules]).
  */
 class LevelService(
     private val userRepository: UserRepository,
@@ -135,7 +137,7 @@ class LevelService(
     fun progressIn(user: User): LevelProgress {
         val watched = movieSeenRepository.countFor(user)
         val checkedIn = checkInRepository.countMovies(user)
-        val score = watched + CHECK_IN_EXTRA * checkedIn
+        val score = watched.toDouble()
         val byPoints = Level.of(score)
         // The points reach a level; the rites of every level up to it must be met too, each in turn.
         val earned = userBadgeRepository.findAll(user).map { it.badge }.toSet()
@@ -207,8 +209,6 @@ class LevelService(
             "Five hundred movies: your own star on the Bandstand in Bandra, where Bollywood takes its evening walk by the sea.",
             "Bollywood"
         )
-        /** What a check-in adds to a watched movie's one point. */
-        const val CHECK_IN_EXTRA = 0.5
         private const val WALL_POSTERS = 36
     }
 }
