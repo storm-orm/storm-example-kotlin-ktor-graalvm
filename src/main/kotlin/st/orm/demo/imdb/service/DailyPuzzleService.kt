@@ -139,7 +139,8 @@ class DailyPuzzleService(
         val groups = puzzleOf(today, DailyGame.CONNECTIONS, play?.filterKey, user.movieFilter).data.groups
         val found = play?.answers.orEmpty()
         val movies = movieRepository.findAllById(groups.flatMap { it.movies }).associateBy { it.id }
-        fun shown(group: ConnectionGroup) = FoundGroup(group.trait.label, group.trait.level, group.movies.mapNotNull(movies::get))
+        // A group's colour is its place in the grid, the directors first.
+        fun shown(group: ConnectionGroup) = FoundGroup(group.trait.label, groups.indexOf(group) + 1, group.movies.mapNotNull(movies::get))
         val foundGroups = found.mapNotNull { key -> groups.firstOrNull { it.trait.key == key } }
         val mistakes = play?.mistakes ?: 0
         val finished = foundGroups.size == groups.size || mistakes >= MAX_MISTAKES

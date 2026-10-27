@@ -15,9 +15,6 @@ import st.orm.demo.imdb.repository.ClubMemberRepository
 import st.orm.demo.imdb.repository.DailyPlayRepository
 import st.orm.demo.imdb.repository.DailyPuzzleRepository
 import st.orm.demo.imdb.repository.FriendshipRepository
-import st.orm.demo.imdb.repository.MovieCountryRepository
-import st.orm.demo.imdb.repository.MovieGenreRepository
-import st.orm.demo.imdb.repository.MovieLanguageRepository
 import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.PrincipalRepository
 import st.orm.demo.imdb.repository.RatingRepository
@@ -37,12 +34,7 @@ import kotlin.random.Random
 @StormTest(scripts = ["/schema.sql", "/data.sql"])
 class DailyPuzzleServiceTest {
 
-    private fun factory(orm: ORMTemplate) = PuzzleFactory(
-        orm.repository<PrincipalRepository>(),
-        orm.repository<MovieGenreRepository>(),
-        orm.repository<MovieCountryRepository>(),
-        orm.repository<MovieLanguageRepository>()
-    )
+    private fun factory(orm: ORMTemplate) = PuzzleFactory(orm.repository<PrincipalRepository>())
 
     private fun service(orm: ORMTemplate) = DailyPuzzleService(
         factory(orm),
@@ -60,19 +52,43 @@ class DailyPuzzleServiceTest {
     private fun trait(key: String, level: Int) = Trait(key, key, level)
 
     @Test
-    fun `a movie's traits are its director, its stars, its year and its runtime`(orm: ORMTemplate) {
+    fun `a movie's traits are its director and its stars, nothing else`(orm: ORMTemplate) {
         val movies = orm.repository<MovieRepository>().findAllById(listOf("tt0133093", "tt0068646"))
         val traits = factory(orm).traitsOf(movies)
-        val matrix = traits.getValue("tt0133093").map { it.label }
-        assertTrue("Directed by Lana Wachowski" in matrix, "$matrix")
-        assertTrue("With Keanu Reeves" in matrix, "$matrix")
-        assertTrue("From 1999" in matrix, "$matrix")
-        assertTrue("Over 2½ hours" in traits.getValue("tt0068646").map { it.label })
+        assertEquals(setOf("Directed by Lana Wachowski", "With Keanu Reeves", "With Laurence Fishburne"), traits.getValue("tt0133093").map { it.label }.toSet())
+        assertEquals(setOf("With Al Pacino"), traits.getValue("tt0068646").map { it.label }.toSet())
+    }
+
+    @Test
+    fun `a movie and its sequel are of one series`() {
+        fun same(a: String, b: String) = PuzzleFactory.sameSeries(PuzzleFactory.wordsOf(a), PuzzleFactory.wordsOf(b))
+        assertTrue(same("Dune", "Dune: Part Two"))
+        assertTrue(same("Ant-Man", "Ant-Man and the Wasp"))
+        assertTrue(same("Toy Story", "Toy Story 3"))
+        assertTrue(same("The Matrix", "The Matrix Reloaded"))
+        assertTrue(same("Rocky", "Rocky II"))
+        assertTrue(same("Pirates of the Caribbean: The Curse of the Black Pearl", "Pirates of the Caribbean: On Stranger Tides"))
+        assertTrue(same("The Bourne Supremacy", "The Bourne Ultimatum"))
+        assertTrue(same("Rise of the Planet of the Apes", "Dawn of the Planet of the Apes"))
+        assertTrue(same("X-Men", "X2: X-Men United"))
+        assertFalse(same("The Shining", "The Usual Suspects"))
+        assertFalse(same("Inception", "Interstellar"))
+    }
+
+    @Test
+    fun `an odd one out never holds a movie with its sequel`(orm: ORMTemplate) {
+        val nolan = trait("dir:villeneuve", 1)
+        val movies = listOf("Dune", "Dune: Part Two", "Arrival", "Sicario", "Prisoners", "Heat", "Up").mapIndexed { i, title -> Movie("m$i", title, title, 2000, 120) }
+        val traits = movies.associate { it.id to (if (it.primaryTitle != "Heat" && it.primaryTitle != "Up") setOf(nolan) else emptySet()) }
+        repeat(20) { seed ->
+            val titles = factory(orm).oddOneOut(movies, traits, Random(seed), count = 1).single().movies.map { id -> movies.first { it.id == id }.primaryTitle }
+            assertFalse("Dune" in titles && "Dune: Part Two" in titles, "$titles")
+        }
     }
 
     @Test
     fun `an odd one out has one answer only, the three sharing nothing else`(orm: ORMTemplate) {
-        val movies = (1..12).map { Movie("m$it", "Movie $it", "Movie $it", 2000, 120) }
+        val movies = (1..12).map { Movie("m$it", "Title$it", "Title$it", 2000, 120) }
         val nolan = trait("dir:nolan", 1)
         val y1994 = trait("year:1994", 3)
         val traits = movies.associate { it.id to mutableSetOf<Trait>() }.also {
@@ -94,15 +110,16 @@ class DailyPuzzleServiceTest {
 
     @Test
     fun `a connections grid has four groups that no other movie of the sixteen fits`(orm: ORMTemplate) {
-        val levels = listOf(trait("dir:a", 1), trait("act:b", 2), trait("year:1999", 3), trait("genre:Western", 4))
-        val movies = (1..20).map { Movie("m$it", "Movie $it", "Movie $it", 2000, 120) }
+        val levels = listOf(trait("act:b", 2), trait("dir:a", 1), trait("act:c", 2), trait("dir:d", 1))
+        val movies = (1..20).map { Movie("m$it", "Title$it", "Title$it", 2000, 120) }
         val traits = movies.associate { it.id to mutableSetOf<Trait>() }.also {
             levels.forEachIndexed { g, trait -> (1..5).forEach { i -> it.getValue("m${g * 5 + i}") += trait } }
         }
         val groups = factory(orm).connections(movies, traits, Random(7))
         assertNotNull(groups)
         groups!!
-        assertEquals(listOf(1, 2, 3, 4), groups.map { it.trait.level })
+        // The directors first.
+        assertEquals(listOf(1, 1, 2, 2), groups.map { it.trait.level })
         val sixteen = groups.flatMap { it.movies }
         assertEquals(16, sixteen.toSet().size)
         groups.forEach { group -> assertEquals(4, sixteen.count { group.trait in traits.getValue(it) }) }

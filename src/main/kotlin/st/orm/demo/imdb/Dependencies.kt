@@ -140,7 +140,7 @@ fun Application.configureDependencies() {
             )
         }
         provide { DraftService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
-        provide { PuzzleFactory(resolve(), resolve(), resolve(), resolve()) }
+        provide { PuzzleFactory(resolve()) }
         provide { DailyPuzzleService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { ConnectService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PlayService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
