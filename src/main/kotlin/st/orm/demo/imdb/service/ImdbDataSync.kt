@@ -30,6 +30,7 @@ import tools.jackson.module.kotlin.readValue
 import java.math.BigDecimal
 import java.nio.file.Files
 import java.nio.file.Path
+import java.time.Duration
 import java.time.Instant
 import java.util.zip.GZIPInputStream
 
@@ -86,6 +87,15 @@ class ImdbDataSync(
 
     /** Whether the catalogue holds any movies, that is, whether the initial import has run. */
     fun isEmpty(): Boolean = !movieRepository.exists()
+
+    /**
+     * Whether the catalogue was synced lately: a movie joined it within
+     * [maxAge]. IMDB adds movies every day, so a catalogue in step with it
+     * always has a recent addition, and a start that finds one leaves the
+     * sync to its daily hour rather than load the database while it serves.
+     */
+    fun isFresh(maxAge: Duration, now: Instant = Instant.now()): Boolean =
+        movieAdditionRepository.latestAddedAt()?.let { Duration.between(it, now) <= maxAge } ?: false
 
     suspend fun sync() = withContext(Dispatchers.IO) {
         val startedAt = System.currentTimeMillis()

@@ -1688,11 +1688,11 @@ function setupKeyboard() {
                 const key = keyOf(letter);
                 if (key) key.classList.add('pressed');
                 screen.textContent += letter;
-                await wait(90 + Math.random() * 70);
+                await wait(170 + Math.random() * 110);
                 if (key) key.classList.remove('pressed');
-                await wait(30);
+                await wait(60);
             }
-            await wait(1600);
+            await wait(2400);
         }
     })();
 }

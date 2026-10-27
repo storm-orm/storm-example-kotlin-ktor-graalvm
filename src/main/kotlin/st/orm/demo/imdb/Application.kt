@@ -6,6 +6,14 @@ import io.ktor.server.application.install
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.plugins.di.dependencies
+import io.ktor.http.CacheControl
+import io.ktor.http.ContentType
+import io.ktor.http.content.CachingOptions
+import io.ktor.server.plugins.cachingheaders.CachingHeaders
+import io.ktor.server.plugins.compression.Compression
+import io.ktor.server.plugins.compression.deflate
+import io.ktor.server.plugins.compression.gzip
+import io.ktor.server.plugins.compression.minimumSize
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
@@ -122,11 +130,15 @@ private fun Application.configureRecommendationRefresh() {
  * a day, at a fixed time (see ImdbDataSync). On an empty database the first sync is the initial
  * import, and it runs before the application serves: blocking startup until it finishes is
  * intentional, the Ktor counterpart of Spring's ApplicationRunner. With data present, the startup
- * sync runs in the background instead, so a deploy applies a changed configuration and catches up
- * on missed days without delaying startup. The background runs happen in the application's own
+ * sync runs in the background instead, so a deploy catches up on missed days without delaying
+ * startup; a catalogue synced within the last two days is left alone, since the sync would load
+ * the database for a minute while the application serves, for nothing the daily run will not do. The background runs happen in the application's own
  * scope, which cancels them at shutdown. A failed run is logged; the next one catches up, since a
  * sync always brings the whole catalogue up to date.
  */
+/** A catalogue with an addition this recent is in step with IMDB: no sync at startup. */
+private val STARTUP_SYNC_UNLESS_FRESHER_THAN: java.time.Duration = java.time.Duration.ofHours(48)
+
 private fun Application.configureImdbSync() {
     val properties: ImdbSyncProperties by dependencies
     if (!properties.enabled) {
@@ -149,8 +161,10 @@ private fun Application.configureImdbSync() {
     if (imported) {
         runBlocking { imdbDataSync.sync() }
     }
+    val fresh = !imported && imdbDataSync.isFresh(STARTUP_SYNC_UNLESS_FRESHER_THAN)
+    if (fresh) environment.log.info("IMDB sync: the catalogue is fresh, the startup sync is skipped; the daily sync is at {} UTC.", properties.dailyAt)
     launch {
-        if (!imported) syncInBackground()
+        if (!imported && !fresh) syncInBackground()
         while (isActive) {
             delay(timeUntil(properties.dailyAt).toMillis())
             syncInBackground()
@@ -389,6 +403,22 @@ private fun Application.configureStorm() {
  * kotlinx.serialization round-trip unchanged.
  */
 private fun Application.configureSerialization() {
+    // Pages and scripts travel gzipped: the stylesheet and the script are 300 KB plain, a tenth of that compressed.
+    install(Compression) {
+        gzip { priority = 1.0 }
+        deflate { priority = 0.9; minimumSize(1024) }
+    }
+    // The stylesheet, the script and the images are kept by the browser for a year: their links carry a version
+    // that changes with every start (Accounts.ASSET_VERSION), so a deploy still reaches everyone at once.
+    install(CachingHeaders) {
+        options { _, content ->
+            val type = content.contentType?.withoutParameters()
+            if (type != null && (type == ContentType.Text.CSS || type == ContentType.Text.JavaScript || type == ContentType.Application.JavaScript || type.match(ContentType.Image.Any)))
+                CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 365 * 24 * 3600, visibility = CacheControl.Visibility.Public))
+            else null
+        }
+    }
+
     install(ContentNegotiation) {
         json(Json { serializersModule = StormSerializers })
     }

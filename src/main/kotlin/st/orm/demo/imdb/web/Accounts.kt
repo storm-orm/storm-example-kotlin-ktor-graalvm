@@ -18,6 +18,9 @@ import st.orm.demo.imdb.service.Countries
 import st.orm.demo.imdb.service.Country
 import st.orm.demo.imdb.service.FreepodSignIn
 import st.orm.demo.imdb.service.FriendService
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import java.time.Instant
 import st.orm.demo.imdb.service.LevelProgress
 import st.orm.demo.imdb.service.LevelService
 import st.orm.demo.imdb.service.StreamingService
@@ -88,23 +91,31 @@ fun Application.configureAccounts() {
  * ring around their avatar. Every page responds through here, so no controller passes
  * them itself.
  */
+/** The version the links to the stylesheet, the script and the images carry: a new one every start, so a deploy is seen at once while the browser keeps them for a year otherwise. */
+val ASSET_VERSION: String = Instant.now().epochSecond.toString(36)
+
 suspend fun ApplicationCall.respondPage(content: ThymeleafContent) {
     val user = currentUser()
-    val requestCount = if (user.name != null) application.attributes[FriendServiceKey].countRequests(user) else 0L
-    val hasServices = isSignedIn() && country() != null && application.attributes[StreamingServiceKey].servicesOf(user).isNotEmpty()
-    val level = if (user.name != null) levelProgress() else null
-    // A section page drifts a wall of posters behind its title: recommendations, or what the visitor watched.
-    val wall = WALLS[content.template]?.let { application.attributes[WallServiceKey].wallOf(user, it) }
-    val layout = mapOf(
-        "account" to user,
-        "level" to level,
-        "wall" to wall,
-        "attention" to application.attributes[AttentionServiceKey].attentionOf(user),
-        "requestCount" to requestCount,
-        "hostedOnFreepod" to application.attributes[FreepodSignInKey].enabled,
-        "tmdb" to application.attributes[TmdbServiceKey].enabled,
-        "hasServices" to hasServices
-    )
+    // What every page carries, read side by side: each is its own transaction, and none waits on another.
+    val layout = coroutineScope {
+        val requestCount = async { if (user.name != null) application.attributes[FriendServiceKey].countRequests(user) else 0L }
+        val hasServices = async { isSignedIn() && country() != null && application.attributes[StreamingServiceKey].servicesOf(user).isNotEmpty() }
+        val level = async { if (user.name != null) levelProgress() else null }
+        // A section page drifts a wall of posters behind its title: recommendations, or what the visitor watched.
+        val wall = async { WALLS[content.template]?.let { application.attributes[WallServiceKey].wallOf(user, it) } }
+        val attention = async { application.attributes[AttentionServiceKey].attentionOf(user) }
+        mapOf(
+            "account" to user,
+            "level" to level.await(),
+            "wall" to wall.await(),
+            "attention" to attention.await(),
+            "requestCount" to requestCount.await(),
+            "hostedOnFreepod" to application.attributes[FreepodSignInKey].enabled,
+            "tmdb" to application.attributes[TmdbServiceKey].enabled,
+            "hasServices" to hasServices.await(),
+            "assets" to ASSET_VERSION
+        )
+    }
     respond(ThymeleafContent(content.template, content.model + layout))
 }
 

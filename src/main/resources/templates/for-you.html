@@ -17,6 +17,8 @@
             <a th:href="@{/for-you}" th:classappend="${!onServices} ? 'active'">All picks</a>
             <a th:href="@{/for-you(on='services')}" th:classappend="${onServices} ? 'active'" id="on-services-tab">On my services</a>
         </nav>
+        <!-- The other tab's page is fetched ahead, so switching is a page the browser already has. -->
+        <link rel="prefetch" th:if="${hasServices}" th:href="${onServices} ? @{/for-you} : @{/for-you(on='services')}">
     </div>
 </header>
 

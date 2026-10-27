@@ -12,6 +12,8 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.thymeleaf.ThymeleafContent
 import io.ktor.server.util.getOrFail
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import st.orm.demo.imdb.model.Game
 import st.orm.demo.imdb.model.GameMatch
 import st.orm.demo.imdb.model.GameMode
@@ -69,12 +71,17 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
         val full = call.request.queryParameters["full"] != null
         val user = call.currentUser()
         badgeService.awardIfDue(user)
-        val level = call.levelProgress()
+        // The level, the games and the badge count side by side: each its own transaction, none waiting on another.
+        val (level, play, badgeCount) = coroutineScope {
+            val level = async { call.levelProgress() }
+            val play = async { playService.playOf(user) }
+            val badgeCount = async { badgeService.countOf(user) }
+            Triple(level.await(), play.await(), badgeCount.await())
+        }
         val locks = levelService.locksOf(level)
-        val play = playService.playOf(user)
         call.noteGamesWaiting(play.games.count { it.yourMove })
         call.respondPage(ThymeleafContent("play", mapOf("play" to play, "full" to full, "maxOpen" to PlayService.MAX_OPEN,
-            "locks" to locks, "levels" to GameRules.levelOf.mapValues { it.value.label }, "level" to level, "badgeCount" to badgeService.countOf(user), "locked" to call.request.queryParameters["locked"]?.let { locks[it] },
+            "locks" to locks, "levels" to GameRules.levelOf.mapValues { it.value.label }, "level" to level, "badgeCount" to badgeCount, "locked" to call.request.queryParameters["locked"]?.let { locks[it] },
             "refused" to call.request.queryParameters["refused"]?.let { name -> GameRules.all.firstOrNull { it.game.name == name } })))
     }
 

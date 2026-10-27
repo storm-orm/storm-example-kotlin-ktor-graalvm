@@ -949,13 +949,14 @@ img { display: block; }
 .nav-signin:hover { color: var(--text); background: var(--surface-raised); }
 
 /* The account page: the logins, each with its provider's mark, and the way out. */
-.account-logins { max-width: 520px; margin-bottom: 20px; }
+.account-logins { margin-bottom: 20px; }
+.signout-form { margin-top: 22px; }
 
 .account-login { display: inline-flex; align-items: center; gap: 10px; }
 
 .signout-form { margin: 0 0 22px; }
 
-.country-card { max-width: 760px; margin-bottom: 22px; }
+.country-card { margin-bottom: 22px; }
 
 .country-select {
     display: block;
@@ -973,7 +974,7 @@ img { display: block; }
 .country-select option { background: var(--surface-raised); color: var(--text); }
 
 /* The streaming services of the user's country, and the movies they want picked: each choice a tile, ticked by a click. */
-.services-card, .movies-card { max-width: 760px; margin-bottom: 22px; }
+.services-card, .movies-card { margin-bottom: 22px; }
 
 .choice-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; margin-bottom: 16px; }
 
@@ -1511,7 +1512,6 @@ img { display: block; }
 .page-title { font-family: var(--font-display); font-size: 34px; margin: 0 0 6px; }
 
 .page-subtitle { color: var(--text-muted); font-size: 15px; margin: 0; }
-.for-you-tabs { margin-top: 16px; }
 
 /* A page header with actions: the title on the left, the actions beside it on the right, under it on phones. */
 .page-header-row { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px 24px; }
@@ -3335,9 +3335,13 @@ body::after {
         linear-gradient(180deg, transparent 50%, rgba(var(--background-rgb), 0.95));
 }
 
-/* Every hero but the home page's and the movie page's stands the same height, its words set at the bottom. */
-.play-hero-content { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: flex-end; min-height: 250px; padding-top: 34px; padding-bottom: 28px; box-sizing: border-box; }
-.play-hero-content.page-header-row { flex-direction: row; justify-content: space-between; align-items: flex-end; }
+/* Every hero but the home page's and the movie page's stands the same height, its words set in the middle. */
+.play-hero-content { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; min-height: 250px; padding-top: 30px; padding-bottom: 30px; box-sizing: border-box; }
+.play-hero-content.page-header-row { flex-direction: row; justify-content: space-between; align-items: center; }
+.play-hero-content .page-subtitle { margin-top: 2px; }
+/* The tabs of a hero, such as For You's, sit under the words with air between, no wider than their words. */
+.play-hero-content .view-tabs { align-self: flex-start; margin: 18px 0 0; }
+.play-hero-content .page-title-row { align-self: stretch; }
 
 .play-hero-content .page-subtitle { max-width: 560px; }
 
@@ -4416,7 +4420,7 @@ body::after {
 .community-hero .play-wall { opacity: 1; }
 /* The keyboard behind the title: the rows set in like a real one's, each key a cap with its letter; a key pressed
    lights up and sinks for a moment; what was typed shows on the line above. Dimmed on the manage tab. */
-.keyboard-wall { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 12px; padding: 0 0 14px; pointer-events: none; opacity: 0.5; -webkit-mask-image: linear-gradient(90deg, transparent, #000 25%, #000 85%, transparent); mask-image: linear-gradient(90deg, transparent, #000 25%, #000 85%, transparent); }
+.keyboard-wall { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 12px; padding: 0 0 48px; pointer-events: none; opacity: 0.5; -webkit-mask-image: linear-gradient(90deg, transparent, #000 25%, #000 85%, transparent); mask-image: linear-gradient(90deg, transparent, #000 25%, #000 85%, transparent); }
 .keyboard-screen { display: flex; align-items: center; gap: 2px; min-height: 30px; font-family: var(--font-display); font-size: 24px; letter-spacing: 1px; text-transform: uppercase; color: rgba(var(--violet-rgb), 0.95); text-shadow: 0 0 14px rgba(var(--violet-rgb), 0.6); white-space: nowrap; }
 .keyboard-caret { width: 10px; height: 24px; background: rgba(var(--violet-rgb), 0.8); animation: keyboard-caret 1s steps(2) infinite; }
 @keyframes keyboard-caret { to { opacity: 0; } }

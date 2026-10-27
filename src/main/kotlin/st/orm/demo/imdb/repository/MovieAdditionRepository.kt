@@ -40,6 +40,10 @@ interface MovieAdditionRepository : EntityRepository<MovieAddition, Movie> {
      * The movies released in or after [fromYear] that joined the catalogue
      * since a moment, newest first: the new arrivals among the recommendations.
      */
+    /** When a movie last joined the catalogue; null before the first. The startup sync asks whether the catalogue is fresh. */
+    fun latestAddedAt(): Instant? =
+        select().orderByDescending(MovieAddition_.addedAt).limit(1).optionalResult?.addedAt
+
     fun findAddedSince(since: Instant, fromYear: Int, limit: Int): List<MovieAddition> =
         select((MovieAddition_.addedAt greaterEq since) and (MovieAddition_.movie.startYear greaterEq fromYear))
             .orderByDescending(MovieAddition_.addedAt)

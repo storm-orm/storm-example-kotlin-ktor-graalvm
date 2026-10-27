@@ -22,8 +22,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&display=swap">
-    <link rel="stylesheet" th:href="@{/css/app.css}">
-    <script th:src="@{/js/app.js}" defer></script>
+    <!-- The links carry the version of this start: the browser keeps the files for a year, and a deploy renews them. -->
+    <link rel="stylesheet" th:href="@{/css/app.css(v=${assets})}">
+    <script th:src="@{/js/app.js(v=${assets})}" defer></script>
 </head>
 <body>
 
@@ -83,7 +84,7 @@
     <div class="container navbar-inner">
         <div class="brand">
             <a th:href="@{/}" title="Storm Movies">
-                <img class="brand-logo" th:src="@{/img/storm-logo.png}" alt="Storm Movies">
+                <img class="brand-logo" th:src="@{/img/storm-logo.png(v=${assets})}" alt="Storm Movies">
             </a>
         </div>
         <!-- Five places: Movies and My Movies open a menu of their pages; each of those pages names its own under its title. -->

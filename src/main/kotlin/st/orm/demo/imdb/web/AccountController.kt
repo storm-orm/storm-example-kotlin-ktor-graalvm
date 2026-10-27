@@ -102,7 +102,9 @@ fun Route.accountRoutes(
                     "country" to country,
                     "services" to services.map { ServiceChoice(it.id, it.name, it.logoPath?.let(::tmdbLogoUrl), it.id in myServices) },
                     "tags" to tags,
-                    "languages" to languages
+                    "languages" to languages,
+                    // Signed in, the sign-ins and their linking sit behind the Manage button, as the community's do.
+                    "manage" to (call.request.queryParameters["manage"] != null)
                 )
             )
         )
