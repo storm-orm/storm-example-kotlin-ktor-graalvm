@@ -3773,6 +3773,7 @@ body::after {
 .player-swipes .quiz-board-row { margin-bottom: 6px; }
 .player-wants { display: flex; flex-wrap: wrap; gap: 10px; }
 .player-want { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 64px; }
+.player-want .poster { width: 64px; }
 .player-want:first-child .poster { box-shadow: 0 0 0 2px var(--accent), 0 0 18px rgba(var(--accent-rgb), 0.5); }
 .player-want-time { font-size: 11.5px; color: var(--text-muted); }
 .swipe-speed { color: var(--accent-strong); }
