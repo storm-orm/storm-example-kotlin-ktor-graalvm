@@ -33,7 +33,8 @@ class MatchService(
     private val friendshipRepository: FriendshipRepository,
     private val clubRepository: ClubRepository,
     private val clubMemberRepository: ClubMemberRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val levelService: LevelService
 ) {
 
     /** The host's friends and clubs, for the forms that start a match. */
@@ -45,26 +46,38 @@ class MatchService(
      * The players of a new match, the host first: the host alone, the host
      * and a friend, or a club's members, the others in an order of chance;
      * null when the friend is no friend or the host is not in the club. A
-     * club and its members come along for a club's match.
+     * club and its members come along for a club's match. A game played
+     * from what everyone watched ([GameRule.everyoneNeedsLevel]) asks its
+     * level of every player: a friend below it cannot be challenged, and a
+     * club's members below it are left out.
      */
-    fun playersOf(host: User, opponents: Opponents): Pair<Club?, List<User>>? = when (opponents.mode) {
+    fun playersOf(host: User, opponents: Opponents, rule: GameRule? = null): Pair<Club?, List<User>>? = when (opponents.mode) {
         GameMode.SOLO -> null to listOf(host)
         GameMode.FRIEND -> {
             val friend = opponents.friendId?.let(userRepository::findById)?.takeIf { friendshipRepository.areFriends(host, it) }
-            friend?.let { null to listOf(host, it) }
+            friend?.takeIf { rule == null || mayJoin(it, rule) }?.let { null to listOf(host, it) }
         }
         GameMode.CLUB -> {
             val club = opponents.clubId?.let(clubRepository::findById)
             val members = club?.let { clubMemberRepository.findMembers(listOf(it)).map { member -> member.user } }
             if (club == null || members == null || members.none { it.id == host.id }) null
-            else club to listOf(host) + members.filter { it.id != host.id }.shuffled()
+            else club to listOf(host) + members.filter { it.id != host.id && (rule == null || mayJoin(it, rule)) }.shuffled()
         }
     }
 
-    /** Stores a new match with its players, each in their turn. */
-    fun start(match: GameMatch, players: List<User>, now: Instant): Pair<GameMatch, List<GamePlayer>> {
-        val stored = gameMatchRepository.insertAndFetch(match)
-        val rows = players.mapIndexed { order, user -> GamePlayer(stored, user, order, now) }
+    /** Whether a user may play a game with others: at its level, where the game asks that of every player. */
+    fun mayJoin(user: User, rule: GameRule): Boolean =
+        !rule.everyoneNeedsLevel || levelService.progressIn(user).level.reaches(rule.level)
+
+    /** Whether a user may join a match of a club: as above, for the match's game. */
+    fun mayJoin(user: User, match: GameMatch): Boolean = mayJoin(user, GameRules.of(match.game))
+
+    /** Stores a new match with its players, each in their turn, and, played from a pool, where its movies came from. */
+    fun start(match: GameMatch, players: List<User>, now: Instant, pool: MoviePool? = null): Pair<GameMatch, List<GamePlayer>> {
+        val stored = gameMatchRepository.insertAndFetch(
+            if (pool == null) match else match.copy(pool = pool.kind.name, poolSize = pool.size, poolFallback = pool.fellBack)
+        )
+        val rows = players.mapIndexed { order, user -> GamePlayer(stored, user, order, now).copy(poolSeen = pool?.seenCounts?.get(user.id)) }
         gamePlayerRepository.insert(rows)
         return stored to rows
     }

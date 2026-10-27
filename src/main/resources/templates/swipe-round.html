@@ -14,6 +14,7 @@
             <th:block th:if="${round.hoursLeft != null and !round.over}" th:text="|Open ${round.hoursLeft == 1 ? 'one more hour' : round.hoursLeft + ' more hours'}.|">Open 40 more hours.</th:block>
             <th:block th:if="${round.over}">The round is closed.</th:block>
         </p>
+        <p th:replace="~{fragments/games :: poolNote(${round.match}, ${round.players})}"></p>
     </div>
 </header>
 

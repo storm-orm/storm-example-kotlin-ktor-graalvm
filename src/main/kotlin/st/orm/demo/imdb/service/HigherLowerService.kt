@@ -63,7 +63,8 @@ class HigherLowerService(
     private val gameCardRepository: GameCardRepository,
     private val ratingRepository: RatingRepository,
     private val clubMemberRepository: ClubMemberRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val poolService: PoolService
 ) {
 
     /** Starts a match with the opponents, dealing its deck; null when the friend or the club is not the host's. */
@@ -71,22 +72,23 @@ class HigherLowerService(
         val stored = userRepository.touch(host, now)
         val (club, players) = matchService.playersOf(stored, opponents) ?: return@transaction null
         val solo = opponents.mode == GameMode.SOLO
+        // Dealt from what the players watched between them; a club's members join the round as they play it.
+        val pool = poolService.poolOf(stored, players, GameRules.of(Game.HIGHER_LOWER).pool, MINIMUM_VOTES, POOL)
         val (match, _) = matchService.start(
             GameMatch(game = Game.HIGHER_LOWER, mode = opponents.mode, club = club, host = stored, createdAt = now,
                 closesAt = if (solo) null else now.plus(MatchService.ROUND), endedAt = null),
-            // A club's members join the round as they play it.
             if (opponents.mode == GameMode.CLUB) listOf(stored) else players,
-            now
+            now,
+            pool
         )
-        gameCardRepository.insert(deal(stored, if (solo) SOLO_CARDS else ROUND_CARDS, Random(now.toEpochMilli()))
+        gameCardRepository.insert(deal(pool, if (solo) SOLO_CARDS else ROUND_CARDS, Random(now.toEpochMilli()))
             .mapIndexed { position, rating -> GameCard(match, position, rating.movie, rating.averageRating) })
         match
     }
 
-    /** A deck of the best-known movies the host's filter lets through, shuffled, no rating twice in a row. */
-    private fun deal(host: User, size: Int, random: Random) =
-        ratingRepository.findBestKnown(host.movieFilter, MINIMUM_VOTES, POOL)
-            .ifEmpty { ratingRepository.findBestKnown(null, MINIMUM_VOTES, POOL) }
+    /** A deck from the pool, shuffled, no rating twice in a row. */
+    private fun deal(pool: MoviePool, size: Int, random: Random) =
+        pool.ratings
             .shuffled(random)
             .fold(mutableListOf<Rating>()) { deck, rating ->
                 if (deck.size < size && deck.lastOrNull()?.averageRating?.compareTo(rating.averageRating) != 0) deck += rating

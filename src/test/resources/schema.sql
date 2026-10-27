@@ -388,6 +388,9 @@ CREATE TABLE game_match (
     created_at TIMESTAMP NOT NULL,
     closes_at  TIMESTAMP,
     ended_at   TIMESTAMP,
+    pool       VARCHAR,
+    pool_size  INTEGER,
+    pool_fallback BOOLEAN NOT NULL DEFAULT FALSE,
     CHECK ((mode = 'CLUB') = (club_id IS NOT NULL))
 );
 CREATE INDEX idx_game_match_club_id ON game_match (club_id, created_at DESC);
@@ -403,6 +406,7 @@ CREATE TABLE game_player (
     hint_at    INTEGER,
     hint_shown INTEGER NOT NULL DEFAULT 0,
     closed_at  TIMESTAMP,
+    pool_seen  INTEGER,
     PRIMARY KEY (match_id, user_id)
 );
 CREATE INDEX idx_game_player_user_id ON game_player (user_id);

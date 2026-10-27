@@ -51,20 +51,17 @@ class GamesTest {
 
     private val now = Instant.parse("2026-10-27T18:00:00Z")
 
-    private fun matches(orm: ORMTemplate) = MatchService(
-        orm.repository<GameMatchRepository>(), orm.repository<GamePlayerRepository>(), orm.repository<FriendshipRepository>(),
-        orm.repository<ClubRepository>(), orm.repository<ClubMemberRepository>(), orm.repository<UserRepository>()
-    )
+    private fun matches(orm: ORMTemplate) = matchService(orm)
 
     private fun higherLower(orm: ORMTemplate) = HigherLowerService(
         matches(orm), orm.repository<GamePlayerRepository>(), orm.repository<GameCardRepository>(),
-        orm.repository<RatingRepository>(), orm.repository<ClubMemberRepository>(), orm.repository<UserRepository>()
+        orm.repository<RatingRepository>(), orm.repository<ClubMemberRepository>(), orm.repository<UserRepository>(), poolService(orm)
     )
 
     private fun chains(orm: ORMTemplate) = ChainService(
         matches(orm), orm.repository<GameMatchRepository>(), orm.repository<GamePlayerRepository>(), orm.repository<ChainLinkRepository>(),
         orm.repository<PrincipalRepository>(), orm.repository<RatingRepository>(), orm.repository<MovieRepository>(),
-        orm.repository<PersonRepository>(), orm.repository<UserRepository>()
+        orm.repository<PersonRepository>(), orm.repository<UserRepository>(), poolService(orm)
     )
 
     @Test
@@ -201,7 +198,7 @@ class GamesTest {
         ),
         CastService(
             matches(orm), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(),
-            orm.repository(), orm.repository(), orm.repository(), orm.repository(), tmdbService(orm, TmdbClient(null, jacksonObjectMapper()))
+            orm.repository(), orm.repository(), orm.repository(), orm.repository(), tmdbService(orm, TmdbClient(null, jacksonObjectMapper())), poolService(orm)
         )
     )
 
@@ -270,12 +267,12 @@ class GamesTest {
 
     private fun connects(orm: ORMTemplate) = ConnectService(
         matches(orm), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(),
-        orm.repository(), orm.repository(), orm.repository(), orm.repository(), parRange = 2..4
+        orm.repository(), orm.repository(), orm.repository(), orm.repository(), poolService(orm), parRange = 2..4
     )
 
     private fun drafts(orm: ORMTemplate) = DraftService(
         matches(orm), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(),
-        orm.repository(), orm.repository(), orm.repository(), rounds = 1, margin = 1
+        orm.repository(), orm.repository(), orm.repository(), orm.repository(), rounds = 1, margin = 1
     )
 
     @Test

@@ -97,6 +97,7 @@ class CastService(
     private val clubMemberRepository: ClubMemberRepository,
     private val userRepository: UserRepository,
     private val tmdbService: TmdbService,
+    private val poolService: PoolService,
     /** The votes a movie needs to be picked: the house picks movies everybody knows. */
     private val minimumVotes: Int = MINIMUM_VOTES,
     /** The credits a movie needs to be picked, so there is something to bid on. */
@@ -109,22 +110,24 @@ class CastService(
      * when the friend or the club is not the host's, or no movie has cast enough.
      */
     suspend fun start(host: User, opponents: Opponents, now: Instant = Instant.now()): GameMatch? {
+        val rule = GameRules.of(Game.CAST)
+        // A movie every player watched, which every player at the level is; the host's taste when they share too few.
         val pool = transaction(readOnly = true) {
-            ratingRepository.findBestKnown(host.movieFilter, minimumVotes, POOL)
-                .ifEmpty { ratingRepository.findBestKnown(null, minimumVotes, POOL) }
-                .map { it.movie }
-        }
+            val players = matchService.playersOf(host, opponents, rule)?.second ?: return@transaction null
+            poolService.poolOf(host, players, rule.pool, minimumVotes, POOL, minimum = MINIMUM_SHARED)
+        } ?: return null
         // The credits are asked outside any transaction, so no connection waits on TMDB.
-        val movie = pool.shuffled().take(TRIES).firstOrNull { creditsOf(it, askTmdb = host.name != null, now).size >= minimumCredits }
+        val movie = pool.movies.shuffled().take(TRIES).firstOrNull { creditsOf(it, askTmdb = host.name != null, now).size >= minimumCredits }
             ?: return null
         return transaction {
             val stored = userRepository.touch(host, now)
-            val (club, players) = matchService.playersOf(stored, opponents) ?: return@transaction null
+            val (club, players) = matchService.playersOf(stored, opponents, rule) ?: return@transaction null
             val (match, _) = matchService.start(
                 GameMatch(game = Game.CAST, mode = opponents.mode, club = club, host = stored, createdAt = now, closesAt = null, endedAt = null),
                 // A club's members join the round as they bid.
                 if (opponents.mode == GameMode.CLUB) listOf(stored) else players,
-                now
+                now,
+                pool
             )
             castRoundRepository.insert(CastRound(match, movie))
             match
@@ -306,21 +309,22 @@ class CastService(
         return State(if (over) CastPhase.OVER else CastPhase.NAMING, top.user, top.count, namingEnds.takeUnless { over }, right, strikes, won)
     }
 
-    /** How many bids close the bidding early: both, with a friend; every member, in a club. */
+    /** How many bids close the bidding early: both, with a friend; every member at the level, in a club. */
     private fun biddersOf(match: GameMatch): Int = when (match.mode) {
         GameMode.SOLO -> 1
         GameMode.FRIEND -> gamePlayerRepository.findPlayers(match).size
-        GameMode.CLUB -> clubMemberRepository.findMembers(listOfNotNull(match.club)).size
+        GameMode.CLUB -> clubMemberRepository.findMembers(listOfNotNull(match.club)).count { matchService.mayJoin(it.user, match) }
     }
 
-    /** Whether the visitor may bid: a player of the match, or a member of its club. */
+    /** Whether the visitor may bid: a player of the match, or a member of its club at the game's level. */
     private fun canJoin(user: User, match: GameMatch): Boolean =
-        match.mode == GameMode.CLUB || gamePlayerRepository.findById(GamePlayerPk(matchId = match.id, userId = user.id)) != null
+        gamePlayerRepository.findById(GamePlayerPk(matchId = match.id, userId = user.id)) != null ||
+            (match.mode == GameMode.CLUB && matchService.mayJoin(user, match))
 
-    /** The visitor's player in a match; a club's member joins as they bid. */
+    /** The visitor's player in a match; a club's member at the level joins as they bid. */
     private fun playerOf(user: User, match: GameMatch, now: Instant): GamePlayer? {
         gamePlayerRepository.findById(GamePlayerPk(matchId = match.id, userId = user.id))?.let { return it }
-        if (match.mode != GameMode.CLUB) return null
+        if (match.mode != GameMode.CLUB || !matchService.mayJoin(user, match)) return null
         val player = GamePlayer(match, userRepository.touch(user, now), gamePlayerRepository.findPlayers(match).size, now)
         gamePlayerRepository.insert(player)
         return player
@@ -359,6 +363,8 @@ class CastService(
         private val NAMING: Duration = Duration.ofHours(24)
         private const val MINIMUM_VOTES = 200_000
         private const val MINIMUM_CREDITS = 8
+        /** The movies the players must share for the round to be played from them. */
+        private const val MINIMUM_SHARED = 8
         private const val POOL = 300
         private const val TRIES = 5
         private const val MAX_ANSWER = 80

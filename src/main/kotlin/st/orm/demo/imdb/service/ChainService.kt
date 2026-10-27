@@ -86,22 +86,23 @@ class ChainService(
     private val ratingRepository: RatingRepository,
     private val movieRepository: MovieRepository,
     private val personRepository: PersonRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val poolService: PoolService
 ) {
 
-    /** Starts a chain with the opponents, from a well-known movie; null when the friend or the club is not the host's. */
+    /** Starts a chain with the opponents, from a well-known movie one of them watched; null when the friend or the club is not the host's. */
     suspend fun start(host: User, opponents: Opponents, now: Instant = Instant.now()): GameMatch? = transaction {
         val stored = userRepository.touch(host, now)
         val (club, players) = matchService.playersOf(stored, opponents) ?: return@transaction null
+        val pool = poolService.poolOf(stored, players, GameRules.of(Game.CHAIN).pool, MINIMUM_VOTES, START_POOL)
         val (match, _) = matchService.start(
             GameMatch(game = Game.CHAIN, mode = opponents.mode, club = club, host = stored, createdAt = now, closesAt = null, endedAt = null),
             players,
-            now
+            now,
+            pool
         )
-        val pool = ratingRepository.findBestKnown(stored.movieFilter, MINIMUM_VOTES, START_POOL)
-            .ifEmpty { ratingRepository.findBestKnown(null, MINIMUM_VOTES, START_POOL) }
-            .map { it.movie }
-        val first = pool.shuffled(Random(now.toEpochMilli())).firstOrNull { actorsOf(it).size >= MINIMUM_CAST } ?: pool.first()
+        val movies = pool.movies
+        val first = movies.shuffled(Random(now.toEpochMilli())).firstOrNull { actorsOf(it).size >= MINIMUM_CAST } ?: movies.first()
         chainLinkRepository.insert(ChainLink(match, 0, first, player = null, via = null, points = 0, addedAt = now))
         match
     }

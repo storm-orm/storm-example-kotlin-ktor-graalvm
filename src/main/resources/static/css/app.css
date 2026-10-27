@@ -4088,3 +4088,9 @@ body::after {
     .level-rung-you { grid-column: 3; justify-self: start; margin-top: 6px; }
     .level-link { display: none; }
 }
+
+/* Where a match's movies came from, under its title. */
+.pool-note { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin: 12px 0 0; font-size: 13px; color: var(--text-muted); }
+.pool-kind { display: inline-flex; align-items: center; gap: 8px; }
+.pool-kind::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 8px rgba(var(--cyan-rgb), 0.7); }
+.pool-count { padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border); }

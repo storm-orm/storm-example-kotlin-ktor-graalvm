@@ -32,7 +32,9 @@ data class GamePlayer(
     val hintAt: Int? = null,
     val hintShown: Int = 0,
     /** When the game closed for the player, ended or closed by them: it is in their archive since. */
-    val closedAt: Instant? = null
+    val closedAt: Instant? = null,
+    /** How many of the match's pool the player had watched when it started; null for one who joined later. */
+    val poolSeen: Int? = null
 ) : Entity<GamePlayerPk> {
     constructor(match: GameMatch, user: User, turnOrder: Int, now: Instant) : this(
         id = GamePlayerPk(matchId = match.id, userId = user.id),

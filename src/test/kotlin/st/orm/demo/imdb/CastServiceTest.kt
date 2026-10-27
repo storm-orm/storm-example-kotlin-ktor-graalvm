@@ -10,6 +10,7 @@ import st.orm.demo.imdb.model.Club
 import st.orm.demo.imdb.model.ClubMember
 import st.orm.demo.imdb.model.Credit
 import st.orm.demo.imdb.model.GameMode
+import st.orm.demo.imdb.model.Level
 import st.orm.demo.imdb.repository.ClubMemberRepository
 import st.orm.demo.imdb.repository.ClubRepository
 import st.orm.demo.imdb.repository.FriendshipRepository
@@ -38,11 +39,14 @@ class CastServiceTest {
      * Robbins and Morgan Freeman.
      */
     private fun service(orm: ORMTemplate) = CastService(
-        MatchService(orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository()),
+        matchService(orm),
         orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(),
-        orm.repository(), orm.repository(), orm.repository(), tmdbService(orm, TmdbClient(null, jacksonObjectMapper())),
+        orm.repository(), orm.repository(), orm.repository(), tmdbService(orm, TmdbClient(null, jacksonObjectMapper())), poolService(orm),
         minimumVotes = 2_500_000, minimumCredits = 2
     )
+
+    /** A user at Supporting, which the game asks of every player. */
+    private fun ORMTemplate.supporting(id: String, name: String) = liftTo(insertUser(id, name = name), Level.SUPPORTING)
 
     @Test
     fun `a name matches whatever its case and accents, with a typo in a long name, or a surname that only one has`() {
@@ -61,7 +65,7 @@ class CastServiceTest {
     @Test
     fun `on one's own a player names as many as they know, until three wrong names`(orm: ORMTemplate) {
         val service = service(orm)
-        val alice = orm.insertUser("alice-cast", name = "Alice")
+        val alice = orm.supporting("alice-cast", "Alice")
         val match = runBlocking { service.start(alice, Opponents(GameMode.SOLO), now) }!!
         var round = runBlocking { service.roundOf(alice, match.id, now) }!!
         assertEquals("The Shawshank Redemption", round.movie.primaryTitle)
@@ -82,9 +86,12 @@ class CastServiceTest {
     @Test
     fun `with a friend the bids stay hidden until both bid, and the highest names them all`(orm: ORMTemplate) {
         val service = service(orm)
-        val alice = orm.insertUser("alice-bid", name = "Alice")
-        val bob = orm.insertUser("bob-bid", name = "Bob")
-        orm.repository<FriendshipRepository>().befriend(alice, bob, now)
+        val alice = orm.supporting("alice-bid", "Alice")
+        val below = orm.insertUser("bob-bid", name = "Bob")
+        orm.repository<FriendshipRepository>().befriend(alice, below, now)
+        // Bob is not at Supporting: played from what both watched, the round needs him there.
+        assertNull(runBlocking { service.start(alice, Opponents(GameMode.FRIEND, friendId = below.id), now) })
+        val bob = orm.liftTo(below, Level.SUPPORTING)
         val match = runBlocking { service.start(alice, Opponents(GameMode.FRIEND, friendId = bob.id), now) }!!
 
         assertTrue(runBlocking { service.bid(alice, match.id, 2, now) })
@@ -114,9 +121,9 @@ class CastServiceTest {
     @Test
     fun `in a club a tie goes to the first bid, and a namer who runs out of time loses`(orm: ORMTemplate) {
         val service = service(orm)
-        val alice = orm.insertUser("alice-club-cast", name = "Alice")
-        val bob = orm.insertUser("bob-club-cast", name = "Bob")
-        val carol = orm.insertUser("carol-club-cast", name = "Carol")
+        val alice = orm.supporting("alice-club-cast", "Alice")
+        val bob = orm.supporting("bob-club-cast", "Bob")
+        val carol = orm.supporting("carol-club-cast", "Carol")
         val club = orm.repository<ClubRepository>().insertAndFetch(Club(name = "Office", createdAt = now))
         orm.repository<ClubMemberRepository>().insert(listOf(ClubMember(club, alice, true, now), ClubMember(club, bob, false, now), ClubMember(club, carol, false, now)))
         val match = runBlocking { service.start(alice, Opponents(GameMode.CLUB, clubId = club.id), now) }!!

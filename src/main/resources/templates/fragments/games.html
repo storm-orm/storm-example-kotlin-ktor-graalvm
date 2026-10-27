@@ -87,6 +87,19 @@
     </div>
 </aside>
 
+<!-- Where a match's movies came from: the kind of pool, and how many of them each player had watched, so a player
+     below the others knows the pool was mostly theirs. [players] may be null where a page has no plain list of them. -->
+<p th:fragment="poolNote(match, players)" class="pool-note" th:if="${match.poolKind != null}">
+    <span class="pool-kind" th:text="${match.poolFallback} ? 'Not enough movies of yours to play from yet: the house picked well-known movies of the host\'s taste' : ${match.poolKind.label}">Movies any of you has watched</span>
+    <th:block th:if="${!match.poolFallback and players != null}">
+        <span class="pool-count" th:each="player : ${players}" th:if="${player.poolSeen != null}">
+            <th:block th:if="${player.user.id == account.id}">you</th:block>
+            <th:block th:unless="${player.user.id == account.id}" th:text="${player.user.name} ?: 'someone'">Alice</th:block>
+            <th:block th:text="|${player.poolSeen} of ${match.poolSize}|">412 of 480</th:block>
+        </span>
+    </th:block>
+</p>
+
 <!-- One of the visitor's games: what it is, who it is with, and how it stands. -->
 <a th:fragment="entry(entry)" class="game-entry" th:href="@{/play/matches/{id}(id=${entry.match.id})}"
    th:classappend="${entry.yourMove} ? 'your-move'">

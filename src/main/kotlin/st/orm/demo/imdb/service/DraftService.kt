@@ -6,7 +6,10 @@ import st.orm.demo.imdb.model.Game
 import st.orm.demo.imdb.model.GameMatch
 import st.orm.demo.imdb.model.GameMode
 import st.orm.demo.imdb.model.GamePlayer
+import st.orm.demo.imdb.model.Genre
 import st.orm.demo.imdb.model.Movie
+import st.orm.demo.imdb.model.MovieFilter
+import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.repository.DraftPickRepository
 import st.orm.demo.imdb.repository.DraftThemeRepository
@@ -14,8 +17,10 @@ import st.orm.demo.imdb.repository.GamePlayerRepository
 import st.orm.demo.imdb.repository.GenreRepository
 import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieRepository
+import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.RatingRepository
 import st.orm.demo.imdb.repository.UserRepository
+import st.orm.template.entityId
 import st.orm.template.ref
 import st.orm.template.transaction
 import java.math.BigDecimal
@@ -80,6 +85,7 @@ class DraftService(
     private val ratingRepository: RatingRepository,
     private val movieRepository: MovieRepository,
     private val userRepository: UserRepository,
+    private val movieSeenRepository: MovieSeenRepository,
     /** The picks each drafter makes. */
     private val rounds: Int = ROUNDS,
     /** A theme has at least this many movies for every pick that is made. */
@@ -93,15 +99,24 @@ class DraftService(
         val needed = (players.size + if (opponents.mode == GameMode.SOLO) 1 else 0) * rounds * margin
         val random = Random(now.toEpochMilli())
         val themes = genreRepository.findAll().flatMap { genre -> DECADES.map { genre to it } }.shuffled(random)
-        // A theme of the host's taste with enough movies for every pick, else one of everybody's; none, and there is no draft.
-        val (genre, decade) = themes.firstOrNull { (genre, decade) ->
-            ratingRepository.findBestKnownIn(genre, decade, decade + 10, stored.movieFilter, MINIMUM_VOTES, needed).size >= needed
-        } ?: themes.firstOrNull { (genre, decade) -> ratingRepository.findBestKnownIn(genre, decade, decade + 10, null, MINIMUM_VOTES, needed).size >= needed }
+        // A theme the players' own movies cover, for every pick, else one of the host's taste, else one of everybody's;
+        // none, and there is no draft.
+        val watched = watchedBy(players)
+        fun covers(genre: Genre, decade: Int, filter: MovieFilter?, from: Set<String>?) =
+            ratingRepository.findBestKnownIn(genre, decade, decade + 10, filter, MINIMUM_VOTES, BOARD_POOL)
+                .count { from == null || it.movie.id in from } >= needed
+        val fromWatched = themes.firstOrNull { (genre, decade) -> covers(genre, decade, stored.movieFilter, watched) }
+        val (genre, decade) = fromWatched
+            ?: themes.firstOrNull { (genre, decade) -> covers(genre, decade, stored.movieFilter, null) }
+            ?: themes.firstOrNull { (genre, decade) -> covers(genre, decade, null, null) }
             ?: return@transaction null
+        val board = boardOf(stored.movieFilter, genre, decade, if (fromWatched != null) watched else null)
+        val pool = MoviePool(GameRules.of(Game.DRAFT).pool, board, players.associate { p -> p.id to board.count { it.movie.id in watchedBy(listOf(p)) } }, fellBack = fromWatched == null)
         val (match, _) = matchService.start(
             GameMatch(game = Game.DRAFT, mode = opponents.mode, club = club, host = stored, createdAt = now, closesAt = null, endedAt = null),
             players,
-            now
+            now,
+            pool
         )
         draftThemeRepository.insert(DraftTheme(match, genre, decade))
         match
@@ -217,10 +232,19 @@ class DraftService(
     /** The movies of the theme still to pick, the best known first, of the host's taste. */
     private fun boardOf(match: GameMatch, theme: DraftTheme, picks: List<DraftPick>): List<Movie> {
         val taken = picks.map { it.movie.id }.toSet()
-        return ratingRepository.findBestKnownIn(theme.genre, theme.decade, theme.decade + 10, match.host.movieFilter, MINIMUM_VOTES, BOARD_POOL)
-            .map { it.movie }
-            .filter { it.id !in taken }
+        // Played from what the players watched: the board keeps to it, unless the house fell back on the theme as a whole.
+        val watched = if (match.poolFallback) null else watchedBy(gamePlayerRepository.findPlayers(match).map { it.user })
+        return boardOf(match.host.movieFilter, theme.genre, theme.decade, watched).map { it.movie }.filter { it.id !in taken }
     }
+
+    /** The board of a theme: its best-known movies the host's taste lets through, kept to [watched] when given. */
+    private fun boardOf(filter: MovieFilter?, genre: Genre, decade: Int, watched: Set<String>?): List<Rating> =
+        ratingRepository.findBestKnownIn(genre, decade, decade + 10, filter, MINIMUM_VOTES, BOARD_POOL)
+            .filter { watched == null || it.movie.id in watched }
+
+    /** The ids of the movies any of the players watched. */
+    private fun watchedBy(players: List<User>): Set<String> =
+        movieSeenRepository.findSeenBy(players).map { it.movie.entityId() }.toSet()
 
     /** Whether a movie fits the theme: of its genre, from its decade, and rated, as the totals add the ratings. */
     private fun fits(theme: DraftTheme, movie: Movie): Boolean {

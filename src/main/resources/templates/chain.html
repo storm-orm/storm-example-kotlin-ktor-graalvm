@@ -17,6 +17,7 @@
             A link through Kevin Bacon scores six more, a nod to Six Degrees of Kevin Bacon, the game in which every
             actor is six movies or fewer from him.
         </p>
+        <p th:replace="~{fragments/games :: poolNote(${chain.match}, ${chain.players})}"></p>
     </div>
 </header>
 

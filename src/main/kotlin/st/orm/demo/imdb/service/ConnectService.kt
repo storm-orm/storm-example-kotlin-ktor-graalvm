@@ -84,6 +84,7 @@ class ConnectService(
     private val movieRepository: MovieRepository,
     private val personRepository: PersonRepository,
     private val userRepository: UserRepository,
+    private val poolService: PoolService,
     /** The fewest links a puzzle should take, and the most a search looks for. */
     private val parRange: IntRange = PAR_RANGE
 ) {
@@ -95,14 +96,13 @@ class ConnectService(
      */
     suspend fun start(host: User, opponents: Opponents, now: Instant = Instant.now()): GameMatch? {
         val pool = transaction(readOnly = true) {
-            ratingRepository.findBestKnown(host.movieFilter, MINIMUM_VOTES, POOL)
-                .ifEmpty { ratingRepository.findBestKnown(null, MINIMUM_VOTES, POOL) }
-                .map { it.movie }
-        }
+            val players = matchService.playersOf(host, opponents)?.second ?: return@transaction null
+            poolService.poolOf(host, players, GameRules.of(Game.CONNECT).pool, MINIMUM_VOTES, POOL)
+        } ?: return null
         val random = Random(now.toEpochMilli())
         repeat(TRIES) {
-            val pair = pool.shuffled(random).take(2)
-            if (pair.size == 2) startWith(host, opponents, pair[0], pair[1], now)?.let { return it }
+            val pair = pool.movies.shuffled(random).take(2)
+            if (pair.size == 2) startWith(host, opponents, pair[0], pair[1], now, pool)?.let { return it }
         }
         return null
     }
@@ -112,14 +112,15 @@ class ConnectService(
      * may be; null when they are not, or when the friend or the club is not
      * the host's.
      */
-    suspend fun startWith(host: User, opponents: Opponents, from: Movie, to: Movie, now: Instant = Instant.now()): GameMatch? = transaction {
+    suspend fun startWith(host: User, opponents: Opponents, from: Movie, to: Movie, now: Instant = Instant.now(), pool: MoviePool? = null): GameMatch? = transaction {
         val path = shortestPath(from.id, to.id)?.takeIf { it.movies.size - 1 in parRange } ?: return@transaction null
         val stored = userRepository.touch(host, now)
         val (club, players) = matchService.playersOf(stored, opponents) ?: return@transaction null
         val (match, _) = matchService.start(
             GameMatch(game = Game.CONNECT, mode = opponents.mode, club = club, host = stored, createdAt = now, closesAt = null, endedAt = null),
             players,
-            now
+            now,
+            pool
         )
         connectPuzzleRepository.insert(ConnectPuzzle(match, from, to, path.movies.size - 1, path))
         chainLinkRepository.insert(ChainLink(match, 0, from, player = null, via = null, points = 0, addedAt = now))

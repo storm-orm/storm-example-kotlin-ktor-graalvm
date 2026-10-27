@@ -34,6 +34,8 @@
             </span>
             <span class="level-link">Levels &amp; badges →</span>
         </a>
+        <p class="notice game-full" th:if="${refused != null}"
+           th:text="${refused.everyoneNeedsLevel} ? |${refused.title} is played from movies everyone watched, so it needs every player at ${refused.level.label}: your friend, or the whole club, is not there yet.| : |${refused.title} could not start: no friend or club, or no movies to play from.|">Needs every player at Supporting.</p>
         <p class="notice game-full" th:if="${locked != null}" th:text="|Not yet: that one ${#strings.toLowerCase(locked.text)}.|">Not yet: that one unlocks at Bit Part · 12 movies to go.</p>
     </div>
 </section>

@@ -19,6 +19,7 @@
                 Everyone bids in their own time, and the bids stay hidden until the bidding closes. The highest bid then
                 names them, while the others follow along: reach the bid to win, three wrong names and the round is lost.</th:block>
         </p>
+        <p th:replace="~{fragments/games :: poolNote(${round.match}, null)}"></p>
     </div>
 </header>
 

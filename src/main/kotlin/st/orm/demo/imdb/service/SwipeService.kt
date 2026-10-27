@@ -116,7 +116,8 @@ class SwipeService(
     private val userRepository: UserRepository,
     private val watchlistService: WatchlistService,
     private val movieSeenService: MovieSeenService,
-    private val recommendationService: RecommendationService
+    private val recommendationService: RecommendationService,
+    private val poolService: PoolService
 ) {
 
     /* ── On one's own ─────────────────────────────────────────────── */
@@ -128,8 +129,8 @@ class SwipeService(
             movieSeenRepository.findSeenMovies(user).map { it.entityId() } +
             watchlistRepository.findAll(user).map { it.movie.id } +
             dismissalRepository.findAll(user).map { it.movie.id }
-        val movies = ratingRepository.findBestKnown(user.movieFilter, MINIMUM_VOTES, POOL)
-            .map { it.movie }
+        // The movies the site would recommend: the visitor's picks, the best known of their taste when they have none yet.
+        val movies = poolService.poolOf(user, listOf(user), PoolKind.RECOMMENDED, MINIMUM_VOTES, POOL).movies
             .filter { it.id !in left }
             // The best known first, a little shuffled, so a deck does not deal the same order to everyone.
             .chunked(SHUFFLE_CHUNK).flatMap { it.shuffled() }
@@ -206,19 +207,17 @@ class SwipeService(
         if (opponents.mode == GameMode.SOLO) return@transaction null
         val stored = userRepository.touch(host, now)
         val (club, players) = matchService.playersOf(stored, opponents) ?: return@transaction null
-        val seen = movieSeenRepository.findSeenBy(players).map { it.movie.entityId() }.toSet()
-        val movies = ratingRepository.findBestKnown(stored.movieFilter, MINIMUM_VOTES, POOL)
-            .map { it.movie }
-            .filter { it.id !in seen }
-            .shuffled(Random(now.toEpochMilli()))
-            .take(ROUND_CARDS)
+        // The movies the site would recommend the players, none of which any of them watched.
+        val pool = poolService.poolOf(stored, players, GameRules.of(Game.SWIPE).pool, MINIMUM_VOTES, POOL)
+        val movies = pool.movies.shuffled(Random(now.toEpochMilli())).take(ROUND_CARDS)
         if (movies.isEmpty()) return@transaction null
         val (match, _) = matchService.start(
             GameMatch(game = Game.SWIPE, mode = opponents.mode, club = club, host = stored, createdAt = now,
                 closesAt = now.plus(MatchService.ROUND), endedAt = null),
             // A club's members join the round as they swipe it; a friend is in it from the start.
             if (opponents.mode == GameMode.CLUB) listOf(stored) else players,
-            now
+            now,
+            pool
         )
         swipeRoundCardRepository.insert(movies.mapIndexed { position, movie -> SwipeRoundCard(match, position, movie) })
         match

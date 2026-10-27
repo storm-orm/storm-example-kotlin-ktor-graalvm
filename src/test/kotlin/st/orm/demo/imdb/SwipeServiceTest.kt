@@ -39,16 +39,14 @@ class SwipeServiceTest {
 
     private fun service(orm: ORMTemplate): SwipeService {
         val recommendations = recommendationService(orm)
-        val matches = MatchService(
-            orm.repository<GameMatchRepository>(), orm.repository<GamePlayerRepository>(), orm.repository<FriendshipRepository>(),
-            orm.repository<ClubRepository>(), orm.repository<ClubMemberRepository>(), orm.repository<UserRepository>()
-        )
+        val matches = matchService(orm)
         return SwipeService(
             matches, orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(),
             orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(),
             WatchlistService(orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository<CheckInRepository>(), recommendations),
             movieSeenService(orm),
-            recommendations
+            recommendations,
+            poolService(orm)
         )
     }
 

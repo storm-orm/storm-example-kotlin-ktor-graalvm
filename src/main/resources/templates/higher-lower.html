@@ -19,6 +19,7 @@
             </th:block>
             <th:block th:if="${game.hoursLeft != null and !game.over}"> · open <th:block th:text="${game.hoursLeft == 1} ? 'one more hour' : |${game.hoursLeft} more hours|">40 more hours</th:block></th:block>
         </p>
+        <p th:replace="~{fragments/games :: poolNote(${game.match}, ${game.players})}"></p>
     </div>
 </header>
 

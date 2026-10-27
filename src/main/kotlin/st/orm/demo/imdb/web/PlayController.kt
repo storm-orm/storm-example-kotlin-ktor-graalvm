@@ -25,6 +25,7 @@ import st.orm.demo.imdb.service.ConnectMove
 import st.orm.demo.imdb.service.ConnectService
 import st.orm.demo.imdb.service.DraftMove
 import st.orm.demo.imdb.service.DraftService
+import st.orm.demo.imdb.service.GameRules
 import st.orm.demo.imdb.service.LevelService
 import st.orm.demo.imdb.service.MovieNightService
 import st.orm.demo.imdb.service.SwipeService
@@ -63,7 +64,8 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
         val user = call.currentUser()
         val locks = levelService.locksOf(user)
         call.respondPage(ThymeleafContent("play", mapOf("play" to playService.playOf(user), "full" to full, "maxOpen" to PlayService.MAX_OPEN,
-            "locks" to locks, "level" to levelService.progressOf(user), "locked" to call.request.queryParameters["locked"]?.let { locks[it] })))
+            "locks" to locks, "level" to levelService.progressOf(user), "locked" to call.request.queryParameters["locked"]?.let { locks[it] },
+            "refused" to call.request.queryParameters["refused"]?.let { name -> GameRules.all.firstOrNull { it.game.name == name } })))
     }
 
     // The visitor's finished games, a page at a time.
@@ -94,7 +96,8 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
             if (!levelService.canStart(user, game)) return@post call.respondRedirect("/play?locked=${game.name}#games")
             // At the most games open, the oldest on one's own closes; with all of them played with others, none starts.
             if (!playService.makeRoom(user)) return@post call.respondRedirect("/play?full#your-games")
-            val match = start(user, opponents) ?: return@post call.respondRedirect("/play")
+            val match = start(user, opponents)
+                ?: return@post call.respondRedirect(if (opponents.mode == GameMode.SOLO) "/play" else "/play?refused=${game.name}#games")
             call.respondRedirect("/play/matches/${match.id}")
         }
     }

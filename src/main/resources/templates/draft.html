@@ -16,6 +16,7 @@
             <th:block th:text="|${draft.rounds} picks each, in turns that snake back.|">3 picks each.</th:block>
             The IMDb ratings stay hidden until every pick is in; the highest total wins.
         </p>
+        <p th:replace="~{fragments/games :: poolNote(${draft.match}, null)}"></p>
     </div>
 </header>
 

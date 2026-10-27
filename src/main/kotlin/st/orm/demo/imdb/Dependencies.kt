@@ -8,6 +8,7 @@ import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import st.orm.demo.imdb.service.AccountService
 import st.orm.demo.imdb.service.BrowseService
 import st.orm.demo.imdb.service.LevelService
+import st.orm.demo.imdb.service.PoolService
 import st.orm.demo.imdb.service.RecentlyAddedService
 import st.orm.demo.imdb.service.RecommendationService
 import st.orm.demo.imdb.service.GalleryRefreshProperties
@@ -130,21 +131,22 @@ fun Application.configureDependencies() {
         provide { RecentlyAddedService(resolve()) }
         provide { MovieService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PersonService(resolve(), resolve()) }
-        provide { MatchService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
-        provide { HigherLowerService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
-        provide { ChainService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { MatchService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { HigherLowerService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { ChainService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide {
             SwipeService(
                 resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(),
-                resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(),
+                resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(),
             )
         }
-        provide { DraftService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { DraftService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PuzzleFactory(resolve()) }
         provide { DailyPuzzleService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
-        provide { ConnectService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { ConnectService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { LevelService(resolve(), resolve(), resolve()) }
-        provide { CastService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { PoolService(resolve(), resolve(), resolve()) }
+        provide { CastService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PlayService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { QuizService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { WikipediaSummaryService(resolve(), resolve(), resolve()) }

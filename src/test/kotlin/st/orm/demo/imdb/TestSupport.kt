@@ -1,5 +1,6 @@
 package st.orm.demo.imdb
 
+import st.orm.demo.imdb.model.Level
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.repository.CheckInRepository
 import st.orm.demo.imdb.repository.ImdbSourceRepository
@@ -20,8 +21,11 @@ import st.orm.demo.imdb.repository.TmdbSourceRepository
 import st.orm.demo.imdb.repository.WatchProviderRepository
 import st.orm.demo.imdb.repository.WikidataSourceRepository
 import st.orm.demo.imdb.repository.WatchlistRepository
+import st.orm.demo.imdb.service.LevelService
+import st.orm.demo.imdb.service.MatchService
 import st.orm.demo.imdb.service.MovieSeenService
 import st.orm.demo.imdb.service.MovieSourceService
+import st.orm.demo.imdb.service.PoolService
 import st.orm.demo.imdb.service.RecommendationService
 import st.orm.demo.imdb.service.TmdbClient
 import st.orm.demo.imdb.service.TmdbService
@@ -76,3 +80,18 @@ fun movieSeenService(orm: ORMTemplate, tmdbClient: TmdbClient = TmdbClient(null,
 
 fun tmdbService(orm: ORMTemplate, tmdbClient: TmdbClient) =
     TmdbService(orm.repository<MovieRepository>(), orm.repository<TmdbSourceRepository>(), orm.repository<WatchProviderRepository>(), tmdbClient)
+
+fun levelService(orm: ORMTemplate) = LevelService(orm.repository(), orm.repository(), orm.repository())
+
+fun poolService(orm: ORMTemplate) = PoolService(orm.repository(), orm.repository(), orm.repository())
+
+fun matchService(orm: ORMTemplate) = MatchService(
+    orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(), levelService(orm)
+)
+
+/** The user at a level, as by a long history: the row updated and read back, as the services read it. */
+fun ORMTemplate.liftTo(user: User, level: Level): User {
+    val users = repository<UserRepository>()
+    users.update(users.getById(user.id).copy(level = level))
+    return users.getById(user.id)
+}
