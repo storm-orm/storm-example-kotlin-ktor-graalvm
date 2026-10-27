@@ -8,6 +8,8 @@ import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieLanguage
 import st.orm.demo.imdb.model.MovieLanguagePk
 import st.orm.demo.imdb.model.MovieLanguage_
+import st.orm.demo.imdb.model.MovieSeen
+import st.orm.demo.imdb.model.MovieSeen_
 import st.orm.demo.imdb.model.User
 import st.orm.repository.EntityRepository
 import st.orm.repository.select
@@ -50,6 +52,15 @@ interface MovieLanguageRepository : EntityRepository<MovieLanguage, MovieLanguag
             .where((CheckIn_.user eq user) and (CheckIn_.watchedAt greaterEq from) and (CheckIn_.watchedAt less until))
             .groupBy(MovieLanguage_.id.language)
             .orderByDescending { "COUNT(DISTINCT ${CheckIn_.movie})" }
+            .resultList
+
+    /** The languages of the movies the user watched, each with how many, the most watched first. */
+    fun countSeen(user: User): List<LanguageCount> =
+        select<LanguageCount, _, _> { "${MovieLanguage_.id.language}, COUNT(*)" }
+            .innerJoin<MovieSeen>().on<Movie>()
+            .where(MovieSeen_.user eq user)
+            .groupBy(MovieLanguage_.id.language)
+            .orderByDescending { "COUNT(*)" }
             .resultList
 
     /** Gives these movies the [languages] in place of the ones they had. */

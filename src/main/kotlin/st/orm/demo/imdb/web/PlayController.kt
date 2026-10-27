@@ -17,6 +17,7 @@ import st.orm.demo.imdb.model.GameMatch
 import st.orm.demo.imdb.model.GameMode
 import kotlinx.serialization.Serializable
 import st.orm.demo.imdb.model.User
+import st.orm.demo.imdb.service.BadgeService
 import st.orm.demo.imdb.service.CastLive
 import st.orm.demo.imdb.service.CastService
 import st.orm.demo.imdb.service.ChainMove
@@ -58,13 +59,13 @@ data class CastNamed(val verdict: String, val live: CastLive)
  * to the match. Playing with others needs a signed-in account, as they see
  * the players' names; anyone plays on their own.
  */
-fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerService, chainService: ChainService, draftService: DraftService, swipeService: SwipeService, movieNightService: MovieNightService, connectService: ConnectService, castService: CastService, levelService: LevelService) {
+fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerService, chainService: ChainService, draftService: DraftService, swipeService: SwipeService, movieNightService: MovieNightService, connectService: ConnectService, castService: CastService, levelService: LevelService, badgeService: BadgeService) {
     get("/play") {
         val full = call.request.queryParameters["full"] != null
         val user = call.currentUser()
         val locks = levelService.locksOf(user)
         call.respondPage(ThymeleafContent("play", mapOf("play" to playService.playOf(user), "full" to full, "maxOpen" to PlayService.MAX_OPEN,
-            "locks" to locks, "level" to levelService.progressOf(user), "locked" to call.request.queryParameters["locked"]?.let { locks[it] },
+            "locks" to locks, "level" to levelService.progressOf(user), "badgeCount" to badgeService.countOf(user), "locked" to call.request.queryParameters["locked"]?.let { locks[it] },
             "refused" to call.request.queryParameters["refused"]?.let { name -> GameRules.all.firstOrNull { it.game.name == name } })))
     }
 

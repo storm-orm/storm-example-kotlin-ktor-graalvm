@@ -4098,3 +4098,23 @@ body::after {
 /* A night chosen by swiping: the way into the round, above the deck. */
 .night-swipe { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin: 0 0 18px; padding: 14px 18px; border-radius: var(--radius); border: 1px solid rgba(var(--cyan-rgb), 0.4); background: rgba(var(--cyan-rgb), 0.06); }
 .night-swipe .stat-note { margin: 0; flex: 1 1 320px; }
+
+/* ── Badges ─────────────────────────────────────────────────────────── */
+
+.badge-shelf { margin-top: 26px; }
+.badge-shelf-title { margin: 0 0 12px; font-size: 12.5px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-muted); }
+.badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.badge { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); opacity: 0.72; transition: opacity 0.15s ease, border-color 0.15s ease; }
+.badge:hover { opacity: 1; }
+.badge.earned { opacity: 1; border-color: rgba(var(--yellow-rgb), 0.45); background: linear-gradient(135deg, rgba(var(--yellow-rgb), 0.1), transparent 60%) var(--surface); }
+
+/* The medal: a ring with the badge's mark, gold once earned. */
+.badge-medal { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; flex-shrink: 0; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.18); background: rgba(255, 255, 255, 0.04); font-family: var(--font-display); font-size: 17px; letter-spacing: 0.5px; color: var(--text-muted); }
+.badge.earned .badge-medal { border-color: var(--yellow); color: var(--yellow); background: radial-gradient(circle at 35% 30%, rgba(var(--yellow-rgb), 0.35), rgba(var(--yellow-rgb), 0.06) 70%); box-shadow: 0 0 18px rgba(var(--yellow-rgb), 0.35); }
+.badge.earned .badge-medal::after { content: ""; position: absolute; inset: 4px; border-radius: 50%; border: 1px dashed rgba(var(--yellow-rgb), 0.5); }
+.badge-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.badge-title { font-weight: 700; }
+.badge-blurb { font-size: 13px; color: var(--text-muted); }
+.badge-progress { display: flex; align-items: center; gap: 10px; margin-top: 4px; font-size: 12.5px; color: var(--text-muted); }
+.badge-progress .bar-track { flex: 1; }
+.badge-earned { margin-top: 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--yellow); }

@@ -18,6 +18,10 @@ interface DailyPuzzleRepository : EntityRepository<DailyPuzzle, DailyPuzzlePk>
 
 interface DailyPlayRepository : EntityRepository<DailyPlay, DailyPlayPk> {
 
+    /** Every daily the user played, finished or not. */
+    fun findAll(user: User): List<DailyPlay> =
+        findAll(DailyPlay_.user eq user)
+
     /** The games of a day several users played to the end, each with its player: the boards. */
     fun findFinished(users: List<User>, day: LocalDate, game: DailyGame): List<DailyPlay> =
         if (users.isEmpty()) emptyList()

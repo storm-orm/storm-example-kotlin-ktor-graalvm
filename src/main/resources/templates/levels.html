@@ -83,6 +83,33 @@
     </div>
 </section>
 
+<!-- The badges: a shelf per category, the earned lit, the others with how far they are. -->
+<section class="section" id="badges">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Badges</h2>
+            <span class="section-note" th:text="|${badges.earnedCount} of ${badges.total} earned|">3 of 24 earned</span>
+        </div>
+        <div class="badge-shelf" th:each="shelf : ${badges.shelves}">
+            <h3 class="badge-shelf-title" th:text="${shelf.category.label}">Watching</h3>
+            <div class="badge-grid">
+                <div class="badge" th:each="item : ${shelf.badges}" th:classappend="${item.earned} ? 'earned'" th:title="${item.badge.blurb}">
+                    <span class="badge-medal" aria-hidden="true"><span th:text="${item.badge.mark}">90s</span></span>
+                    <span class="badge-text">
+                        <span class="badge-title" th:text="${item.badge.title}">Nineties Kid</span>
+                        <span class="badge-blurb" th:text="${item.badge.blurb}">Ten movies from the 1990s.</span>
+                        <span class="badge-progress" th:unless="${item.earned}">
+                            <span class="bar-track"><span class="bar-fill" th:style="|width: ${item.fraction * 100}%|"></span></span>
+                            <span th:text="${item.text}">3 of 10</span>
+                        </span>
+                        <span class="badge-earned" th:if="${item.earned}">Earned</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 <footer th:replace="~{fragments/layout :: footer}"></footer>
 </body>
 </html>

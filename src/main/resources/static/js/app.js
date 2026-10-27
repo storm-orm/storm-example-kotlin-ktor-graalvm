@@ -1951,9 +1951,11 @@ async function showLevelToast() {
         if (avatar) avatar.style.setProperty('--progress', level.fraction);
         const toast = document.createElement('div');
         toast.className = 'level-toast';
-        toast.innerHTML = level.next
-            ? `<strong>+1½</strong> towards ${level.next} · ${level.toNext} to go`
-            : `<strong>${level.level}</strong>: the top of the bill`;
+        toast.innerHTML = level.newBadges && level.newBadges.length
+            ? `<strong>New badge:</strong> ${level.newBadges.join(', ')}`
+            : level.next
+                ? `<strong>+1½</strong> towards ${level.next} · ${level.toNext} to go`
+                : `<strong>${level.level}</strong>: the top of the bill`;
         document.body.append(toast);
         requestAnimationFrame(() => toast.classList.add('shown'));
         setTimeout(() => { toast.classList.remove('shown'); setTimeout(() => toast.remove(), 300); }, 3500);

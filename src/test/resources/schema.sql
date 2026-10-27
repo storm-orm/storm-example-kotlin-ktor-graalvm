@@ -534,3 +534,11 @@ CREATE TABLE cast_answer (
     answered_at TIMESTAMP NOT NULL,
     PRIMARY KEY (match_id, position)
 );
+
+-- V44: the badges users earned.
+CREATE TABLE user_badge (
+    user_id   VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    badge     VARCHAR NOT NULL,
+    earned_at TIMESTAMP NOT NULL,
+    PRIMARY KEY (user_id, badge)
+);

@@ -32,7 +32,7 @@
                 <span class="level-name" th:text="${level.level.label}">Supporting</span>
                 <span class="level-next" th:text="|${#numbers.formatDecimal(level.score, 1, 1)} points · ${level.nextText}|">143.5 points · 107 more to Lead</span>
             </span>
-            <span class="level-link">Levels &amp; badges →</span>
+            <span class="level-link"><th:block th:text="${badgeCount == 1} ? '1 badge' : |${badgeCount} badges|">3 badges</th:block> · Levels &amp; badges →</span>
         </a>
         <p class="notice game-full" th:if="${refused != null}"
            th:text="${refused.everyoneNeedsLevel} ? |${refused.title} is played from movies everyone watched, so it needs every player at ${refused.level.label}: your friend, or the whole club, is not there yet.| : |${refused.title} could not start: no friend or club, or no movies to play from.|">Needs every player at Supporting.</p>

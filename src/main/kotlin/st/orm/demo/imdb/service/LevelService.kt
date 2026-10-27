@@ -25,12 +25,12 @@ data class LevelProgress(val level: Level, val score: Double, val watched: Long,
     /** The next level's name and what is still to watch for it, in a line. */
     val nextText: String get() = next?.let { "$toNext more to ${it.label}" } ?: "The top of the bill"
     /** The same, for the scripts. */
-    fun standing(): LevelStanding = LevelStanding(level.label, score, next?.label, toNext, fraction)
+    fun standing(newBadges: List<String> = emptyList()): LevelStanding = LevelStanding(level.label, score, next?.label, toNext, fraction, newBadges)
 }
 
-/** Where a user stands, as the page's scripts read it after a check-in. */
+/** Where a user stands, as the page's scripts read it after a check-in, with the badges it brought. */
 @Serializable
-data class LevelStanding(val level: String, val score: Double, val next: String?, val toNext: Int, val fraction: Double)
+data class LevelStanding(val level: String, val score: Double, val next: String?, val toNext: Int, val fraction: Double, val newBadges: List<String> = emptyList())
 
 /** Why a user cannot start a game: the level it needs, and how many movies they still have to watch for it. */
 data class GameLock(val game: Game, val level: Level, val toGo: Int) {
