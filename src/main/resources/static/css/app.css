@@ -4343,7 +4343,7 @@ body::after {
 /* The Mask's art is as tall as the others, and his gag falls over the title: the jaw and the tongue in front of it. */
 .game-art-mask { position: relative; z-index: 2; align-items: flex-start; overflow: visible; }
 .mask-face { overflow: visible; filter: drop-shadow(0 0 12px rgba(var(--green-rgb), 0.5)); }
-.mask-face.mask-art { width: 64px; height: 112px; margin-top: 0; }
+.mask-face.mask-art { width: 64px; height: 112px; margin-top: -10px; }
 /* The gag, every six seconds: the eyes shoot out on their stalks, the jaw drops, the throat opens, the tongue rolls
    out down to the floor, and all of it snaps back. */
 .mask-eye { transform-box: fill-box; transform-origin: 50% 100%; animation: mask-eyes 6s ease-in-out infinite; }
