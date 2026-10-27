@@ -6,6 +6,7 @@
 
 <header class="page-header">
     <div class="container">
+        <nav th:replace="~{fragments/layout :: sectionNav('for-you')}"></nav>
         <h1 class="page-title">For You</h1>
         <p class="page-subtitle" th:if="${onServices}">Your picks that stream on your services.</p>
         <p class="page-subtitle" th:if="${personal and !onServices}">What to watch next, from what you have watched and saved.</p>

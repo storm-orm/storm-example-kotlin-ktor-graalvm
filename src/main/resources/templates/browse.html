@@ -6,6 +6,7 @@
 
 <header class="page-header">
     <div class="container">
+        <nav th:replace="~{fragments/layout :: sectionNav('browse')}"></nav>
         <h1 class="page-title">Browse</h1>
         <p class="page-subtitle" th:if="${view.genre == null}">Every genre: the best rated with at least 25,000 votes, the newest among them, or all of it, the most voted first.</p>
         <p class="page-subtitle" th:if="${view.genre != null}"

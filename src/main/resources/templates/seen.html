@@ -8,6 +8,7 @@
 <header class="page-header">
     <div class="container page-header-row">
         <div>
+            <nav th:replace="~{fragments/layout :: sectionNav('seen')}"></nav>
             <h1 class="page-title">Watched</h1>
             <p class="page-subtitle"
                th:text="|${#numbers.formatInteger(count, 1, 'COMMA')} movies watched|">3 movies watched</p>

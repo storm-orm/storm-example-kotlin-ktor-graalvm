@@ -34,17 +34,28 @@
                 <img class="brand-logo" th:src="@{/img/storm-logo.png}" alt="Storm Movies">
             </a>
         </div>
-        <div class="nav-links">
+        <!-- Five places: Movies and My Movies open a menu of their pages; each of those pages names its own under its title. -->
+        <div class="nav-links" th:with="movies=${#lists.contains({'for-you','browse','recent','search'}, active)}, mine=${#lists.contains({'seen','watchlist','lists','insights','wrapped'}, active)}">
             <a th:href="@{/}" th:classappend="${active == 'home'} ? 'active'">Home</a>
-            <a th:href="@{/for-you}" th:classappend="${active == 'for-you'} ? 'active'">For You</a>
-            <a th:href="@{/watchlist}" th:classappend="${active == 'watchlist'} ? 'active'">Watchlist</a>
-            <a th:href="@{/seen}" th:classappend="${active == 'seen'} ? 'active'">Watched</a>
-            <a th:href="@{/insights}" th:classappend="${active == 'insights'} ? 'active'">About You</a>
-            <a th:if="${account.name != null}" th:href="@{/community}" th:classappend="${active == 'community'} ? 'active'">Community<span class="nav-badge" th:if="${requestCount > 0}" th:text="${requestCount}" th:title="|${requestCount} friend request${requestCount == 1 ? '' : 's'}|">1</span></a>
-            <a th:href="@{/browse}" th:classappend="${active == 'browse'} ? 'active'">Browse</a>
+            <div class="nav-group">
+                <a th:href="@{/for-you}" th:classappend="${movies} ? 'active'" aria-haspopup="true">Movies</a>
+                <div class="nav-menu">
+                    <a th:href="@{/for-you}" th:classappend="${active == 'for-you'} ? 'active'">For You</a>
+                    <a th:href="@{/browse}" th:classappend="${active == 'browse'} ? 'active'">Browse</a>
+                    <a th:href="@{/recent}" th:classappend="${active == 'recent'} ? 'active'">Recently Added</a>
+                </div>
+            </div>
+            <div class="nav-group">
+                <a th:href="@{/seen}" th:classappend="${mine} ? 'active'" aria-haspopup="true">My Movies</a>
+                <div class="nav-menu">
+                    <a th:href="@{/seen}" th:classappend="${active == 'seen'} ? 'active'">Watched</a>
+                    <a th:href="@{/watchlist}" th:classappend="${active == 'watchlist'} ? 'active'">Watchlist</a>
+                    <a th:href="@{/lists}" th:classappend="${active == 'lists'} ? 'active'">Lists</a>
+                    <a th:href="@{/insights}" th:classappend="${active == 'insights' or active == 'wrapped'} ? 'active'">About You</a>
+                </div>
+            </div>
             <a th:href="@{/play}" th:classappend="${active == 'play'} ? 'active'">Play</a>
-            <a th:href="@{/recent}" th:classappend="${active == 'recent'} ? 'active'">Recently Added</a>
-            <a th:href="@{/statistics}" th:classappend="${active == 'statistics'} ? 'active'">Statistics</a>
+            <a th:if="${account.name != null}" th:href="@{/community}" th:classappend="${active == 'community'} ? 'active'">Community<span class="nav-badge" th:if="${requestCount > 0}" th:text="${requestCount}" th:title="|${requestCount} friend request${requestCount == 1 ? '' : 's'}|">1</span></a>
         </div>
         <div class="search-box" data-search-box>
             <!-- The full placeholder where the box fits it, else the short one (fitPlaceholders in app.js). -->
@@ -65,11 +76,29 @@
     </div>
 </nav>
 
+<!-- The pages of a section, above a page's title: "Movies · For You / Browse / Recently Added", the page itself lit. -->
+<nav th:fragment="sectionNav(active)" class="section-nav" aria-label="Section"
+     th:with="movies=${#lists.contains({'for-you','browse','recent'}, active)}">
+    <span class="section-nav-name" th:text="${movies} ? 'Movies' : 'My Movies'">Movies</span>
+    <th:block th:if="${movies}">
+        <a th:href="@{/for-you}" th:classappend="${active == 'for-you'} ? 'active'">For You</a>
+        <a th:href="@{/browse}" th:classappend="${active == 'browse'} ? 'active'">Browse</a>
+        <a th:href="@{/recent}" th:classappend="${active == 'recent'} ? 'active'">Recently Added</a>
+    </th:block>
+    <th:block th:unless="${movies}">
+        <a th:href="@{/seen}" th:classappend="${active == 'seen'} ? 'active'">Watched</a>
+        <a th:href="@{/watchlist}" th:classappend="${active == 'watchlist'} ? 'active'">Watchlist</a>
+        <a th:href="@{/lists}" th:classappend="${active == 'lists'} ? 'active'">Lists</a>
+        <a th:href="@{/insights}" th:classappend="${active == 'insights'} ? 'active'">About You</a>
+    </th:block>
+</nav>
+
 <footer class="footer" th:fragment="footer">
     <div class="container">
         <div>
             Built with <a href="https://orm.st" target="_blank" rel="noopener">Storm ORM</a> on Ktor ·
-            Data from the public <a href="https://datasets.imdbws.com/" target="_blank" rel="noopener">IMDB dataset</a><th:block th:if="${hostedOnFreepod}"> ·
+            Data from the public <a href="https://datasets.imdbws.com/" target="_blank" rel="noopener">IMDB dataset</a> ·
+            <a th:href="@{/statistics}">Statistics</a><th:block th:if="${hostedOnFreepod}"> ·
             Hosted on <a href="https://freepod.eu" target="_blank" rel="noopener">Freepod</a></th:block>
         </div>
         <!-- TMDB's terms ask for this notice wherever its API is used. -->

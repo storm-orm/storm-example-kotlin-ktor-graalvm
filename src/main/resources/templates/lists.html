@@ -2,11 +2,12 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments/layout :: head('Lists')}"></head>
 <body>
-<nav th:replace="~{fragments/layout :: navbar('watchlist')}"></nav>
+<nav th:replace="~{fragments/layout :: navbar('lists')}"></nav>
 
 <header class="page-header">
     <div class="container page-header-row">
         <div>
+            <nav th:replace="~{fragments/layout :: sectionNav('lists')}"></nav>
             <h1 class="page-title">Lists</h1>
             <p class="page-subtitle">Movies picked by hand: your own lists, your clubs', and the ones others made.</p>
         </div>

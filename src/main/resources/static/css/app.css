@@ -3977,3 +3977,33 @@ body::after {
 
 /* An odd card out at the end of the games spans the row, rather than standing alone in half of it. */
 .game-grid > .game-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+/* ── The menu: five places, two of them with a menu of their pages ──── */
+
+.nav-group { position: relative; display: flex; }
+.nav-group > a::after { content: ""; display: inline-block; width: 5px; height: 5px; margin: 0 0 3px 7px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(45deg); opacity: 0.6; }
+.nav-menu {
+    position: absolute; top: calc(100% + 6px); left: 0; z-index: 30; min-width: 190px; padding: 6px;
+    display: flex; flex-direction: column;
+    border: 1px solid var(--border); border-radius: 14px; background: var(--surface-raised);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+    opacity: 0; visibility: hidden; transform: translateY(-4px); transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
+}
+.nav-group:hover .nav-menu, .nav-group:focus-within .nav-menu { opacity: 1; visibility: visible; transform: none; }
+.nav-menu a { padding: 9px 14px; border-radius: 9px; font-size: 14px; white-space: nowrap; }
+.nav-menu a:hover { background: rgba(255, 255, 255, 0.06); color: var(--text); }
+.nav-menu a.active { color: var(--accent-strong); }
+
+/* A section's pages above a page's title: the section's name, then its pages, the page itself lit. */
+.section-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 16px; margin: 0 0 10px; font-size: 12.5px; letter-spacing: 1.2px; text-transform: uppercase; font-weight: 600; }
+.section-nav-name { color: var(--text-muted); opacity: 0.7; }
+.section-nav-name::after { content: "·"; margin-left: 16px; }
+.section-nav a { color: var(--text-muted); transition: color 0.15s ease; }
+.section-nav a:hover { color: var(--text); }
+.section-nav a.active { color: var(--accent-strong); }
+
+@media (max-width: 1024px) {
+    /* The menus need a hover: the scrolling strip shows the five, and a page's section names its pages. */
+    .nav-menu { display: none; }
+    .nav-group > a::after { display: none; }
+}
