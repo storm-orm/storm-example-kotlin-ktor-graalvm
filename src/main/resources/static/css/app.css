@@ -2729,8 +2729,8 @@ body::after {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
-    padding: 26px 26px 24px;
+    gap: 8px;
+    padding: 16px 24px 22px;
     border: 1px solid rgba(var(--tone), 0.35);
     border-radius: 18px;
     background: radial-gradient(420px 220px at 90% 0%, rgba(var(--tone), 0.22), transparent 70%), var(--surface);
@@ -2755,7 +2755,7 @@ body::after {
 @keyframes recall-clamps-right { 0%, 20% { transform: none; } 50%, 70% { transform: translateX(7px); } 100% { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .recall-clamp { animation: none; } }
 /* Every card's art stands the same height, so every title starts at the same line. */
-.game-art { display: flex; align-items: center; height: 64px; margin-bottom: 4px; }
+.game-art { display: flex; align-items: center; height: 56px; margin-bottom: 0; }
 
 .game-dot { width: 22px; height: 22px; border-radius: 50%; background: rgb(var(--tone)); box-shadow: 0 0 16px rgba(var(--tone), 0.8); }
 
@@ -4341,7 +4341,7 @@ body::after {
 /* The Mask's art is as tall as the others, and his gag falls over the title: the jaw and the tongue in front of it. */
 .game-art-mask { position: relative; z-index: 2; align-items: flex-start; overflow: visible; }
 .mask-face { overflow: visible; filter: drop-shadow(0 0 12px rgba(var(--green-rgb), 0.5)); }
-.mask-face.mask-art { width: 64px; height: 112px; margin-top: 4px; }
+.mask-face.mask-art { width: 64px; height: 112px; margin-top: 0; }
 /* The gag, every six seconds: the eyes shoot out on their stalks, the jaw drops, the throat opens, the tongue rolls
    out down to the floor, and all of it snaps back. */
 .mask-eye { transform-box: fill-box; transform-origin: 50% 100%; animation: mask-eyes 6s ease-in-out infinite; }
