@@ -8,6 +8,7 @@ import st.orm.PK
 import st.orm.demo.imdb.service.ConnectionGroup
 import st.orm.demo.imdb.service.DuelPuzzle
 import st.orm.demo.imdb.service.LineUpPuzzle
+import st.orm.demo.imdb.service.MaskPuzzle
 import st.orm.demo.imdb.service.OddPuzzle
 import st.orm.demo.imdb.service.ScorePuzzle
 import st.orm.demo.imdb.service.SeriesPuzzle
@@ -17,9 +18,10 @@ import java.time.LocalDate
  * The daily puzzles besides the quiz: Odd One Out, Movie Connections,
  * Face/Off (which of two is rated higher), The Usual Suspects (who played
  * the part), Memento (a series in order of release) and Amadeus (who wrote
- * the score, from the player's own movies).
+ * the score, from the player's own movies) and The Mask (the actor behind
+ * four of their movies).
  */
-enum class DailyGame { ODD_ONE_OUT, CONNECTIONS, FACE_OFF, USUAL_SUSPECTS, MEMENTO, AMADEUS }
+enum class DailyGame { ODD_ONE_OUT, CONNECTIONS, FACE_OFF, USUAL_SUSPECTS, MEMENTO, AMADEUS, THE_MASK }
 
 data class DailyPuzzlePk(
     val puzzleOn: LocalDate,
@@ -40,7 +42,8 @@ data class DailyPuzzleData(
     val duels: List<DuelPuzzle> = emptyList(),
     val lineUps: List<LineUpPuzzle> = emptyList(),
     val series: List<SeriesPuzzle> = emptyList(),
-    val scores: List<ScorePuzzle> = emptyList()
+    val scores: List<ScorePuzzle> = emptyList(),
+    val masks: List<MaskPuzzle> = emptyList()
 )
 
 /**

@@ -63,6 +63,15 @@ fun Route.dailyPuzzleRoutes(dailyPuzzleService: DailyPuzzleService) {
         call.respondRedirect("/play/memento")
     }
 
+    get("/play/the-mask") {
+        call.respondPage(ThymeleafContent("the-mask", mapOf("mask" to dailyPuzzleService.masksOf(call.currentUser()))))
+    }
+
+    post("/play/the-mask") {
+        call.receiveParameters()["person"]?.let { dailyPuzzleService.answerMask(call.currentUser(), it) }
+        call.respondRedirect("/play/the-mask")
+    }
+
     get("/play/amadeus") {
         call.respondPage(ThymeleafContent("amadeus", mapOf("amadeus" to dailyPuzzleService.scoresOf(call.currentUser()))))
     }

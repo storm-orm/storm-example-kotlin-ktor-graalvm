@@ -165,12 +165,34 @@ data class ScoreView(
     val boards: List<Board>
 )
 
+/** A Mask puzzle at hand: the four movies, and the names to choose from. */
+data class MaskCase(val movies: List<Movie>, val suspects: List<Person>)
+
+/** A Mask puzzle answered: who was behind the mask, their movies, and who was picked. */
+data class MaskResult(val movies: List<Movie>, val actor: Person, val picked: Person?) {
+    val right: Boolean get() = picked?.id == actor.id
+}
+
+/** A day's The Mask for a player: the puzzle at hand, the one just answered, the score, and once over, every puzzle and the boards. */
+data class MaskView(
+    val number: Long,
+    val count: Int,
+    val index: Int,
+    val current: MaskCase?,
+    val last: MaskResult?,
+    val score: Int,
+    val finished: Boolean,
+    val results: List<MaskResult>,
+    val boards: List<Board>
+)
+
 /**
  * The daily puzzles besides the quiz, the same for everyone of a taste on a
  * day: Odd One Out, ten sets of four movies with one that does not belong;
  * Movie Connections, sixteen movies in four groups of four; Face/Off, ten
  * pairs, which is rated higher; The Usual Suspects, ten parts, who played
- * them; and Memento, series of movies to put in order of release. Amadeus,
+ * them; Memento, series of movies to put in order of release; and The
+ * Mask, the actor behind four of their movies. Amadeus,
  * who wrote the score, is made of the player's own movies, so it is theirs
  * alone. All are made by [PuzzleFactory] from the best-known movies the
  * player's filter lets through, the first time someone of that taste opens
@@ -385,6 +407,33 @@ class DailyPuzzleService(
     suspend fun answerScore(user: User, personId: String, today: LocalDate = today(), now: Instant = Instant.now()) =
         pick(user, DailyGame.AMADEUS, personId, today, now, { it.scores.map { s -> s.composers to s.composer } })
 
+    /* ── The Mask ─────────────────────────────────────────────────── */
+
+    suspend fun masksOf(user: User, today: LocalDate = today()): MaskView = transaction {
+        val play = playIfAny(user, today, DailyGame.THE_MASK)
+        val masks = puzzleOf(user, today, DailyGame.THE_MASK, play).data.masks
+        val answers = play?.answers.orEmpty()
+        val movies = moviesOf(masks.flatMap { it.movies })
+        val people = peopleOf(masks.flatMap { it.suspects })
+        fun resultOf(i: Int) = masks[i].let { m -> MaskResult(m.movies.mapNotNull(movies::get), people.getValue(m.actor), answers.getOrNull(i)?.let(people::get)) }
+        val finished = answers.size >= masks.size
+        MaskView(
+            number = numberOf(today),
+            count = masks.size,
+            index = answers.size,
+            current = if (finished) null else masks[answers.size].let { m -> MaskCase(m.movies.mapNotNull(movies::get), m.suspects.mapNotNull(people::get)) },
+            last = if (answers.isEmpty()) null else resultOf(answers.size - 1),
+            score = play?.score ?: 0,
+            finished = finished,
+            results = if (finished) masks.indices.map(::resultOf) else emptyList(),
+            boards = if (finished) boardsOf(user, today, DailyGame.THE_MASK) { "${it.score}/${masks.size}" } else emptyList()
+        )
+    }
+
+    /** Names the actor behind the mask at hand; nothing once all are answered. */
+    suspend fun answerMask(user: User, personId: String, today: LocalDate = today(), now: Instant = Instant.now()) =
+        pick(user, DailyGame.THE_MASK, personId, today, now, { it.masks.map { m -> m.suspects to m.actor } })
+
     /* ── Shared ───────────────────────────────────────────────────── */
 
     /**
@@ -433,6 +482,7 @@ class DailyPuzzleService(
             DailyGame.CONNECTIONS -> puzzleFactory.connections(movies, puzzleFactory.traitsOf(movies), random)?.let { DailyPuzzleData(groups = it) }
             DailyGame.FACE_OFF -> puzzleFactory.faceOffs(ratings, random, TEN).takeIf { it.size == TEN }?.let { DailyPuzzleData(duels = it) }
             DailyGame.USUAL_SUSPECTS -> puzzleFactory.lineUps(movies, puzzleFactory.creditsOf(movies), random, TEN).takeIf { it.size == TEN }?.let { DailyPuzzleData(lineUps = it) }
+            DailyGame.THE_MASK -> puzzleFactory.masks(movies, puzzleFactory.creditsOf(movies), random, TEN).takeIf { it.size == TEN }?.let { DailyPuzzleData(masks = it) }
             DailyGame.MEMENTO -> puzzleFactory.series(movies, puzzleFactory.creditsOf(movies), random, SERIES_A_DAY).takeIf { it.size >= SERIES_MINIMUM }?.let { DailyPuzzleData(series = it) }
             DailyGame.AMADEUS -> {
                 // The player's own movies, the latest watched, filled up from the best known when they have too few with a composer.

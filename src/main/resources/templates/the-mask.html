@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(|The Mask #${mask.number}|)}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <a class="back-link" th:href="@{/play}">← Play</a>
+        <h1 class="page-title">The Mask <span class="quiz-number" th:text="|#${mask.number}|">#1</span></h1>
+        <p class="page-subtitle">Four posters, one actor behind the mask. Who is it? Ten a day.</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container quiz-layout">
+        <div class="stat-card odd-stage">
+            <div class="odd-progress">
+                <span class="quiz-pip" th:each="i : ${#numbers.sequence(1, mask.count)}"
+                      th:classappend="${i <= mask.index} ? 'answered' : (${i == mask.index + 1} ? 'current' : '')"></span>
+                <span class="odd-score" th:text="|${mask.score} right|">3 right</span>
+            </div>
+
+            <!-- The mask just lifted: right or not, and who it was. -->
+            <div class="odd-reveal" th:if="${mask.last != null and !mask.finished}" th:classappend="${mask.last.right} ? 'right' : 'wrong'">
+                <p class="quiz-verdict" th:text="${mask.last.right} ? 'Right!' : 'Not quite'">Right!</p>
+                <p class="odd-reveal-text">Behind the mask: <strong th:text="${mask.last.actor.primaryName}">Jim Carrey</strong>.</p>
+            </div>
+
+            <!-- The case: the mask, the four movies, and the names; a tap names the actor. -->
+            <th:block th:if="${mask.current != null}">
+                <div class="mask-case">
+                    <svg class="mask-face" aria-hidden="true"><use href="#the-mask"/></svg>
+                    <p class="mask-ask">Who is behind the mask? Their movies:</p>
+                    <div class="mask-clues">
+                        <div th:each="movie : ${mask.current.movies}">
+                            <div th:replace="~{fragments/cards :: posterThumb(${movie.id}, ${movie.primaryTitle})}"></div>
+                            <span class="mask-clue-title" th:text="${movie.primaryTitle}">The Truman Show</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="score-choices">
+                    <form th:each="person : ${mask.current.suspects}" th:action="@{/play/the-mask}" method="post" class="odd-pick">
+                        <input type="hidden" name="person" th:value="${person.id}">
+                        <button type="submit" class="button score-choice" th:text="${person.primaryName}">Jim Carrey</button>
+                    </form>
+                </div>
+            </th:block>
+
+            <!-- Done: the score, and every mask lifted. -->
+            <th:block th:if="${mask.finished}">
+                <div class="odd-final">
+                    <span class="odd-final-score" th:text="|${mask.score}/${mask.count}|">7/10</span>
+                    <div>
+                        <p class="quiz-verdict" th:text="${mask.score == mask.count} ? 'Every one right: you are enough!' : 'Done for today'">Done for today</p>
+                        <button type="button" class="button button-primary" th:data-quiz-share="|Storm Movies The Mask #${mask.number} · ${mask.score}/${mask.count}|">Share your score</button>
+                    </div>
+                </div>
+                <div class="odd-results">
+                    <div class="odd-result" th:each="result : ${mask.results}" th:classappend="${result.right} ? 'right' : 'wrong'">
+                        <div class="odd-result-posters">
+                            <a th:each="movie : ${result.movies}" th:href="@{/movie/{id}(id=${movie.id})}" class="odd-result-poster is-odd" th:title="${movie.primaryTitle}">
+                                <div th:replace="~{fragments/cards :: posterThumb(${movie.id}, ${movie.primaryTitle})}"></div>
+                            </a>
+                        </div>
+                        <p class="odd-result-text">
+                            <a th:href="@{/person/{id}(id=${result.actor.id})}"><strong th:text="${result.actor.primaryName}">Jim Carrey</strong></a>
+                            <th:block th:if="${!result.right and result.picked != null}" th:text="|, not ${result.picked.primaryName}|">, not Brad Pitt</th:block>
+                        </p>
+                    </div>
+                </div>
+            </th:block>
+        </div>
+        <aside th:replace="~{fragments/games :: boards(${mask.boards})}"></aside>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

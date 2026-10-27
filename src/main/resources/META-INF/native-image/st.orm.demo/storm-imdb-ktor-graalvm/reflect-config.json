@@ -1434,6 +1434,24 @@
     "allDeclaredFields": true
   },
   {
+    "name": "st.orm.demo.imdb.service.MaskCase",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.MaskResult",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.MaskView",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
     "name": "st.orm.demo.imdb.service.Trait",
     "allDeclaredConstructors": true,
     "allPublicMethods": true,

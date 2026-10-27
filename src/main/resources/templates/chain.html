@@ -17,7 +17,8 @@
             across the eras. When the actor of the link before is in it too, it is an escape: allowed, but no points.
             A link through Kevin Bacon scores six more, a nod to Six Degrees of Kevin Bacon, the game in which every
             actor is six movies or fewer from him; one through Meryl Streep three more, one for each of her Oscars, and one
-            through Bruce Willis five more, one for each Die Hard.
+            through Bruce Willis five more, one for each Die Hard, and one through Jack Nicholson three more, one for each of
+            his Oscars.
         </p>
         <p th:replace="~{fragments/games :: poolNote(${chain.match}, ${chain.players})}"></p>
     </div>
@@ -131,6 +132,7 @@
                       title="Six Degrees of Kevin Bacon: every actor is said to be six movies or fewer from him">Bacon bonus +6</span>
                 <span class="chain-bacon" th:if="${link.throughStreep}" title="Meryl Streep: three Oscars, twenty-one nominations, the greatest of all time">Streep bonus +3</span>
                 <span class="chain-bacon" th:if="${link.throughWillis}" title="Bruce Willis: five Die Hards, and a hundred more movies">Willis bonus +5</span>
+                <span class="chain-bacon" th:if="${link.throughNicholson}" title="Jack Nicholson: three Oscars, twelve nominations, more than any actor">Nicholson bonus +3</span>
             </li>
         </ol>
     </div>

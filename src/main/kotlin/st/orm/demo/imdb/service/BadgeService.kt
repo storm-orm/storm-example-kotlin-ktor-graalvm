@@ -7,6 +7,7 @@ import st.orm.demo.imdb.model.DailyGame
 import st.orm.demo.imdb.model.Game
 import st.orm.demo.imdb.model.GameMode
 import st.orm.demo.imdb.model.BRUCE_WILLIS
+import st.orm.demo.imdb.model.JACK_NICHOLSON
 import st.orm.demo.imdb.model.KEVIN_BACON
 import st.orm.demo.imdb.model.MERYL_STREEP
 import st.orm.demo.imdb.model.Person
@@ -161,10 +162,13 @@ class BadgeService(
         val links = chainLinkRepository.findByPlayer(user)
         counts[Badge.BACON_NUMBER] = links.count { it.via?.id == KEVIN_BACON }
         counts[Badge.STREEP_NUMBER] = links.count { it.via?.id == MERYL_STREEP }
+        counts[Badge.WILLIS_NUMBER] = links.count { it.via?.id == BRUCE_WILLIS }
+        counts[Badge.NICHOLSON_NUMBER] = links.count { it.via?.id == JACK_NICHOLSON }
         counts[Badge.CHAIN_GANG] = links.groupingBy { it.match.entityId() }.eachCount().values.maxOrNull() ?: 0
         val dailies = dailyPlayRepository.findAll(user).filter { it.finished }
         counts[Badge.PERFECT_GRID] = dailies.count { it.id.game == DailyGame.CONNECTIONS && it.score == 4 && it.mistakes == 0 }
         counts[Badge.ODD_EYE] = dailies.count { it.id.game == DailyGame.ODD_ONE_OUT && it.score == DailyPuzzleService.ODD_PUZZLES }
+        counts[Badge.YOU_ARE_ENOUGH] = dailies.count { it.id.game == DailyGame.THE_MASK && it.score == DailyPuzzleService.TEN }
         counts[Badge.DAILY_WEEK] = longestRun(dailies.map { it.id.puzzleOn }.toSortedSet().toList()) { a, b -> a.plusDays(1) == b }
         counts[Badge.FIRST_DAILY] = dailies.size
         counts[Badge.DECK_DONE] = swipeRepository.findAll(user).size + swipeRoundSwipeRepository.findByUser(user).size

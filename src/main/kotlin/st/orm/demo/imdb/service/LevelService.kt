@@ -36,9 +36,10 @@ object LevelRites {
         Level.BIT_PART to LevelRite(listOf(Badge.DECK_DONE, Badge.HOT_STREAK), 0),
         Level.SUPPORTING to LevelRite(listOf(Badge.CHAIN_GANG, Badge.FIRST_DAILY), 1),
         Level.LEAD to LevelRite(listOf(Badge.WINNER, Badge.PERFECT_GRID), 5),
-        Level.STAR to LevelRite(listOf(Badge.CAST_CALL, Badge.ODD_EYE, Badge.STAR_SPONSOR), 10),
-        Level.SUPER_STAR to LevelRite(listOf(Badge.BACON_NUMBER, Badge.DAILY_WEEK), 15),
-        Level.LEGEND to LevelRite(listOf(Badge.NIGHT_HOST, Badge.CHAMPION), 20),
+        // From Star on, each level has a chain link of its own: Bacon, Willis, Nicholson, and Streep at the top.
+        Level.STAR to LevelRite(listOf(Badge.CAST_CALL, Badge.ODD_EYE, Badge.BACON_NUMBER, Badge.STAR_SPONSOR), 10),
+        Level.SUPER_STAR to LevelRite(listOf(Badge.DAILY_WEEK, Badge.WILLIS_NUMBER), 15),
+        Level.LEGEND to LevelRite(listOf(Badge.NIGHT_HOST, Badge.CHAMPION, Badge.NICHOLSON_NUMBER), 20),
         Level.GOAT to LevelRite(listOf(Badge.STREEP_NUMBER), 25)
     )
 

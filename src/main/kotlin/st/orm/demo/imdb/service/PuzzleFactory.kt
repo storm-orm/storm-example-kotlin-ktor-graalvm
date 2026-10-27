@@ -40,6 +40,10 @@ data class LineUpPuzzle(val movie: String, val character: String, val suspects: 
 @Serializable
 data class SeriesPuzzle(val movies: List<String>, val order: List<String>)
 
+/** A Mask puzzle: four movies of one actor, four names to choose from, and the actor behind the mask. */
+@Serializable
+data class MaskPuzzle(val movies: List<String>, val suspects: List<String>, val actor: String)
+
 /** An Amadeus puzzle: a movie, four composers, and the one who wrote its score. */
 @Serializable
 data class ScorePuzzle(val movie: String, val composers: List<String>, val composer: String)
@@ -227,6 +231,30 @@ class PuzzleFactory(private val principalRepository: PrincipalRepository) {
         }.take(count)
     }
 
+    /**
+     * A day's The Mask: [count] actors, each top-billed in at least [MASK_CLUES]
+     * of the pool's movies, four of them the clues, no movie a clue twice;
+     * with three other actors of the pool to choose from, each top-billed in
+     * movies enough to be a fair guess.
+     */
+    fun masks(movies: List<Movie>, credits: List<Principal>, random: Random, count: Int): List<MaskPuzzle> {
+        val order = movies.withIndex().associate { (i, movie) -> movie.id to i }
+        val byActor = credits.filter { it.category in ACTING_CATEGORIES && it.ordering <= TOP_BILLED && it.movie.entityId() in order }
+            .groupBy({ it.person.id }, { it.movie.entityId() }).mapValues { it.value.distinct() }
+        val known = byActor.filterValues { it.size >= MASK_CLUES }.keys.toList()
+        val choices = byActor.filterValues { it.size >= 2 }.keys.toList()
+        if (known.size < count || choices.size < CHOICES) return emptyList()
+        val used = mutableSetOf<String>()
+        return known.shuffled(random).mapNotNull { actor ->
+            // The best-known movies of the actor still free, in the pool's order, mixed up as shown.
+            val clues = byActor.getValue(actor).filter { it !in used }.sortedBy(order::getValue).take(MASK_CLUES)
+            if (clues.size < MASK_CLUES) return@mapNotNull null
+            used += clues
+            val others = generateSequence { choices.random(random) }.filter { it != actor }.distinct().take(CHOICES - 1).toList()
+            MaskPuzzle(clues.shuffled(random), (others + actor).shuffled(random), actor)
+        }.take(count)
+    }
+
     /** The traits had by at least [minimum] of the movies, each with the ids of the movies that have it. */
     private fun byTrait(movies: List<Movie>, traits: Map<String, Set<Trait>>, minimum: Int): Map<Trait, List<String>> =
         movies.flatMap { movie -> traits.getValue(movie.id).map { it to movie.id } }
@@ -250,8 +278,10 @@ class PuzzleFactory(private val principalRepository: PrincipalRepository) {
         private val DUEL_GAP = java.math.BigDecimal("0.3")
         /** The people in a line-up. */
         const val SUSPECTS = 5
-        /** The composers to choose from. */
+        /** The composers, or the names behind the mask, to choose from. */
         const val CHOICES = 4
+        /** The movies that give an actor away in The Mask. */
+        const val MASK_CLUES = 4
         /** The movies of a Memento series: three at least, five at most. */
         const val SERIES_MINIMUM = 3
         const val SERIES_SIZE = 5

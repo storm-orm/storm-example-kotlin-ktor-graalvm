@@ -11,6 +11,12 @@ import st.orm.PK
  */
 const val BRUCE_WILLIS = "nm0000246"
 
+/** Jack Nicholson: three Oscars, twelve nominations, more than any actor. A chain link through him scores. */
+const val JACK_NICHOLSON = "nm0000197"
+
+/** Jim Carrey, who said, bowing out: "I have enough. I've done enough. I am enough." The Mask's badge says so too. */
+const val JIM_CARREY = "nm0000120"
+
 /**
  * An actor, director, or other credited person from the IMDB dataset,
  * keyed by the natural IMDB identifier (nconst, e.g. "nm0000206").

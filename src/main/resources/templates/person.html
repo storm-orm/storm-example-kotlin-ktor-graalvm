@@ -29,6 +29,18 @@
                 <span>Bruce Willis stepped away from acting in 2022, with aphasia, since diagnosed as frontotemporal dementia.
                     The movies stay: five of them watched earn the Yippee-Ki-Yay badge, and a chain link through him scores five more, one for each Die Hard.</span>
             </p>
+            <!-- Jack Nicholson's own page only: the Legend's rite. -->
+            <p class="bacon-number nicholson-note" th:if="${person.id == 'nm0000197'}">
+                <strong>Here's Johnny</strong>
+                <span>Three Oscars and twelve nominations, more than any actor. A chain link through him scores three more,
+                    one for each Oscar, and is the Legend's own rite.</span>
+            </p>
+            <!-- Jim Carrey's own page only: his words on bowing out, which The Mask's badge repeats. -->
+            <p class="bacon-number carrey-note" th:if="${person.id == 'nm0000120'}">
+                <strong>You are enough</strong>
+                <span>"I have enough. I've done enough. I am enough," he said, bowing out in 2022. The Mask, ten out of ten,
+                    earns a badge that says the same of you.</span>
+            </p>
             <!-- Meryl Streep's own page only: the GOAT, which the top of the bill is named for. -->
             <p class="bacon-number goat-note" th:if="${person.id == 'nm0000658'}">
                 <strong>The GOAT</strong>

@@ -282,6 +282,25 @@ class DailyPuzzleServiceTest {
     }
 
     @Test
+    fun `a mask is four movies of one actor, no movie a clue twice, the actor among four names`(orm: ORMTemplate) {
+        val movies = (1..12).map { Movie("m$it", "Title$it", "Title$it", 2000, 120) }
+        fun credit(movie: Int, person: String) = Principal(refById<Movie>("m$movie"), 1, Person(person, person, null, null), "actor", "Part")
+        // Two actors with five movies each, sharing m6; three more with two movies, as names to choose from.
+        val credits = (1..5).map { credit(it, "hanks") } + credit(6, "hanks") + (6..10).map { credit(it, "cruise") } +
+            listOf(credit(11, "pitt"), credit(12, "pitt"), credit(11, "damon"), credit(12, "damon"), credit(1, "roberts"), credit(2, "roberts"))
+        val masks = factory(orm).masks(movies, credits, Random(5), count = 2)
+        assertEquals(2, masks.size)
+        assertEquals(setOf("hanks", "cruise"), masks.map { it.actor }.toSet())
+        val clues = masks.flatMap { it.movies }
+        assertEquals(8, clues.toSet().size)
+        masks.forEach { mask ->
+            assertEquals(4, mask.suspects.toSet().size)
+            assertTrue(mask.actor in mask.suspects)
+            mask.movies.forEach { movie -> assertTrue(credits.any { it.person.id == mask.actor && it.movie.entityId() == movie }, movie) }
+        }
+    }
+
+    @Test
     fun `an amadeus puzzle has the movie's composer among four`(orm: ORMTemplate) {
         val movies = (1..5).map { Movie("m$it", "Title$it", "Title$it", 2000, 120) }
         val composers = listOf("zimmer", "williams", "horner", "elfman", "morricone")
