@@ -1581,7 +1581,9 @@ img { display: block; }
 .trailer-playing .hero-content,
 .trailer-playing .movie-hero-content { opacity: 0; pointer-events: none; }
 
-.trailer-playing .backdrop-video { z-index: 3; opacity: 1; pointer-events: auto; }
+/* Forward, the player is still never under the mouse: YouTube shows its bars and its title to a hovering
+   mouse, and never to one it does not see. The site's own controls take the clicks. */
+.trailer-playing .backdrop-video { z-index: 3; opacity: 1; pointer-events: none; }
 
 .trailer-playing .backdrop-video iframe { width: var(--video-fill-width); height: var(--video-fill-height); transform: translate(-50%, -50%); filter: none; }
 

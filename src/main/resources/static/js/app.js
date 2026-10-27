@@ -345,6 +345,8 @@ const FILL_CROP = 1.08;
 // The icons of the trailer's controls: the whole frame (corners out), filling the hero again (corners in), and exit.
 const ICON_FULL_FRAME = '<svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8V3h5M12 3h5v5M17 12v5h-5M8 17H3v-5"/></svg>';
 const ICON_FILL = '<svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v5H3M12 3v5h5M17 12h-5v5M3 12h5v5"/></svg>';
+const ICON_SOUND_ON = '<svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h3l4-3v10l-4-3H3z"/><path d="M13 7.5a3.5 3.5 0 0 1 0 5M15.5 5a7 7 0 0 1 0 10"/></svg>';
+const ICON_SOUND_OFF = '<svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h3l4-3v10l-4-3H3z"/><path d="M13 8l4 4M17 8l-4 4"/></svg>';
 const ICON_EXIT = '<svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15"/></svg>';
 
 function playBehind(hero, backdrop, youtubeKey) {
@@ -357,7 +359,7 @@ function playBehind(hero, backdrop, youtubeKey) {
     const frame = document.createElement('iframe');
     const key = encodeURIComponent(youtubeKey);
     frame.src = `https://www.youtube-nocookie.com/embed/${key}?enablejsapi=1&autoplay=1&mute=1&loop=1&playlist=${key}`
-        + `&controls=1&playsinline=1&rel=0&iv_load_policy=3&origin=${encodeURIComponent(location.origin)}`;
+        + `&controls=0&disablekb=1&fs=0&modestbranding=1&playsinline=1&rel=0&iv_load_policy=3&origin=${encodeURIComponent(location.origin)}`;
     frame.width = BACKDROP_VIDEO_WIDTH;
     frame.height = BACKDROP_VIDEO_HEIGHT;
     frame.title = 'Trailer';
@@ -412,9 +414,11 @@ function bringForward(hero, behind, buttons) {
         hero.classList.add('trailer-playing');
         // The size switch is instant; from the next frame on, the whole frame and the fill ease into each other.
         requestAnimationFrame(() => requestAnimationFrame(() => hero.classList.add('trailer-settled')));
-        frame.tabIndex = 0;
+        // The player never has the focus nor the mouse: YouTube's own controls never come up. The
+        // sound is ours to give, with the control below.
+        frame.tabIndex = -1;
         // On from where it is, with sound; a browser that pauses rather than let the page unmute
-        // (iOS) gets it playing on, muted, and YouTube's volume button gives the sound.
+        // (iOS) gets it playing on, muted, and the sound control, a tap, gives the sound.
         player.unMute();
         player.setVolume(80);
         player.playVideo();
@@ -423,6 +427,7 @@ function bringForward(hero, behind, buttons) {
                 player.mute();
                 player.playVideo();
             }
+            showSound();
         }, 700);
 
         const controls = document.createElement('div');
@@ -437,9 +442,21 @@ function bringForward(hero, behind, buttons) {
             controls.append(button);
             return button;
         };
+        const sound = control(ICON_SOUND_ON, 'Sound off');
         const frameToggle = control(ICON_FULL_FRAME, 'Show the whole frame');
         const exit = control(ICON_EXIT, 'Exit trailer');
         hero.append(controls);
+        const showSound = () => {
+            const muted = player.isMuted();
+            sound.innerHTML = muted ? ICON_SOUND_OFF : ICON_SOUND_ON;
+            sound.title = muted ? 'Sound on' : 'Sound off';
+            sound.setAttribute('aria-label', sound.title);
+        };
+        sound.addEventListener('click', () => {
+            if (player.isMuted()) { player.unMute(); player.setVolume(80); player.playVideo(); } else player.mute();
+            setTimeout(showSound, 150);
+        });
+        showSound();
         frameToggle.addEventListener('click', () => {
             const fullFrame = hero.classList.toggle('trailer-full-frame');
             frameToggle.innerHTML = fullFrame ? ICON_FILL : ICON_FULL_FRAME;
@@ -465,8 +482,6 @@ function bringForward(hero, behind, buttons) {
             // Paused, the player keeps its controls up: it is set playing again, and once more if the first
             // call did not take, as on a phone that stops a video losing its sound.
             [600, 1800].forEach(wait => setTimeout(() => { if (player.getPlayerState() !== YT.PlayerState.PLAYING) player.playVideo(); }, wait));
-            // The player keeps its controls up while it has the focus: the focus goes back to the page.
-            frame.tabIndex = -1;
             frame.blur();
             buttons[0]?.focus({ preventScroll: true });
             controls.remove();
