@@ -18,6 +18,10 @@ import st.orm.template.less
 import st.orm.template.ref
 import java.time.Instant
 
+/** Query result shape: how many movies a user checked in, each counted once however often. */
+@GenerateMetamodel
+data class CheckedMovies(val movies: Long)
+
 /**
  * Query result shape: a movie and the day of its latest check-in. Not backed
  * by a database table or view, so it is a plain data class — deliberately
@@ -54,6 +58,13 @@ data class CheckInCount(
 interface CheckInRepository : EntityRepository<CheckIn, Long> {
 
     /** All the user's check-ins, each with its movie: what an import matches its days against. */
+    /** How many movies the user has checked in, each once: a movie watched again counts no more. */
+    fun countMovies(user: User): Long =
+        select<CheckedMovies, _, _> { "COUNT(DISTINCT ${CheckIn_.movie})" }
+            .where(CheckIn_.user eq user)
+            .singleResult
+            .movies
+
     fun findAll(user: User): List<CheckIn> =
         findAll(CheckIn_.user eq user)
 

@@ -22,6 +22,22 @@
     </div>
 </header>
 
+<!-- Where the visitor stands: the level, the way to the next, and the page that explains it all. -->
+<section class="section level-strip" th:if="${level != null}">
+    <div class="container">
+        <a class="level-card" th:href="@{/play/levels}">
+            <span class="level-ring" th:style="|--progress: ${level.fraction}|"><span th:text="${#numbers.formatInteger(level.fraction * 100, 1)} + '%'">42%</span></span>
+            <span class="level-text">
+                <span class="level-eyebrow">Your level</span>
+                <span class="level-name" th:text="${level.level.label}">Supporting</span>
+                <span class="level-next" th:text="|${#numbers.formatDecimal(level.score, 1, 1)} points · ${level.nextText}|">143.5 points · 107 more to Lead</span>
+            </span>
+            <span class="level-link">Levels &amp; badges →</span>
+        </a>
+        <p class="notice game-full" th:if="${locked != null}" th:text="|Not yet: that one ${#strings.toLowerCase(locked.text)}.|">Not yet: that one unlocks at Bit Part · 12 movies to go.</p>
+    </div>
+</section>
+
 <!-- The visitor's open games, the ones waiting on them first, each with a way to close it; under them the few
      that closed last, and the way to the archive. -->
 <section class="section" th:unless="${play.games.isEmpty() and play.finished.isEmpty()}" id="your-games">
@@ -52,7 +68,7 @@
     </div>
 </section>
 
-<section class="section">
+<section class="section" id="games">
     <div class="container game-grid">
         <a class="game-card game-quiz" th:href="@{/play/quiz}">
             <span class="game-art game-art-quiz" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></span>
@@ -102,7 +118,10 @@
             </span>
             <span class="game-title">Higher or Lower</span>
             <span class="game-text">Two posters: is the second rated higher or lower on IMDb? Keep it going as long as you can.</span>
+            <th:block th:if="${locks['HIGHER_LOWER'] == null}">
             <form th:replace="~{fragments/games :: startForm('/play/higher-lower', 'Challenge', 'Start a round')}"></form>
+            </th:block>
+            <span class="game-lock" th:if="${locks['HIGHER_LOWER'] != null}" th:text="${locks['HIGHER_LOWER'].text}">Unlocks at Bit Part · 12 movies to go</span>
         </div>
 
         <!-- Movie Chain: each movie shares an actor with the one before; against the house, a friend, or a club. -->
@@ -112,7 +131,10 @@
             </span>
             <span class="game-title">Movie Chain</span>
             <span class="game-text">Take turns adding a movie that shares an actor with the last one. A day per turn; whoever misses theirs is skipped.</span>
+            <th:block th:if="${locks['CHAIN'] == null}">
             <form th:replace="~{fragments/games :: startForm('/play/chain', 'Start a chain', 'Start a chain')}"></form>
+            </th:block>
+            <span class="game-lock" th:if="${locks['CHAIN'] != null}" th:text="${locks['CHAIN'].text}">Unlocks at Bit Part · 12 movies to go</span>
         </div>
 
         <!-- Swipe: posters to swipe on one's own, or a round with a friend or a club. -->
@@ -131,7 +153,10 @@
             </span>
             <span class="game-title">Movie Draft</span>
             <span class="game-text">A theme, like Sci-Fi of the 1990s. Take turns picking three movies each; the ratings stay hidden until the end, and the best line-up wins.</span>
+            <th:block th:if="${locks['DRAFT'] == null}">
             <form th:replace="~{fragments/games :: startForm('/play/draft', 'Start a draft', 'Start a draft')}"></form>
+            </th:block>
+            <span class="game-lock" th:if="${locks['DRAFT'] != null}" th:text="${locks['DRAFT'].text}">Unlocks at Bit Part · 12 movies to go</span>
         </div>
 
         <!-- Connect: two movies to join, together, in as few links as par. -->
@@ -141,7 +166,10 @@
             </span>
             <span class="game-title">Connect</span>
             <span class="game-text">Two movies to join by a chain of shared actors, in as few links as you can. Play it together: anyone adds the next link, any time.</span>
+            <th:block th:if="${locks['CONNECT'] == null}">
             <form th:replace="~{fragments/games :: startForm('/play/connect', 'Start a puzzle', 'Start a puzzle')}"></form>
+            </th:block>
+            <span class="game-lock" th:if="${locks['CONNECT'] != null}" th:text="${locks['CONNECT'].text}">Unlocks at Bit Part · 12 movies to go</span>
         </div>
 
         <!-- Name That Cast: a movie from the house; bid how many of its cast you can name, then name them. -->
@@ -152,7 +180,10 @@
             <span class="game-title">Name That Cast</span>
             <span class="game-text">The house picks a movie. How many of its cast can you name, the director too? Bid against your
                 friend or your club: the highest bid has to name them all. On your own, name as many as you know.</span>
+            <th:block th:if="${locks['CAST'] == null}">
             <form th:replace="~{fragments/games :: startForm('/play/cast', 'Challenge', 'Start a round')}"></form>
+            </th:block>
+            <span class="game-lock" th:if="${locks['CAST'] != null}" th:text="${locks['CAST'].text}">Unlocks at Bit Part · 12 movies to go</span>
         </div>
     </div>
 </section>

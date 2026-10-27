@@ -12,6 +12,7 @@ import st.orm.demo.imdb.service.CinemaService
 import st.orm.demo.imdb.service.FreepodSignIn
 import st.orm.demo.imdb.service.GitSignIn
 import st.orm.demo.imdb.service.HomeService
+import st.orm.demo.imdb.service.LevelService
 import st.orm.demo.imdb.service.ListService
 import st.orm.demo.imdb.service.MovieFilterService
 import st.orm.demo.imdb.service.MovieNightService
@@ -79,6 +80,7 @@ fun Application.configureRouting() {
     val swipeService: SwipeService by dependencies
     val connectService: ConnectService by dependencies
     val castService: CastService by dependencies
+    val levelService: LevelService by dependencies
     val dailyPuzzleService: DailyPuzzleService by dependencies
     val posterController: PosterController by dependencies
     val personGalleryService: PersonGalleryService by dependencies
@@ -114,7 +116,8 @@ fun Application.configureRouting() {
         personRoutes(personService)
         quizRoutes(quizService)
         dailyPuzzleRoutes(dailyPuzzleService)
-        playRoutes(playService, higherLowerService, chainService, draftService, swipeService, movieNightService, connectService, castService)
+        playRoutes(playService, higherLowerService, chainService, draftService, swipeService, movieNightService, connectService, castService, levelService)
+        levelRoutes(levelService)
         swipeRoutes(swipeService)
         posterRoutes(posterController)
         galleryRoutes(personGalleryService)

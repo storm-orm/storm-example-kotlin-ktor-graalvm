@@ -4007,3 +4007,84 @@ body::after {
     .nav-menu { display: none; }
     .nav-group > a::after { display: none; }
 }
+
+/* ── Levels ─────────────────────────────────────────────────────────── */
+
+/* The avatar in a ring that fills from this level to the next (--progress, 0 to 1). */
+.nav-account-icon[style*="--progress"] {
+    position: relative;
+    box-shadow: 0 0 0 2px var(--background);
+}
+.nav-account-icon[style*="--progress"]::after {
+    content: ""; position: absolute; inset: -5px; border-radius: 50%; z-index: -1;
+    background: conic-gradient(var(--accent) calc(var(--progress) * 360deg), rgba(255, 255, 255, 0.12) 0);
+}
+
+/* The ring on the Play and levels pages, the share to the next level in the middle. */
+.level-ring { --size: 56px; position: relative; display: inline-flex; align-items: center; justify-content: center; width: var(--size); height: var(--size); border-radius: 50%; flex-shrink: 0; font-family: var(--font-display); font-size: calc(var(--size) * 0.3); color: var(--text);
+    background: conic-gradient(var(--accent) calc(var(--progress) * 360deg), rgba(255, 255, 255, 0.1) 0); }
+.level-ring::before { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: var(--surface); }
+.level-ring > span { position: relative; }
+.level-ring-large { --size: 128px; }
+.level-ring-large::before { inset: 9px; background: var(--background); }
+
+.level-strip { padding-top: 22px; padding-bottom: 0; }
+.level-card { display: flex; align-items: center; gap: 18px; max-width: 820px; padding: 14px 20px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); transition: border-color 0.15s ease, transform 0.15s ease; }
+.level-card:hover { border-color: rgba(var(--accent-rgb), 0.5); transform: translateY(-2px); }
+.level-text { display: flex; flex-direction: column; min-width: 0; }
+.level-eyebrow { font-size: 11.5px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-muted); }
+.level-name { font-family: var(--font-display); font-size: 26px; letter-spacing: 0.5px; text-transform: uppercase; line-height: 1.1; }
+.level-next { color: var(--text-muted); font-size: 13.5px; }
+.level-link { margin-left: auto; color: var(--accent-strong); font-size: 14px; font-weight: 500; white-space: nowrap; }
+
+/* A game the visitor's level does not reach: what it takes, in place of the ways to start it. */
+.game-lock { display: inline-flex; align-items: center; gap: 8px; margin-top: 8px; padding: 9px 14px; border-radius: 999px; border: 1px dashed rgba(255, 255, 255, 0.25); color: var(--text-muted); font-size: 13.5px; }
+.game-lock::before { content: ""; width: 10px; height: 13px; border: 1.5px solid currentColor; border-radius: 3px; box-shadow: inset 0 -4px 0 currentColor; }
+.game-card:has(.game-lock) .game-title { opacity: 0.8; }
+
+/* The levels page: the visitor's level over their own posters. */
+.levels-hero-content { padding-top: 34px; padding-bottom: 40px; }
+.levels-head { display: flex; align-items: center; gap: 28px; margin-top: 14px; }
+.levels-title { font-size: 64px; }
+.levels-lede { margin: 6px 0 0; max-width: 560px; font-size: 17px; color: var(--text-muted); }
+.levels-lede strong { color: var(--text); font-size: 20px; }
+
+.levels-layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 30px; align-items: start; }
+
+/* The ladder: a line down the left, a mark per level, the visitor's lit and the ones ahead dimmed. */
+.level-ladder { list-style: none; margin: 0; padding: 0; position: relative; }
+.level-ladder::before { content: ""; position: absolute; top: 10px; bottom: 10px; left: 11px; width: 2px; background: linear-gradient(180deg, var(--accent), rgba(255, 255, 255, 0.1)); }
+.level-rung { position: relative; display: grid; grid-template-columns: 24px 64px minmax(0, 1fr) auto; gap: 0 16px; align-items: start; padding: 14px 0 22px; }
+.level-rung-mark { width: 24px; height: 24px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.25); background: var(--background); margin-top: 2px; }
+.level-rung.reached .level-rung-mark, .level-rung.current .level-rung-mark { border-color: var(--accent); background: var(--accent); box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.6); }
+.level-rung.current .level-rung-mark { background: var(--background); box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.25), 0 0 18px rgba(var(--accent-rgb), 0.6); }
+.level-rung-threshold { font-family: var(--font-display); font-size: 20px; color: var(--text-muted); margin-top: 2px; }
+.level-rung.current .level-rung-threshold { color: var(--accent-strong); }
+.level-rung-body { display: flex; flex-direction: column; gap: 4px; }
+.level-rung-name { font-family: var(--font-display); font-size: 28px; letter-spacing: 0.5px; text-transform: uppercase; line-height: 1.1; }
+.level-rung.ahead .level-rung-name { color: var(--text-muted); }
+.level-rung-blurb { color: var(--text-muted); font-size: 14.5px; max-width: 520px; }
+.level-rung-unlocks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.level-unlock { padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(var(--cyan-rgb), 0.5); color: var(--cyan); font-size: 12.5px; font-weight: 600; }
+.level-rung.ahead .level-unlock { border-color: var(--border); color: var(--text-muted); }
+.level-rung-you { padding: 3px 10px; border-radius: 999px; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
+
+.levels-aside { display: flex; flex-direction: column; gap: 18px; }
+.levels-rules { margin: 12px 0 0; padding-left: 18px; color: var(--text-muted); font-size: 14.5px; line-height: 1.55; }
+.levels-rules li + li { margin-top: 6px; }
+.levels-rules strong { color: var(--text); }
+.levels-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+
+/* What a check-in brought, for a moment, bottom centre. */
+.level-toast { position: fixed; left: 50%; bottom: 28px; z-index: 60; transform: translate(-50%, 20px); padding: 12px 18px; border-radius: 999px; border: 1px solid rgba(var(--accent-rgb), 0.5); background: var(--surface-raised); color: var(--text); font-size: 14px; box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5); opacity: 0; transition: opacity 0.25s ease, transform 0.25s ease; }
+.level-toast.shown { opacity: 1; transform: translate(-50%, 0); }
+.level-toast strong { color: var(--accent-strong); }
+
+@media (max-width: 760px) {
+    .levels-layout { grid-template-columns: 1fr; }
+    .levels-title { font-size: 44px; }
+    .level-ring-large { --size: 96px; }
+    .level-rung { grid-template-columns: 24px 48px minmax(0, 1fr); }
+    .level-rung-you { grid-column: 3; justify-self: start; margin-top: 6px; }
+    .level-link { display: none; }
+}

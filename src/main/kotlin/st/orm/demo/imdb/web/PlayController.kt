@@ -12,6 +12,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.thymeleaf.ThymeleafContent
 import io.ktor.server.util.getOrFail
+import st.orm.demo.imdb.model.Game
 import st.orm.demo.imdb.model.GameMatch
 import st.orm.demo.imdb.model.GameMode
 import kotlinx.serialization.Serializable
@@ -24,6 +25,7 @@ import st.orm.demo.imdb.service.ConnectMove
 import st.orm.demo.imdb.service.ConnectService
 import st.orm.demo.imdb.service.DraftMove
 import st.orm.demo.imdb.service.DraftService
+import st.orm.demo.imdb.service.LevelService
 import st.orm.demo.imdb.service.MovieNightService
 import st.orm.demo.imdb.service.SwipeService
 import st.orm.demo.imdb.model.SwipeWay
@@ -55,10 +57,13 @@ data class CastNamed(val verdict: String, val live: CastLive)
  * to the match. Playing with others needs a signed-in account, as they see
  * the players' names; anyone plays on their own.
  */
-fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerService, chainService: ChainService, draftService: DraftService, swipeService: SwipeService, movieNightService: MovieNightService, connectService: ConnectService, castService: CastService) {
+fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerService, chainService: ChainService, draftService: DraftService, swipeService: SwipeService, movieNightService: MovieNightService, connectService: ConnectService, castService: CastService, levelService: LevelService) {
     get("/play") {
         val full = call.request.queryParameters["full"] != null
-        call.respondPage(ThymeleafContent("play", mapOf("play" to playService.playOf(call.currentUser()), "full" to full, "maxOpen" to PlayService.MAX_OPEN)))
+        val user = call.currentUser()
+        val locks = levelService.locksOf(user)
+        call.respondPage(ThymeleafContent("play", mapOf("play" to playService.playOf(user), "full" to full, "maxOpen" to PlayService.MAX_OPEN,
+            "locks" to locks, "level" to levelService.progressOf(user), "locked" to call.request.queryParameters["locked"]?.let { locks[it] })))
     }
 
     // The visitor's finished games, a page at a time.
@@ -73,18 +78,20 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
         call.respondRedirect("/play#your-games")
     }
 
-    for ((path, start) in listOf<Pair<String, suspend (User, Opponents) -> GameMatch?>>(
-        "/play/higher-lower" to { user, opponents -> higherLowerService.start(user, opponents) },
-        "/play/chain" to { user, opponents -> chainService.start(user, opponents) },
-        "/play/draft" to { user, opponents -> draftService.start(user, opponents) },
-        "/play/swipe" to { user, opponents -> swipeService.startRound(user, opponents) },
-        "/play/connect" to { user, opponents -> connectService.start(user, opponents) },
-        "/play/cast" to { user, opponents -> castService.start(user, opponents) }
+    for ((path, game, start) in listOf<Triple<String, Game, suspend (User, Opponents) -> GameMatch?>>(
+        Triple("/play/higher-lower", Game.HIGHER_LOWER) { user, opponents -> higherLowerService.start(user, opponents) },
+        Triple("/play/chain", Game.CHAIN) { user, opponents -> chainService.start(user, opponents) },
+        Triple("/play/draft", Game.DRAFT) { user, opponents -> draftService.start(user, opponents) },
+        Triple("/play/swipe", Game.SWIPE) { user, opponents -> swipeService.startRound(user, opponents) },
+        Triple("/play/connect", Game.CONNECT) { user, opponents -> connectService.start(user, opponents) },
+        Triple("/play/cast", Game.CAST) { user, opponents -> castService.start(user, opponents) }
     )) {
         post(path) {
             val opponents = call.receiveParameters().opponents()
             val user = call.currentUser()
             if (opponents.mode != GameMode.SOLO && user.name == null) return@post call.respondRedirect("/signin?rd=/play")
+            // A game the visitor's level does not reach yet: the Play page says what it takes.
+            if (!levelService.canStart(user, game)) return@post call.respondRedirect("/play?locked=${game.name}#games")
             // At the most games open, the oldest on one's own closes; with all of them played with others, none starts.
             if (!playService.makeRoom(user)) return@post call.respondRedirect("/play?full#your-games")
             val match = start(user, opponents) ?: return@post call.respondRedirect("/play")

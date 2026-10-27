@@ -7,6 +7,7 @@ import io.micrometer.observation.ObservationRegistry
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import st.orm.demo.imdb.service.AccountService
 import st.orm.demo.imdb.service.BrowseService
+import st.orm.demo.imdb.service.LevelService
 import st.orm.demo.imdb.service.RecentlyAddedService
 import st.orm.demo.imdb.service.RecommendationService
 import st.orm.demo.imdb.service.GalleryRefreshProperties
@@ -142,6 +143,7 @@ fun Application.configureDependencies() {
         provide { PuzzleFactory(resolve()) }
         provide { DailyPuzzleService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { ConnectService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { LevelService(resolve(), resolve(), resolve()) }
         provide { CastService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { PlayService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { QuizService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }

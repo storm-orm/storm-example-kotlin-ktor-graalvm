@@ -65,9 +65,11 @@
         <!-- The account: a name once signed in with a git provider, else the way to. -->
         <!-- Signed in, the account icon opens the account page: the logins, linking another, signing out. -->
         <div class="nav-account">
+            <!-- The ring fills from this level to the next; its title says how far (the levels page explains). -->
             <a th:if="${account.name != null}" class="nav-account-icon" th:href="@{/signin}"
                th:classappend="${active == 'signin'} ? 'active'"
-               th:title="|${account.name}: your account|" aria-label="Your account">
+               th:style="${level != null} ? |--progress: ${level.fraction}|"
+               th:title="${level != null} ? |${account.name} · ${level.level.label}: ${level.nextText}| : |${account.name}: your account|" aria-label="Your account">
                 <img th:if="${account.avatarUrl != null}" th:src="${account.avatarUrl}" alt="">
                 <span th:unless="${account.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(account.name, 0, 1))}">A</span>
             </a>

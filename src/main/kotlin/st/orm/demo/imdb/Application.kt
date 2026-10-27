@@ -366,7 +366,8 @@ private fun Application.configureStorm() {
                     "db/migration/V37__daily_puzzles.sql",
                     "db/migration/V38__people_puzzles.sql",
                     "db/migration/V39__closed_games.sql",
-                    "db/migration/V40__name_that_cast.sql"
+                    "db/migration/V40__name_that_cast.sql",
+                    "db/migration/V41__levels.sql"
                 )))
                 .load()
                 .migrate()

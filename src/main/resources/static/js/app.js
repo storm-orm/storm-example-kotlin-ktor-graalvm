@@ -1091,6 +1091,7 @@ function setupListToggles() {
                 if (!ok) return;
                 checkInDays.unshift(CHECK_IN_DAY.format(new Date(chosen.dataset.checkInDay + 'T00:00:00Z')));
                 showSeen();
+                showLevelToast();
             });
         });
         // The path rather than the target: Check in again replaces the menu's content, the clicked option with it.
@@ -1938,4 +1939,25 @@ function setupCastLive() {
             // A missed check is followed by the next.
         }
     }, 3000);
+}
+
+// After a check-in, a moment's note of what it brought towards the next level, and the avatar's ring follows.
+async function showLevelToast() {
+    try {
+        const response = await fetch('/api/level', { headers: { Accept: 'application/json' } });
+        if (!response.ok) return;
+        const level = await response.json();
+        const avatar = document.querySelector('.nav-account-icon[style*="--progress"]');
+        if (avatar) avatar.style.setProperty('--progress', level.fraction);
+        const toast = document.createElement('div');
+        toast.className = 'level-toast';
+        toast.innerHTML = level.next
+            ? `<strong>+1½</strong> towards ${level.next} · ${level.toNext} to go`
+            : `<strong>${level.level}</strong>: the top of the bill`;
+        document.body.append(toast);
+        requestAnimationFrame(() => toast.classList.add('shown'));
+        setTimeout(() => { toast.classList.remove('shown'); setTimeout(() => toast.remove(), 300); }, 3500);
+    } catch (e) {
+        // Without the level, the check-in still counted.
+    }
 }

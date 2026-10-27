@@ -44,5 +44,7 @@ data class User(
     /** The country the user is from (ISO 3166-1 alpha-2), for where movies play; null leaves it to the browser. */
     val country: String? = null,
     /** The movies the user wants picked for them; null lets every movie through. */
-    @Json val movieFilter: MovieFilter? = null
+    @Json val movieFilter: MovieFilter? = null,
+    /** The highest level the user's watched movies reached, kept once reached. */
+    val level: Level = Level.EXTRA
 ) : Entity<String>

@@ -17,6 +17,7 @@ import st.orm.demo.imdb.service.Countries
 import st.orm.demo.imdb.service.Country
 import st.orm.demo.imdb.service.FreepodSignIn
 import st.orm.demo.imdb.service.FriendService
+import st.orm.demo.imdb.service.LevelService
 import st.orm.demo.imdb.service.StreamingService
 import st.orm.demo.imdb.service.TmdbService
 import java.util.Locale
@@ -33,6 +34,7 @@ private val FreepodSignInKey = AttributeKey<FreepodSignIn>("FreepodSignIn")
 private val FriendServiceKey = AttributeKey<FriendService>("FriendService")
 private val TmdbServiceKey = AttributeKey<TmdbService>("TmdbService")
 private val StreamingServiceKey = AttributeKey<StreamingService>("StreamingService")
+private val LevelServiceKey = AttributeKey<LevelService>("LevelService")
 private val AccountIdKey = AttributeKey<String>("AccountId")
 private val CurrentUserKey = AttributeKey<User>("CurrentUser")
 
@@ -48,11 +50,13 @@ fun Application.configureAccounts() {
     val friendService: FriendService by dependencies
     val tmdbService: TmdbService by dependencies
     val streamingService: StreamingService by dependencies
+    val levelService: LevelService by dependencies
     attributes.put(AccountServiceKey, accountService)
     attributes.put(FreepodSignInKey, freepodSignIn)
     attributes.put(FriendServiceKey, friendService)
     attributes.put(TmdbServiceKey, tmdbService)
     attributes.put(StreamingServiceKey, streamingService)
+    attributes.put(LevelServiceKey, levelService)
 }
 
 /**
@@ -63,15 +67,18 @@ fun Application.configureAccounts() {
  * on Freepod with its sign-in on, under `tmdb` whether TMDB is on, for
  * the Trailer buttons and the footer's credit, and under `hasServices`
  * whether a signed-in visitor has streaming services, for their logos on
- * the posters. Every page responds through here, so no controller passes
+ * the posters, and under `level` where a signed-in visitor stands, for the
+ * ring around their avatar. Every page responds through here, so no controller passes
  * them itself.
  */
 suspend fun ApplicationCall.respondPage(content: ThymeleafContent) {
     val user = currentUser()
     val requestCount = if (user.name != null) application.attributes[FriendServiceKey].countRequests(user) else 0L
     val hasServices = isSignedIn() && country() != null && application.attributes[StreamingServiceKey].servicesOf(user).isNotEmpty()
+    val level = if (user.name != null) application.attributes[LevelServiceKey].progressOf(user) else null
     val layout = mapOf(
         "account" to user,
+        "level" to level,
         "requestCount" to requestCount,
         "hostedOnFreepod" to application.attributes[FreepodSignInKey].enabled,
         "tmdb" to application.attributes[TmdbServiceKey].enabled,

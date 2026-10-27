@@ -92,7 +92,8 @@ CREATE TABLE app_user (
     club_share_name  BOOLEAN NOT NULL DEFAULT TRUE,
     club_share_dates BOOLEAN NOT NULL DEFAULT FALSE,
     country          VARCHAR(2),
-    movie_filter     VARCHAR
+    movie_filter     VARCHAR,
+    level            VARCHAR NOT NULL DEFAULT 'EXTRA'
 );
 
 CREATE TABLE user_login (
