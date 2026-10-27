@@ -12,7 +12,11 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import io.ktor.server.application.ApplicationCall
+import io.ktor.server.request.accept
+import io.ktor.server.request.path
 import io.ktor.server.thymeleaf.Thymeleaf
+import io.ktor.server.thymeleaf.ThymeleafContent
 import kotlinx.serialization.json.Json
 import org.flywaydb.core.Flyway
 import org.thymeleaf.context.IExpressionContext
@@ -39,6 +43,7 @@ import st.orm.demo.imdb.service.ViewLogService
 import st.orm.demo.imdb.service.WikidataService
 import st.orm.demo.imdb.web.configureAccounts
 import st.orm.demo.imdb.web.configureRouting
+import st.orm.demo.imdb.web.respondPage
 import st.orm.ktor.Storm
 import st.orm.serialization.StormSerializers
 import st.orm.template.TransactionDispatchers
@@ -270,12 +275,16 @@ private fun Application.configureObservability() {
  * does not exist (getById on an unknown id) is a 404, not a 500, and a scroll
  * cursor the engine refuses is a 400. See the Error Handling section of the
  * Ktor integration docs for the full recipe, including constraint-violation
- * and optimistic-lock mappings.
+ * and optimistic-lock mappings. A page that is not there, asked for by a
+ * browser, gets a page of its own; a script's request gets the plain status.
  */
 private fun Application.configureErrorHandling() {
     install(StatusPages) {
         exception<NoResultException> { call, _ ->
-            call.respondText("Not found", status = HttpStatusCode.NotFound)
+            if (call.wantsPage()) call.respondNotFoundPage() else call.respondText("Not found", status = HttpStatusCode.NotFound)
+        }
+        status(HttpStatusCode.NotFound) { call, _ ->
+            if (call.wantsPage()) call.respondNotFoundPage()
         }
         // A cursor is opaque and is issued for one ordering: a malformed cursor, one from an
         // earlier format, or one issued for another ordering cannot resume the scroll. The
@@ -285,6 +294,15 @@ private fun Application.configureErrorHandling() {
             call.respondText("Invalid cursor", status = HttpStatusCode.BadRequest)
         }
     }
+}
+
+/** Whether the request is a browser's for a page, not a script's for data. */
+private fun ApplicationCall.wantsPage(): Boolean =
+    !request.path().startsWith("/api/") && request.accept()?.contains("text/html") == true
+
+private suspend fun ApplicationCall.respondNotFoundPage() {
+    response.status(HttpStatusCode.NotFound)
+    respondPage(ThymeleafContent("not-found", emptyMap()))
 }
 
 /**

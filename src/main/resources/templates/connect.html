@@ -14,7 +14,9 @@
                 <th:block th:case="'FRIEND'">Together with a friend: either of you adds the next link, any time.</th:block>
                 <th:block th:case="*" th:text="|Together with ${puzzle.match.club.name}: anyone adds the next link, any time.|">With the club.</th:block>
             </th:block>
-            Join the two movies, each one sharing an actor with the one before, in as few links as you can.
+            Join the two movies, each one sharing an actor with the one before, in as few links as you can. A link
+            through Kevin Bacon counts one less, a nod to Six Degrees of Kevin Bacon, the game in which every actor
+            is six movies or fewer from him.
         </p>
     </div>
 </header>
@@ -51,6 +53,8 @@
                 <p class="quiz-verdict" th:text="${puzzle.overPar <= 0} ? (${puzzle.overPar < 0} ? 'Under par!' : 'On par!') : |${puzzle.overPar} over par|">On par!</p>
                 <h2 class="chain-status-title" th:text="|Connected in ${puzzle.linkCount} ${puzzle.linkCount == 1 ? 'link' : 'links'}|">Connected in 3 links</h2>
                 <p class="stat-note" th:text="|${puzzle.puzzle.hints} ${puzzle.puzzle.hints == 1 ? 'hint' : 'hints'} · ${puzzle.puzzle.undos} ${puzzle.puzzle.undos == 1 ? 'undo' : 'undos'}|">1 hint · 0 undos</p>
+                <p class="stat-note" th:if="${puzzle.baconLinks > 0}"
+                   th:text="${puzzle.baconLinks == 1} ? 'Through Kevin Bacon: one link off.' : |Through Kevin Bacon ${puzzle.baconLinks} times: ${puzzle.baconLinks} links off.|">Through Kevin Bacon: one link off.</p>
             </th:block>
             <th:block th:if="${puzzle.over and !puzzle.connected}">
                 <p class="quiz-verdict">Given up</p>
@@ -115,6 +119,8 @@
                     <th:block th:if="${step.first}">The start</th:block>
                     <th:block th:if="${link.player != null}" th:text="${link.player.name} ?: 'You'">Alice</th:block>
                 </span>
+                <span class="chain-bacon" th:if="${link.throughBacon}"
+                      title="Six Degrees of Kevin Bacon: every actor is said to be six movies or fewer from him">Bacon bonus: one link off</span>
             </li>
         </ol>
     </div>

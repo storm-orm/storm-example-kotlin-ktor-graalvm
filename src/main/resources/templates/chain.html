@@ -14,6 +14,8 @@
             <th:block th:case="*" th:text="|With ${chain.match.club.name}, a day per turn.|">With the club.</th:block>
             Each movie shares an actor with the one before, and scores the years between the two, at least one: leap
             across the eras. When the actor of the link before is in it too, it is an escape: allowed, but no points.
+            A link through Kevin Bacon scores six more, a nod to Six Degrees of Kevin Bacon, the game in which every
+            actor is six movies or fewer from him.
         </p>
     </div>
 </header>
@@ -121,6 +123,8 @@
                     <span class="chain-points" th:if="${link.points > 0}" th:text="|+${link.points}|">+1</span>
                     <span class="chain-escape" th:if="${!step.first and link.points == 0}" title="The same actor as the link before: no points">escape</span>
                 </span>
+                <span class="chain-bacon" th:if="${link.throughBacon}"
+                      title="Six Degrees of Kevin Bacon: every actor is said to be six movies or fewer from him">Bacon bonus +6</span>
             </li>
         </ol>
     </div>

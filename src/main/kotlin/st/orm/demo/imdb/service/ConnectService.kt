@@ -8,6 +8,7 @@ import st.orm.demo.imdb.model.GameMatch
 import st.orm.demo.imdb.model.GameMode
 import st.orm.demo.imdb.model.GamePlayer
 import st.orm.demo.imdb.model.GamePlayerPk
+import st.orm.demo.imdb.model.KEVIN_BACON
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.Person
 import st.orm.demo.imdb.model.User
@@ -49,8 +50,10 @@ data class ConnectView(
     val last: ChainLink get() = links.last()
     /** The links the team made, from the start to the target, once connected. */
     val linkCount: Int get() = links.size - 1
-    /** How the team did against par: 0 on par, more over it. */
-    val overPar: Int get() = linkCount - puzzle.par
+    /** The links through Kevin Bacon: each counts one less. */
+    val baconLinks: Int get() = links.count { it.throughBacon }
+    /** How the team did against par, a link off for each through Kevin Bacon: 0 on par, more over it. */
+    val overPar: Int get() = linkCount - baconLinks - puzzle.par
     /** Who added how many links. */
     fun linksBy(player: GamePlayer): Int = links.count { it.player?.id == player.user.id }
 }
@@ -150,7 +153,8 @@ class ConnectService(
         val puzzle = connectPuzzleRepository.getById(match)
         val links = chainLinkRepository.findLinks(match)
         return when {
-            links.last().movie.id == puzzle.target.id -> true to "Connected in ${links.size - 1}, par ${puzzle.par}"
+            links.last().movie.id == puzzle.target.id -> true to "Connected in ${links.size - 1}, par ${puzzle.par}" +
+                (if (links.any { it.throughBacon }) ", with a Bacon bonus" else "")
             match.endedAt != null -> true to "Given up: par was ${puzzle.par}"
             else -> false to "${puzzle.start.primaryTitle} to ${puzzle.target.primaryTitle}: add a link"
         }
@@ -310,10 +314,11 @@ class ConnectService(
         return path.movies.mapIndexedNotNull { i, id -> movies[id]?.let { ParStep(it, if (i == 0) null else actors[path.actors[i - 1]]) } }
     }
 
-    /** An actor of both movies, the best billed of the second: the one the link goes through. */
+    /** An actor of both movies, the one the link goes through: Kevin Bacon when both have him, for his bonus, else the best billed of the second. */
     private fun sharedActor(previous: Movie, next: Movie): Person? {
         val before = actorsOf(previous).toSet()
-        return principalRepository.findCast(next).firstOrNull { it.category in ACTING_CATEGORIES && it.person.id in before }?.person
+        val shared = principalRepository.findCast(next).filter { it.category in ACTING_CATEGORIES && it.person.id in before }.map { it.person }
+        return shared.firstOrNull { it.id == KEVIN_BACON } ?: shared.firstOrNull()
     }
 
     /** The acting credits of a movie, by the people's ids, in billing order. */

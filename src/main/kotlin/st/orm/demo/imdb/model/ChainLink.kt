@@ -9,6 +9,13 @@ import st.orm.Ref
 import st.orm.template.ref
 import java.time.Instant
 
+/**
+ * Kevin Bacon, the centre of Six Degrees of Kevin Bacon, the game in which
+ * every actor is linked to him through shared movies in six steps or fewer:
+ * a link through him earns a bonus in Movie Chain and Connect.
+ */
+const val KEVIN_BACON = "nm0000102"
+
 data class ChainLinkPk(
     val matchId: Long,
     val position: Int
@@ -40,4 +47,7 @@ data class ChainLink(
     )
 
     val position: Int get() = id.position
+
+    /** Whether the link goes through Kevin Bacon, which the games reward. */
+    val throughBacon: Boolean get() = via?.id == KEVIN_BACON
 }

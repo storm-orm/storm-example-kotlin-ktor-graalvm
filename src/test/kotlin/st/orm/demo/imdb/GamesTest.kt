@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test
 import st.orm.demo.imdb.model.Club
 import st.orm.demo.imdb.model.ClubMember
 import st.orm.demo.imdb.model.GameMode
+import st.orm.demo.imdb.model.KEVIN_BACON
+import st.orm.demo.imdb.model.Person
 import st.orm.demo.imdb.model.Principal
 import st.orm.demo.imdb.repository.ChainLinkRepository
 import st.orm.demo.imdb.repository.ClubMemberRepository
@@ -341,6 +343,20 @@ class GamesTest {
         val chain = runBlocking { service.chainOf(orm.repository<UserRepository>().getById("bob-escape"), matchId, now) }!!
         assertEquals("Keanu Reeves", chain.last.via!!.primaryName)
         assertEquals(0, chain.last.points)
+    }
+
+    @Test
+    fun `a link through Kevin Bacon scores six more, he goes first among the actors shared`(orm: ORMTemplate) {
+        // Kevin Bacon in The Matrix and in Pulp Fiction, billed after Laurence Fishburne, whom both share too.
+        val bacon = orm.repository<PersonRepository>().insertAndFetch(Person(KEVIN_BACON, "Kevin Bacon", 1958, null))
+        orm.repository<PrincipalRepository>().insert(
+            Principal(orm.repository<MovieRepository>().getById("tt0133093").ref(), 4, bacon, "actor", "Somebody")
+        )
+        val (service, matchId) = chainToTheMatrix(orm, "nm0000401" to 3, KEVIN_BACON to 4)
+        val chain = runBlocking { service.chainOf(orm.repository<UserRepository>().getById("bob-escape"), matchId, now) }!!
+        assertTrue(chain.last.throughBacon)
+        // The Matrix (1999) to Pulp Fiction (1994): five years, and six for Kevin Bacon.
+        assertEquals(5 + ChainService.BACON_BONUS, chain.last.points)
     }
 
     @Test

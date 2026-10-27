@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Page not found')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <h1 class="page-title">Page not found</h1>
+        <p class="page-subtitle">This page is more than six degrees from <a th:href="@{/person/nm0000102}">Kevin Bacon</a>.</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container">
+        <!-- The joke explained: in Six Degrees of Kevin Bacon, everything in the movies links to him. -->
+        <div class="empty-state not-found">
+            <p>In Six Degrees of Kevin Bacon, any actor links to him through shared movies in six steps or fewer.
+                This page links to nothing at all.</p>
+            <a class="button button-primary" th:href="@{/}">Back to the movies</a>
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -17,6 +17,12 @@
                th:text="${person.deathYear != null} ? |${person.birthYear} – ${person.deathYear}| : |Born ${person.birthYear}|">1964</p>
             <p class="person-bio" id="person-bio" hidden
                th:data-summary-endpoint="|/api/summary/person/${person.id}|"></p>
+            <!-- Kevin Bacon's own page only: the joke of Six Degrees of Kevin Bacon, explained for whoever does not know it. -->
+            <p class="bacon-number" th:if="${person.id == 'nm0000102'}">
+                <strong>Bacon number: 0</strong>
+                <span>Every actor has a Bacon number: how many shared movies it takes to reach him, six or fewer
+                    in the game Six Degrees of Kevin Bacon. A link through him scores a bonus in Movie Chain and Connect.</span>
+            </p>
         </div>
     </div>
 </header>
