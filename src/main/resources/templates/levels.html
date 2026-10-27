@@ -42,8 +42,9 @@
     <div class="container levels-layout">
         <!-- The ladder: every level, what it takes and what it opens, the visitor's own lit. -->
         <ol class="level-ladder">
-            <li class="level-rung" th:each="rung : ${levels.rungs}" th:classappend="(${rung.current} ? 'current' : (${rung.reached} ? 'reached' : 'ahead')) + (${rung.level.honour != null} ? ' honoured' : '')">
-                <!-- The mark on the line: a dot, or from Star on the level's honour, the star, the globe, the statuette. -->
+            <!-- The mark on the line: full for a level earned, an open ring for one the movies reach but the rites hold, grey beyond. -->
+            <li class="level-rung" th:each="rung : ${levels.rungs}" th:classappend="(${rung.current} ? 'current' : (${rung.reached} ? 'reached' : (${rung.held} ? 'held' : 'ahead'))) + (${rung.level.honour != null} ? ' honoured' : '')">
+                <!-- From Star on the mark is the level's honour, the star, the globe, the statuette, the goat. -->
                 <span class="level-rung-mark" aria-hidden="true"><svg th:if="${rung.level.honour != null}"><use th:attr="href=|#honour-${rung.level.honour.mark}|"/></svg></span>
                 <span class="level-rung-threshold" th:text="${rung.level.threshold == 0} ? 'Start' : ${#numbers.formatInteger(rung.level.threshold, 1, 'COMMA')}">100</span>
                 <span class="level-rung-body">

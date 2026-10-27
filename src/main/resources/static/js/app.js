@@ -721,15 +721,24 @@ function setupSearchBoxes() {
 }
 
 /**
- * Cmd+F on macOS and Ctrl+F elsewhere focus the search box: the hero's on the
- * home page, the navbar's on the others. Pressed again from inside the box it
- * falls through to the browser's own find, so searching the page stays one
+ * Cmd+F on macOS and Ctrl+F elsewhere focus the search box, and so does a
+ * plain "/" outside any field: the hero's box on the home page, the navbar's
+ * on the others. Pressed again from inside the box, the find keys fall
+ * through to the browser's own find, so searching the page stays one
  * keystroke away.
  */
+/** Whether the keys go to a field already: a "/" typed there is text, not the shortcut. */
+function isTyping() {
+    const el = document.activeElement;
+    return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
+}
+
 function setupSearchShortcut() {
     document.addEventListener('keydown', event => {
         const modifier = navigator.platform.toUpperCase().includes('MAC') ? event.metaKey : event.ctrlKey;
-        if (!modifier || event.altKey || event.shiftKey || event.key.toLowerCase() !== 'f') return;
+        const find = modifier && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 'f';
+        const slash = event.key === '/' && !modifier && !event.altKey && !isTyping();
+        if (!find && !slash) return;
         const inputs = Array.from(document.querySelectorAll('[data-search-input]'));
         if (inputs.includes(document.activeElement)) return;
         // The hero comes after the navbar in the page, so the last visible box is the prominent one.

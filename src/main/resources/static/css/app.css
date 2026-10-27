@@ -4061,8 +4061,11 @@ body::after {
 .level-ladder::before { content: ""; position: absolute; top: 10px; bottom: 10px; left: 11px; width: 2px; background: linear-gradient(180deg, var(--accent), rgba(255, 255, 255, 0.1)); }
 .level-rung { position: relative; display: grid; grid-template-columns: 24px 64px minmax(0, 1fr) auto; gap: 0 16px; align-items: start; padding: 14px 0 22px; }
 .level-rung-mark { width: 24px; height: 24px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.25); background: var(--background); margin-top: 2px; }
+/* Full for a level earned, the current one with a halo; an open ring for one the movies reach but the rites hold. */
 .level-rung.reached .level-rung-mark, .level-rung.current .level-rung-mark { border-color: var(--accent); background: var(--accent); box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.6); }
-.level-rung.current .level-rung-mark { background: var(--background); box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.25), 0 0 18px rgba(var(--accent-rgb), 0.6); }
+.level-rung.current .level-rung-mark { box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.25), 0 0 18px rgba(var(--accent-rgb), 0.6); }
+.level-rung.held .level-rung-mark { border-color: var(--accent); background: var(--background); }
+.level-rung.held .level-rung-threshold { color: var(--accent-strong); }
 .level-rung-threshold { font-family: var(--font-display); font-size: 20px; color: var(--text-muted); margin-top: 2px; }
 .level-rung.current .level-rung-threshold { color: var(--accent-strong); }
 .level-rung-body { display: flex; flex-direction: column; gap: 4px; }

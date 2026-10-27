@@ -99,8 +99,13 @@ data class GameLock(val title: String, val level: Level, val toGo: Int) {
     val text: String get() = if (toGo > 0) "Unlocks at ${level.label} · ${if (toGo == 1) "1 movie" else "$toGo movies"} to go" else "Unlocks at ${level.label} · its rites to go"
 }
 
-/** A rung of the ladder on the levels page: the level, the games it unlocks by name, its rites as the user stands with them, and whether the user is there yet. */
-data class LevelRung(val level: Level, val unlocks: List<String>, val rites: List<RiteStatus>, val reached: Boolean, val current: Boolean)
+/**
+ * A rung of the ladder on the levels page: the level, the games it unlocks
+ * by name, its rites as the user stands with them, whether the user is
+ * there yet, and if not, whether their movies are ([held]), the rites alone
+ * in the way.
+ */
+data class LevelRung(val level: Level, val unlocks: List<String>, val rites: List<RiteStatus>, val reached: Boolean, val current: Boolean, val held: Boolean = false)
 
 /**
  * The walk the Star level sets a star in: Hollywood's, on the Boulevard and
@@ -181,7 +186,7 @@ class LevelService(
         val invited = invitedBy(user)
         LevelsView(
             progress,
-            Level.entries.map { LevelRung(it, GameRules.unlockedAt(it), LevelRites.statusOf(it, earned, invited), progress.level.reaches(it), it == progress.level) },
+            Level.entries.map { LevelRung(it, GameRules.unlockedAt(it), LevelRites.statusOf(it, earned, invited), progress.level.reaches(it), it == progress.level, held = !progress.level.reaches(it) && progress.byPoints.reaches(it)) },
             walkOf(user),
             GameRules.named,
             movieSeenRepository.findMostRecent(user, WALL_POSTERS).map { it.movie }
