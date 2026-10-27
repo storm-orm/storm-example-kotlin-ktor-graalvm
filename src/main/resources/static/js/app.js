@@ -1547,18 +1547,6 @@ function setupPickers() {
         });
         input.addEventListener('blur', () => setTimeout(hide, 100));
     });
-
-    // Six degrees asks as soon as both actors are picked; until then Connect asks for the one missing.
-    document.querySelectorAll('[data-degrees-form]').forEach(form => {
-        const missing = () => Array.from(form.querySelectorAll('[data-picker]')).find(p => !p.querySelector('[data-picker-value]').value);
-        form.addEventListener('pick', () => { if (!missing()) form.submit(); });
-        form.addEventListener('submit', event => {
-            const picker = missing();
-            if (!picker) return;
-            event.preventDefault();
-            picker.querySelector('[data-picker-input]').focus();
-        });
-    });
 }
 
 // Lists. On a movie's page, the Lists button opens a menu of the visitor's lists, fetched when it

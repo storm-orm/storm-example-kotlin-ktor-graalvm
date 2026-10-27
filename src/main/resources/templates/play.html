@@ -143,16 +143,6 @@
             <span class="game-text">Two movies to join by a chain of shared actors, in as few links as you can. Play it together: anyone adds the next link, any time.</span>
             <form th:replace="~{fragments/games :: startForm('/play/connect', 'Start a puzzle', 'Start a puzzle')}"></form>
         </div>
-
-        <a class="game-card game-degrees" th:href="@{/six-degrees}">
-            <span class="game-art" aria-hidden="true">
-                <span class="game-dot"></span><span class="game-line"></span><span class="game-dot"></span><span class="game-line"></span><span class="game-dot"></span>
-            </span>
-            <span class="game-title">Six Degrees</span>
-            <span class="game-text">Pick any two actors and see the shortest chain of movies between them. Is anyone more than six steps from Kevin Bacon?</span>
-            <span class="game-modes">On your own</span>
-            <span class="button button-primary game-button">Connect two actors</span>
-        </a>
     </div>
 </section>
 
