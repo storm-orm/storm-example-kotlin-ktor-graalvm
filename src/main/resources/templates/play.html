@@ -176,12 +176,12 @@
             <span class="game-lock" th:if="${locks['CONNECT'] != null}" th:text="${locks['CONNECT'].text}">Unlocks at Bit Part · 12 movies to go</span>
         </div>
 
-        <!-- Name That Cast: a movie from the house; bid how many of its cast you can name, then name them. -->
+        <!-- Role Call: a movie from the house; bid how many of its cast you can name, then name them. -->
         <div class="game-card game-cast">
             <span class="game-art game-art-cast" aria-hidden="true">
                 <span class="game-art-poster"></span><span class="game-art-bid">12</span>
             </span>
-            <span class="game-title">Name That Cast</span>
+            <span class="game-title">Role Call</span>
             <span class="game-text">The house picks a movie. How many of its cast can you name, the director too? Bid against your
                 friend or your club: the highest bid has to name them all. On your own, name as many as you know.</span>
             <th:block th:if="${locks['CAST'] == null}">

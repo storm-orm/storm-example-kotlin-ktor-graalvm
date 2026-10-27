@@ -1896,7 +1896,7 @@ function setupConfirms() {
     });
 }
 
-// Name That Cast: while someone names, the page follows them, adding each name given in place, without a
+// Role Call: while someone names, the page follows them, adding each name given in place, without a
 // reload; when the round moves on, it reloads where it was. The namer's own names go the same way.
 function setupCastLive() {
     const live = document.querySelector('[data-cast-live]');

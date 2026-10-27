@@ -10,7 +10,7 @@ import st.orm.template.ref
 import java.time.Instant
 
 /**
- * A round of Name That Cast: the movie the house picked. A dependent
+ * A round of Role Call: the movie the house picked. A dependent
  * one-to-one: the key is the match itself. The players' bids are its
  * [CastBid]s and the names given its [CastAnswer]s.
  */

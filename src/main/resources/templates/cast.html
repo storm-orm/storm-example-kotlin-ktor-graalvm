@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Name That Cast')}"></head>
+<head th:replace="~{fragments/layout :: head('Role Call')}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
 
 <header class="page-header">
     <div class="container">
         <a class="back-link" th:href="@{/play}">← Play</a>
-        <h1 class="page-title">Name That Cast</h1>
+        <h1 class="page-title">Role Call</h1>
         <p class="page-subtitle">
             <th:block th:switch="${round.match.mode.name()}">
                 <th:block th:case="'SOLO'">On your own: name as many of the cast as you can, the director counting too.

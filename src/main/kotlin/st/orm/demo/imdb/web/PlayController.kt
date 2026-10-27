@@ -49,7 +49,7 @@ private fun Parameters.opponents(): Opponents = when (this["mode"]) {
 /** A match's page: its template and its model. */
 private fun page(template: String, vararg model: Pair<String, Any?>): Pair<String, Map<String, Any?>> = template to mapOf(*model)
 
-/** What came of a name given in Name That Cast, and the round as it stands after it, for the page that sent it. */
+/** What came of a name given in Role Call, and the round as it stands after it, for the page that sent it. */
 @Serializable
 data class CastNamed(val verdict: String, val live: CastLive)
 
@@ -214,7 +214,7 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
         }
     }
 
-    // Name That Cast: a bid, a name given, or the namer stopping. A name sent by the page's script is answered
+    // Role Call: a bid, a name given, or the namer stopping. A name sent by the page's script is answered
     // with the round as it stands, so the page adds it in place; without the script, back to the round.
     post("/play/matches/{id}/bid") {
         val matchId = call.parameters.getOrFail<Long>("id")
@@ -240,7 +240,7 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
         call.respondRedirect("/play/matches/$matchId")
     }
 
-    // Where a round of Name That Cast stands, for the page that follows the namer without reloading.
+    // Where a round of Role Call stands, for the page that follows the namer without reloading.
     get("/api/play/matches/{id}/cast") {
         val live = castService.liveOf(call.currentUser(), call.parameters.getOrFail<Long>("id"))
             ?: return@get call.respond(HttpStatusCode.NotFound)

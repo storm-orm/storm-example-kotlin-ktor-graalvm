@@ -27,7 +27,7 @@ import st.orm.template.transaction
 import java.time.Duration
 import java.time.Instant
 
-/** Where a round of Name That Cast is: the players bidding, the top bidder naming, or over. */
+/** Where a round of Role Call is: the players bidding, the top bidder naming, or over. */
 enum class CastPhase { BIDDING, NAMING, OVER }
 
 /** A player's bid as the round shows it: how many, once the bidding is over; before that, only that they bid. */
@@ -37,7 +37,7 @@ data class CastBidView(val user: User, val count: Int?, val you: Boolean)
 data class CastReveal(val credit: Credit, val named: Boolean, val personId: String?)
 
 /**
- * A round of Name That Cast for a player: the movie, where the round is,
+ * A round of Role Call for a player: the movie, where the round is,
  * the bids, who names and how many they bid ([target], none on one's own),
  * the names given so far, and, once over, the whole cast with the ones named.
  */
@@ -72,7 +72,7 @@ data class CastLiveAnswer(val answer: String, val credit: String?)
 data class CastLive(val version: String, val phase: String, val right: Int, val strikes: Int, val answers: List<CastLiveAnswer>)
 
 /**
- * Name That Cast: the house picks a well-known movie, and the players say
+ * Role Call: the house picks a well-known movie, and the players say
  * how many of its cast they can name, the director counting too. With a
  * friend or a club everyone bids at once, in their own time: the bidding
  * closes once all have bid, or after a day. The highest bid, of equal ones

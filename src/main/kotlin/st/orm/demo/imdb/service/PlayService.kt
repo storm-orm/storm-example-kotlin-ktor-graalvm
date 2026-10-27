@@ -30,7 +30,7 @@ data class GameEntry(val match: GameMatch, val with: String, val status: String,
         Game.HIGHER_LOWER -> "Higher or Lower"
         Game.SWIPE -> "Swipe Round"
         Game.CONNECT -> "Connect"
-        Game.CAST -> "Name That Cast"
+        Game.CAST -> "Role Call"
     }
 
     /** The game's emoji, for the lists. */

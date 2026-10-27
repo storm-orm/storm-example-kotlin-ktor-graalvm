@@ -47,7 +47,7 @@ enum class Badge(val category: BadgeCategory, val title: String, val blurb: Stri
     CHAIN_GANG(BadgeCategory.GAMES, "Chain Gang", "Five links of your own in one Movie Chain.", 5, "5", "chain", "green"),
     PERFECT_GRID(BadgeCategory.GAMES, "Perfect Grid", "Movie Connections solved without a mistake.", 1, "4/4", "grid", "cyan"),
     ODD_EYE(BadgeCategory.GAMES, "Odd Eye", "Odd One Out, ten out of ten.", 1, "10", "eye", "pink"),
-    CAST_CALL(BadgeCategory.GAMES, "Cast Call", "A Name That Cast bid of ten or more, named in full.", 1, "10+", "masks", "violet"),
+    CAST_CALL(BadgeCategory.GAMES, "Cast Call", "A Role Call bid of ten or more, named in full.", 1, "10+", "masks", "violet"),
     DAILY_WEEK(BadgeCategory.GAMES, "Daily Week", "A daily played to the end seven days running.", 7, "7d", "seven", "yellow"),
     FIRST_FRIEND(BadgeCategory.SOCIAL, "First Friend", "Your first friend on the site.", 1, "+1", "friends", "pink"),
     CLUB_MEMBER(BadgeCategory.SOCIAL, "Club Member", "In a club.", 1, "C", "club", "violet"),

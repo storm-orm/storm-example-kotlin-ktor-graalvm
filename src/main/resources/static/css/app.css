@@ -3930,7 +3930,7 @@ body::after {
 .not-found { display: flex; flex-direction: column; align-items: center; gap: 18px; }
 .not-found p { margin: 0; max-width: 520px; }
 
-/* ── Name That Cast ────────────────────────────────────────────────── */
+/* ── Role Call ────────────────────────────────────────────────── */
 
 .game-cast { --tone: var(--yellow-rgb); }
 .game-art-cast { gap: 10px; }
