@@ -2748,12 +2748,14 @@ body::after {
 
 /* A card's art drawn in line, in the card's tone, with its glow. */
 .game-art-line .art-svg { height: 52px; width: auto; fill: none; stroke: rgb(var(--tone)); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; color: rgb(var(--tone)); filter: drop-shadow(0 0 10px rgba(var(--tone), 0.5)); }
-/* Total Recall's clamps open and close around the head. */
-.recall-clamp { animation: recall-clamps 4s ease-in-out infinite; }
-.recall-clamp-right { animation-name: recall-clamps-right; }
-@keyframes recall-clamps { 0%, 20% { transform: none; } 50%, 70% { transform: translateX(-7px); } 100% { transform: none; } }
-@keyframes recall-clamps-right { 0%, 20% { transform: none; } 50%, 70% { transform: translateX(7px); } 100% { transform: none; } }
-@media (prefers-reduced-motion: reduce) { .recall-clamp { animation: none; } }
+/* Total Recall's face splits and slides open on the face beneath, then closes: the halves are filled with the card's
+   own colour, so the inner face shows only as they part. */
+.recall-skin { fill: var(--surface); }
+.recall-half { animation: recall-open 5s ease-in-out infinite; }
+.recall-half-right { animation-name: recall-open-right; }
+@keyframes recall-open { 0%, 22% { transform: none; } 42%, 68% { transform: translateX(-10px); } 88%, 100% { transform: none; } }
+@keyframes recall-open-right { 0%, 22% { transform: none; } 42%, 68% { transform: translateX(10px); } 88%, 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .recall-half { animation: none; } .recall-half-left { transform: translateX(-10px); } .recall-half-right { transform: translateX(10px); } }
 /* Every card's art stands the same height, so every title starts at the same line. */
 .game-art { display: flex; align-items: center; height: 56px; margin-bottom: 0; }
 

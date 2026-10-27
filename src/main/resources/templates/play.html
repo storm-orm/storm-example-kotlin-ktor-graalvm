@@ -252,15 +252,21 @@
         <!-- Total Recall: the house picks a movie, its cast to name, or an actor or director, their movies; bid how many
              you can name, then name them. The choice of what to recall goes with the start form. -->
         <div class="game-card game-cast">
-            <!-- The head in the machine from the movie, the clamps opening and closing around it (the keyframes in app.css). -->
+            <!-- The face that is a mask over another face, as in the movie: it splits and slides open on the one
+                 beneath, and closes again (the keyframes in app.css). -->
             <span class="game-art game-art-line" aria-hidden="true">
-                <svg class="art-svg" viewBox="0 0 72 48">
-                    <ellipse cx="36" cy="22" rx="10" ry="13"/>
-                    <path d="M24 46c2-8 6-10 12-10s10 2 12 10"/>
-                    <circle cx="32" cy="21" r="1.6" fill="currentColor"/><circle cx="40" cy="21" r="1.6" fill="currentColor"/>
-                    <path d="M33 29c2 1 4 1 6 0"/>
-                    <g class="recall-clamp recall-clamp-left"><path d="M22 6h-9v32h9"/><path d="M13 14h6M13 22h6M13 30h6"/></g>
-                    <g class="recall-clamp recall-clamp-right"><path d="M50 6h9v32h-9"/><path d="M59 14h-6M59 22h-6M59 30h-6"/></g>
+                <svg class="art-svg" viewBox="0 0 72 56">
+                    <ellipse cx="36" cy="28" rx="14" ry="17"/>
+                    <circle cx="30.5" cy="26" r="1.7" fill="currentColor"/><circle cx="41.5" cy="26" r="1.7" fill="currentColor"/>
+                    <path d="M26.5 21.5l6 1.5M45.5 21.5l-6 1.5M31 37h10"/>
+                    <g class="recall-half recall-half-left">
+                        <path class="recall-skin" d="M36 10C26 10 21 18 21 28c0 10 6 17 15 18z"/>
+                        <ellipse cx="30" cy="27" rx="2.6" ry="1.6"/><path d="M26 22.5c2-1.5 5-1.5 7-.5M31 37.5c2 1.5 3.5 1.8 5 1.8"/>
+                    </g>
+                    <g class="recall-half recall-half-right">
+                        <path class="recall-skin" d="M36 10c10 0 15 8 15 18 0 10-6 17-15 18z"/>
+                        <ellipse cx="42" cy="27" rx="2.6" ry="1.6"/><path d="M46 22.5c-2-1.5-5-1.5-7-.5M41 37.5c-2 1.5-3.5 1.8-5 1.8"/>
+                    </g>
                 </svg>
             </span>
             <span class="game-title-row"><span class="game-title">Total Recall</span> <span class="game-level" th:text="${levels['CAST']}">Extra</span></span>
