@@ -1708,5 +1708,17 @@
   {
     "name": "org.thymeleaf.expression.Dates",
     "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.TonightView",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.TonightPick",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
   }
 ]
