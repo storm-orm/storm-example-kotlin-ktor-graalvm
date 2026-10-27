@@ -1914,6 +1914,7 @@ function setupCastLive() {
         UNCLEAR: 'More than one in the cast has that name: give the full name.'
     };
     const form = document.querySelector('[data-cast-name]');
+    setupCastSuggest(form);
     form?.addEventListener('submit', async event => {
         event.preventDefault();
         const input = form.querySelector('input[name="name"]');
@@ -1962,4 +1963,52 @@ async function showLevelToast() {
     } catch (e) {
         // Without the level, the check-in still counted.
     }
+}
+
+// The cast box suggests names from the whole catalogue as one types: a pick fills the name in and sends it;
+// Enter with nothing picked sends what was typed. The credits themselves are never suggested.
+function setupCastSuggest(form) {
+    const picker = form?.querySelector('[data-cast-suggest]');
+    if (!picker) return;
+    const input = picker.querySelector('input');
+    const panel = picker.querySelector('.search-suggestions');
+    let timer = null;
+    let active = -1;
+    const options = () => Array.from(panel.querySelectorAll('.suggestion'));
+    const hide = () => { panel.hidden = true; active = -1; };
+    const setActive = index => { options().forEach((option, i) => option.classList.toggle('active', i === index)); active = index; };
+    const choose = option => { input.value = option.dataset.name; hide(); form.requestSubmit(); };
+    input.addEventListener('input', () => {
+        clearTimeout(timer);
+        const query = input.value.trim();
+        if (query.length < 2) { hide(); return; }
+        timer = setTimeout(async () => {
+            const response = await fetch('/api/search/names?query=' + encodeURIComponent(query));
+            if (!response.ok || input.value.trim() !== query) return;
+            const items = (await response.json()).persons;
+            panel.replaceChildren(...items.map(person => {
+                const option = suggestionLink('#', 'person', 'Person', person.name, null, '/api/photo/' + person.id);
+                option.dataset.name = person.name;
+                option.addEventListener('mousedown', event => { event.preventDefault(); choose(option); });
+                return option;
+            }));
+            panel.hidden = items.length === 0;
+            active = -1;
+        }, SUGGESTION_DEBOUNCE_MS);
+    });
+    input.addEventListener('keydown', event => {
+        const list = options();
+        if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && !panel.hidden && list.length) {
+            event.preventDefault();
+            const step = event.key === 'ArrowDown' ? 1 : -1;
+            setActive(((active === -1 ? (step === 1 ? -1 : list.length) : active) + step + list.length) % list.length);
+        } else if (event.key === 'Enter' && !panel.hidden && active >= 0) {
+            event.preventDefault();
+            choose(list[active]);
+        } else if (event.key === 'Escape') {
+            hide();
+        }
+    });
+    input.addEventListener('blur', () => setTimeout(hide, 100));
+    form.addEventListener('submit', hide);
 }

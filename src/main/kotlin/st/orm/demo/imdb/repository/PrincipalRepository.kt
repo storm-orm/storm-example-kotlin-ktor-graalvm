@@ -43,6 +43,10 @@ const val DIRECTOR = "director"
  * sorting and display. Not backed by a database table or view, so it is a
  * plain data class — deliberately not a Data type.
  */
+/** Query result shape: a person and how many of their credits are in well-known movies. Not a table: a plain data class. */
+@GenerateMetamodel
+data class PersonCredits(val person: Ref<Person>, val credits: Long)
+
 @GenerateMetamodel
 data class FilmographyEntry(
     val principal: Principal,
@@ -304,6 +308,14 @@ interface PrincipalRepository : EntityRepository<Principal, PrincipalPk> {
         select<CreditLink, _, _> { "${Principal_.person}, ${Principal_.movie}" }
             .innerJoin<Rating>().on<Movie>()
             .where((Principal_.person inRefs people) and (Principal_.category inList ACTING_CATEGORIES) and (Rating_.voteCount greaterEq minimumVotes))
+            .resultList
+
+    /** How many credits each of these people has in movies with at least [minimumVotes] votes: how well known they are. */
+    fun countWellKnownCredits(people: Collection<Ref<Person>>, minimumVotes: Int): List<PersonCredits> =
+        select<PersonCredits, _, _> { "${Principal_.person}, COUNT(*)" }
+            .innerJoin<Rating>().on<Movie>()
+            .where((Principal_.person inRefs people) and (Rating_.voteCount greaterEq minimumVotes))
+            .groupBy(Principal_.person)
             .resultList
 
     /** The cast of several movies, as pairs: from the movies to who played in them, the other step of the search. */

@@ -75,6 +75,12 @@
          onerror="this.classList.add('failed')">
 </div>
 
+<!-- A poster under a veil while its credits are the question ([veiled]): blurred, and not to be opened. -->
+<div th:fragment="veiledPoster(id, title, veiled)" class="poster-veil" th:classappend="${veiled} ? 'veiled'">
+    <div th:replace="~{fragments/cards :: posterThumb(${id}, ${title})}"></div>
+    <span class="poster-veil-label" th:if="${veiled}" title="The poster is hidden until the game is over">Hidden</span>
+</div>
+
 <!-- A person card with an initial avatar. -->
 <a th:fragment="person(id, name)" class="person-card" th:href="@{/person/{id}(id=${id})}">
     <div class="avatar">

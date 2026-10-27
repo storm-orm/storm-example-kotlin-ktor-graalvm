@@ -9,6 +9,9 @@ import st.orm.demo.imdb.model.Person
 import st.orm.demo.imdb.model.Person_
 import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.PersonRepository
+import st.orm.demo.imdb.repository.PrincipalRepository
+import st.orm.template.entityId
+import st.orm.template.ref
 import st.orm.template.transaction
 
 /** The first result windows of both search sections. */
@@ -25,7 +28,8 @@ data class Suggestions(
 
 class SearchService(
     private val movieRepository: MovieRepository,
-    private val personRepository: PersonRepository
+    private val personRepository: PersonRepository,
+    private val principalRepository: PrincipalRepository
 ) {
 
     /** The search page: both first windows in one read-only transaction. */
@@ -71,6 +75,23 @@ class SearchService(
      * need no common snapshot.
      */
     /** Movies by their titles alone, for the games' boxes: no movie suggested for its cast. */
+    /**
+     * People by their names alone, for a game's box: of the first few dozen
+     * that match, the best known first, so "keanu" finds Keanu Reeves before
+     * the other Keanus; a name matched in full or at its start still first.
+     */
+    suspend fun findNameSuggestions(query: String): List<Person> = transaction(readOnly = true) {
+        val candidates = personRepository.findNameSuggestions(query, NAME_CANDIDATES)
+        val credits = principalRepository.countWellKnownCredits(candidates.map { it.ref() }, WELL_KNOWN_VOTES).associate { it.person.entityId() to it.credits }
+        val folded = query.trim().lowercase()
+        candidates.sortedWith(
+            compareByDescending<Person> { it.primaryName.lowercase() == folded }
+                .thenByDescending { it.primaryName.lowercase().startsWith(folded) }
+                .thenByDescending { credits[it.id] ?: 0L }
+                .thenBy { it.primaryName }
+        ).take(NAME_SUGGESTION_LIMIT)
+    }
+
     suspend fun findTitleSuggestions(query: String): List<Movie> = transaction(readOnly = true) {
         movieRepository.findTitleSuggestions(query, MOVIE_SUGGESTION_LIMIT)
     }
@@ -94,5 +115,11 @@ class SearchService(
         private const val PERSON_PAGE_SIZE = 12
         private const val MOVIE_SUGGESTION_LIMIT = 6
         private const val PERSON_SUGGESTION_LIMIT = 4
+        /** The names a game's box suggests: more than the search box, as a name is all there is to go on. */
+        private const val NAME_SUGGESTION_LIMIT = 8
+        /** The names looked at before the best known are picked out. */
+        private const val NAME_CANDIDATES = 40
+        /** The votes a movie needs for a credit in it to count towards how well known a person is. */
+        private const val WELL_KNOWN_VOTES = 50_000
     }
 }

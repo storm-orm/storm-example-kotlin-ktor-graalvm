@@ -29,6 +29,7 @@ import st.orm.demo.imdb.service.DraftService
 import st.orm.demo.imdb.service.GameRules
 import st.orm.demo.imdb.service.LevelService
 import st.orm.demo.imdb.service.MovieNightService
+import st.orm.demo.imdb.service.SearchService
 import st.orm.demo.imdb.service.SwipeService
 import st.orm.demo.imdb.model.SwipeWay
 import java.time.DayOfWeek
@@ -59,7 +60,11 @@ data class CastNamed(val verdict: String, val live: CastLive)
  * to the match. Playing with others needs a signed-in account, as they see
  * the players' names; anyone plays on their own.
  */
-fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerService, chainService: ChainService, draftService: DraftService, swipeService: SwipeService, movieNightService: MovieNightService, connectService: ConnectService, castService: CastService, levelService: LevelService, badgeService: BadgeService) {
+fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerService, chainService: ChainService, draftService: DraftService, swipeService: SwipeService, movieNightService: MovieNightService, connectService: ConnectService, castService: CastService, levelService: LevelService, badgeService: BadgeService, searchService: SearchService) {
+    /** The movie a form names: picked from the suggestions, or typed and entered, the first title that matches. */
+    suspend fun Parameters.movieId(): String? =
+        this["movie"]?.takeIf { it.isNotBlank() } ?: this["title"]?.trim()?.takeIf { it.isNotEmpty() }?.let { searchService.findTitleSuggestions(it).firstOrNull()?.id }
+
     get("/play") {
         val full = call.request.queryParameters["full"] != null
         val user = call.currentUser()
@@ -137,7 +142,7 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
     // A movie for the chain: back to the chain, saying what was wrong with it, if anything.
     post("/play/matches/{id}/move") {
         val matchId = call.parameters.getOrFail<Long>("id")
-        val movieId = call.receiveParameters()["movie"]?.takeIf { it.isNotBlank() } ?: return@post call.respondRedirect("/play/matches/$matchId")
+        val movieId = call.receiveParameters().movieId() ?: return@post call.respondRedirect("/play/matches/$matchId")
         val problem = when (chainService.move(call.currentUser(), matchId, movieId)) {
             ChainMove.ADDED -> null
             ChainMove.NOT_YOUR_TURN -> "turn"
@@ -151,7 +156,7 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
     // A pick for the draft: back to the draft, saying what was wrong with it, if anything.
     post("/play/matches/{id}/pick") {
         val matchId = call.parameters.getOrFail<Long>("id")
-        val movieId = call.receiveParameters()["movie"]?.takeIf { it.isNotBlank() } ?: return@post call.respondRedirect("/play/matches/$matchId")
+        val movieId = call.receiveParameters().movieId() ?: return@post call.respondRedirect("/play/matches/$matchId")
         val problem = when (draftService.pick(call.currentUser(), matchId, movieId)) {
             DraftMove.PICKED, DraftMove.OVER -> null
             DraftMove.NOT_YOUR_TURN -> "turn"
@@ -185,7 +190,7 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
     // Connect, played together: a link added by any player, a link taken back, an actor shown, or giving up.
     post("/play/matches/{id}/connect/link") {
         val matchId = call.parameters.getOrFail<Long>("id")
-        val movieId = call.receiveParameters()["movie"]?.takeIf { it.isNotBlank() } ?: return@post call.respondRedirect("/play/matches/$matchId")
+        val movieId = call.receiveParameters().movieId() ?: return@post call.respondRedirect("/play/matches/$matchId")
         val problem = when (connectService.move(call.currentUser(), matchId, movieId)) {
             ConnectMove.ADDED, ConnectMove.CONNECTED, ConnectMove.OVER -> null
             ConnectMove.ALREADY_IN -> "repeat"

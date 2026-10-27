@@ -118,7 +118,7 @@ fun Application.configureRouting() {
         personRoutes(personService)
         quizRoutes(quizService)
         dailyPuzzleRoutes(dailyPuzzleService)
-        playRoutes(playService, higherLowerService, chainService, draftService, swipeService, movieNightService, connectService, castService, levelService, badgeService)
+        playRoutes(playService, higherLowerService, chainService, draftService, swipeService, movieNightService, connectService, castService, levelService, badgeService, searchService)
         levelRoutes(levelService, badgeService)
         swipeRoutes(swipeService)
         posterRoutes(posterController)

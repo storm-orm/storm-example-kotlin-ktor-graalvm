@@ -128,7 +128,7 @@ fun Application.configureDependencies() {
         provide { StatisticsService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { InsightsService(resolve(), resolve(), resolve(), resolve()) }
         provide { WrappedService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
-        provide { SearchService(resolve(), resolve()) }
+        provide { SearchService(resolve(), resolve(), resolve()) }
         provide { BrowseService(resolve(), resolve(), resolve(), resolve()) }
         provide { RecentlyAddedService(resolve()) }
         provide { MovieService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }

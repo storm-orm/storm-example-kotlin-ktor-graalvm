@@ -53,7 +53,7 @@
                 <div class="chain-move" th:if="${chain.yourTurn}">
                     <form th:action="@{/play/matches/{id}/move(id=${chain.match.id})}" method="post" data-pick-submits>
                         <div class="picker search-box quiz-picker" data-picker="movie" data-picker-source="/api/search/titles">
-                            <input type="search" placeholder="A movie title…" autocomplete="off" aria-label="Your movie" data-picker-input>
+                            <input type="search" placeholder="A movie title…" autocomplete="off" aria-label="Your movie" name="title" data-picker-input>
                             <input type="hidden" name="movie" data-picker-value>
                             <div class="search-suggestions" data-picker-suggestions hidden></div>
                         </div>
@@ -112,8 +112,9 @@
                 <span class="chain-via" th:if="${link.via != null}">
                     <span>via</span> <a th:href="@{/person/{id}(id=${link.via.id})}" th:text="${link.via.primaryName}">Keanu Reeves</a>
                 </span>
-                <a class="chain-poster" th:href="@{/movie/{id}(id=${link.movie.id})}">
-                    <div th:replace="~{fragments/cards :: posterThumb(${link.movie.id}, ${link.movie.primaryTitle})}"></div>
+                <a class="chain-poster" th:href="@{/movie/{id}(id=${link.movie.id})}"
+                   th:classappend="${step.last and !chain.over} ? 'veiled-link'" th:tabindex="${step.last and !chain.over} ? '-1'">
+                    <div th:replace="~{fragments/cards :: veiledPoster(${link.movie.id}, ${link.movie.primaryTitle}, ${step.last and !chain.over})}"></div>
                     <span class="chain-movie-title" th:text="${link.movie.primaryTitle}">The Matrix</span>
                     <span class="chain-movie-year" th:text="${link.movie.startYear}">1999</span>
                 </a>

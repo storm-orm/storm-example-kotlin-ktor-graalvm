@@ -35,7 +35,8 @@ interface PersonRepository : EntityRepository<Person, String> {
      * Name suggestions for the search auto-complete. Like the movie
      * suggestions it uses suggest, which ignores words the trigram index
      * cannot serve, so every keystroke reads the index. They are ranked as
-     * [searchByName] ranks them, alphabetically within each rank.
+     * [searchByName] ranks them, alphabetically within each rank; a game's
+     * box ranks the first of them by how well known they are (SearchService).
      */
     fun findNameSuggestions(query: String, limit: Int): List<Person> =
         select()

@@ -26,8 +26,9 @@
 <section class="section">
     <div class="container cast-layout">
         <!-- The movie the house picked: its cast is the question. -->
-        <a class="cast-movie" th:href="@{/movie/{id}(id=${round.movie.id})}" target="_blank" rel="noopener">
-            <div th:replace="~{fragments/cards :: posterThumb(${round.movie.id}, ${round.movie.primaryTitle})}"></div>
+        <a class="cast-movie" th:href="@{/movie/{id}(id=${round.movie.id})}" target="_blank" rel="noopener"
+           th:classappend="${round.phase.name() != 'OVER'} ? 'veiled-link'" th:tabindex="${round.phase.name() != 'OVER'} ? '-1'">
+            <div th:replace="~{fragments/cards :: veiledPoster(${round.movie.id}, ${round.movie.primaryTitle}, ${round.phase.name() != 'OVER'})}"></div>
             <span class="cast-movie-title" th:text="${round.movie.primaryTitle}">The Matrix</span>
             <span class="cast-movie-year" th:text="${round.movie.startYear}">1999</span>
             <span class="cast-movie-credits" th:text="|${round.creditCount} people in the credits|">54 people in the credits</span>
@@ -65,8 +66,11 @@
                     · <span data-cast-strikes-left th:text="${round.strikesLeft}">3</span> wrong left
                 </h2>
                 <form class="cast-name" th:if="${round.youName}" th:action="@{/play/matches/{id}/name(id=${round.match.id})}" method="post" data-cast-name>
-                    <input type="text" name="name" placeholder="An actor or the director…" autocomplete="off" required autofocus
-                           aria-label="A name in the cast" class="cast-name-input">
+                    <div class="picker search-box cast-picker" data-cast-suggest>
+                        <input type="text" name="name" placeholder="An actor or the director…" autocomplete="off" required autofocus
+                               aria-label="A name in the cast" class="cast-name-input">
+                        <div class="search-suggestions" hidden></div>
+                    </div>
                     <button type="submit" class="button button-primary">Name</button>
                 </form>
                 <!-- What came of the namer's last name; the script fills it in as they go. -->
