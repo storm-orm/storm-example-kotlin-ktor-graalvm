@@ -270,9 +270,7 @@ class CastService(
      * How a round stands, for the lists of one's games, inside their
      * transaction: whether it is over, in a line, and whether it waits on the visitor.
      */
-    fun standingOf(user: User, match: GameMatch, now: Instant): Triple<Boolean, String, Boolean> {
-        val bids = castBidRepository.findBids(match)
-        val answers = castAnswerRepository.findAnswers(match)
+    fun standingOf(user: User, match: GameMatch, now: Instant, bids: List<CastBid> = castBidRepository.findBids(match), answers: List<CastAnswer> = castAnswerRepository.findAnswers(match)): Triple<Boolean, String, Boolean> {
         val state = stateOf(match, bids, answers, now)
         val namer = if (state.namer?.id == user.id) "You" else state.namer?.name ?: "Someone"
         return when (state.phase) {
@@ -308,6 +306,14 @@ class CastService(
         val strikes: Int,
         val won: Boolean
     )
+
+    /** Where each of several rounds stands for the user, by the match's id, the bids and the names read in two queries. */
+    fun standingsOf(user: User, matches: List<GameMatch>, now: Instant): Map<Long, Triple<Boolean, String, Boolean>> {
+        if (matches.isEmpty()) return emptyMap()
+        val bids = castBidRepository.findBidsOf(matches)
+        val answers = castAnswerRepository.findAnswersOf(matches)
+        return matches.associate { it.id to standingOf(user, it, now, bids[it.id].orEmpty(), answers[it.id].orEmpty()) }
+    }
 
     private fun stateOf(match: GameMatch, bids: List<CastBid>, answers: List<CastAnswer>, now: Instant): State {
         val right = answers.count { it.right }

@@ -4,9 +4,9 @@
 <body>
 <nav th:replace="~{fragments/layout :: navbar('community')}"></nav>
 
-<!-- A friend's page: the two of you in the seats behind the title. -->
+<!-- A friend's page: the keyboard behind the title types what you watched. -->
 <header class="play-hero community-hero">
-    <div th:replace="~{fragments/community :: seats(${view.seats})}"></div>
+    <div th:replace="~{fragments/community :: keyboard(${view.keyboard}, ${view.typed})}"></div>
     <div class="container play-hero-content">
         <a class="back-link" th:href="@{/community}">← Community</a>
         <div class="friend-head">

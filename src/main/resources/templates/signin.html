@@ -19,6 +19,26 @@
         <div class="empty-state" th:if="${failure == 'denied'}">The sign-in was cancelled at the provider.</div>
         <div class="empty-state" th:if="${failure == 'refused'}">The provider did not complete the sign-in. Please try again.</div>
 
+        <!-- Signed in: where the visitor stands, in brief, and the pages that go into it. -->
+        <div class="stat-card account-standing" th:if="${account.name != null and level != null}">
+            <span class="level-ring" th:style="|--progress: ${level.fraction}|"><span th:text="${#numbers.formatInteger(level.fraction * 100, 1)} + '%'">42%</span></span>
+            <div class="account-standing-text">
+                <span class="level-eyebrow">Your level</span>
+                <span class="level-name" th:text="${level.level.label}">Supporting</span>
+                <span class="level-next" th:text="${level.nextText}">107 more to Lead</span>
+            </div>
+            <dl class="account-figures">
+                <div><dt>Movies watched</dt><dd th:text="${#numbers.formatInteger(level.watched, 1, 'COMMA')}">724</dd></div>
+                <div><dt>Checked in</dt><dd th:text="${level.checkedIn}">12</dd></div>
+                <div><dt>Badges</dt><dd th:text="${badgeCount}">27</dd></div>
+                <div><dt>Came through your invites</dt><dd th:text="${level.invited}">2</dd></div>
+            </dl>
+            <span class="level-links">
+                <a class="level-link" th:href="@{/play/levels}">Levels &amp; badges →</a>
+                <a class="level-link" th:href="@{/community(manage='')}">Friends, clubs &amp; invites →</a>
+            </span>
+        </div>
+
         <!-- Signed in: the logins of the account, each a way in to it. -->
         <div class="account-logins" th:unless="${logins.isEmpty()}" id="account-logins">
             <div class="stat-row" th:each="login : ${logins}">

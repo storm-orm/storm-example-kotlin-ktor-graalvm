@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupLists();
     setupQuiz();
     setupSponsor();
+    setupKeyboard();
     setupCinema();
     setupNightVotes();
     setupSwipeDecks();
@@ -1665,10 +1666,42 @@ function setupSponsor() {
     dialog.querySelector('[data-sponsor-close]').addEventListener('click', () => dialog.close());
 }
 
+// The keyboard behind the community title types the titles and names it was given, key by key, each key lit as it
+// is pressed, a pause after every word; whoever prefers less motion gets the first of them typed out, still.
+function setupKeyboard() {
+    const wall = document.querySelector('[data-keyboard-typed]');
+    if (!wall) return;
+    const words = wall.dataset.keyboardTyped.split('|').filter(Boolean);
+    const screen = wall.querySelector('[data-keyboard-screen]');
+    if (!words.length) return;
+    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (still) { screen.textContent = words[0]; return; }
+    const keyOf = letter => wall.querySelector(`[data-key="${letter === ' ' ? ' ' : letter.toUpperCase()}"]`);
+    const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+    (async () => {
+        let index = 0;
+        while (true) {
+            const word = words[index % words.length];
+            index += 1;
+            screen.textContent = '';
+            for (const letter of word) {
+                const key = keyOf(letter);
+                if (key) key.classList.add('pressed');
+                screen.textContent += letter;
+                await wait(90 + Math.random() * 70);
+                if (key) key.classList.remove('pressed');
+                await wait(30);
+            }
+            await wait(1600);
+        }
+    })();
+}
+
 function setupQuiz() {
     document.querySelectorAll('[data-pick-submits]').forEach(form => form.addEventListener('pick', () => form.submit()));
     document.querySelectorAll('[data-quiz-share]').forEach(button => button.addEventListener('click', async () => {
-        const text = button.dataset.quizShare + '\n' + location.origin + '/play/quiz';
+        // The link shares the result itself where the game has one; the quiz links its page.
+        const text = button.dataset.quizShare + '\n' + location.origin + (button.dataset.quizShareUrl || '/play/quiz');
         if (navigator.share) {
             try { await navigator.share({ text }); } catch (e) { /* The sheet was dismissed. */ }
         } else if (navigator.clipboard) {

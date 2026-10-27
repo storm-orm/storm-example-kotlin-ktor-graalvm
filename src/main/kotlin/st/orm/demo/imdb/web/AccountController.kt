@@ -15,6 +15,7 @@ import io.ktor.server.request.receiveParameters
 import st.orm.demo.imdb.model.MovieFilter
 import st.orm.demo.imdb.model.Tag
 import st.orm.demo.imdb.service.AccountService
+import st.orm.demo.imdb.service.BadgeService
 import st.orm.demo.imdb.service.Countries
 import st.orm.demo.imdb.service.MovieFilterService
 import st.orm.demo.imdb.service.StreamingService
@@ -64,7 +65,8 @@ fun Route.accountRoutes(
     streamingService: StreamingService,
     movieFilterService: MovieFilterService,
     gitSignIn: GitSignIn,
-    freepodSignIn: FreepodSignIn
+    freepodSignIn: FreepodSignIn,
+    badgeService: BadgeService
 ) {
     val random = SecureRandom()
     val labels = (GitProvider.ALL + freepodSignIn).associate { it.key to it.label }
@@ -93,6 +95,7 @@ fun Route.accountRoutes(
                         .takeIf { freepodSignIn.enabled && logins.none { it.provider == freepodSignIn.key } },
                     "logins" to logins,
                     "returnTo" to returnTo,
+                    "badgeCount" to badgeService.countOf(call.currentUser()),
                     "failure" to call.request.queryParameters["failure"],
                     "countries" to Countries.all,
                     "browserCountry" to call.browserCountry(),

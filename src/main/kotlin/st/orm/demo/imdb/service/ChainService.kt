@@ -185,9 +185,13 @@ class ChainService(
      * Whose turn it is in a chain at [now], or null once it is over: for the
      * lists of one's games, inside their transaction.
      */
-    fun turnIn(match: GameMatch, players: List<GamePlayer>, now: Instant): Turn? {
-        val links = chainLinkRepository.findLinks(match)
-        return if (isOver(match, links, now)) null else turnOf(players, links.last(), now)
+    fun turnIn(match: GameMatch, players: List<GamePlayer>, now: Instant, links: List<ChainLink> = chainLinkRepository.findLinks(match)): Turn? =
+        if (isOver(match, links, now)) null else turnOf(players, links.last(), now)
+
+    /** Whose turn it is in each of several chains, by the match's id, their links read in one query; null where a chain is over. */
+    fun turnsIn(matches: List<GameMatch>, players: Map<Long, List<GamePlayer>>, now: Instant): Map<Long, Turn?> {
+        val links = chainLinkRepository.findLinksOf(matches)
+        return matches.associate { it.id to turnIn(it, players[it.id].orEmpty(), now, links[it.id].orEmpty()) }
     }
 
     /**

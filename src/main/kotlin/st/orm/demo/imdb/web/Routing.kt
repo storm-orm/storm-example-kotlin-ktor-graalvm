@@ -96,7 +96,7 @@ fun Application.configureRouting() {
         staticResources("/js", "static/js")
         staticResources("/img", "static/img")
 
-        accountRoutes(accountService, streamingService, movieFilterService, gitSignIn, freepodSignIn)
+        accountRoutes(accountService, streamingService, movieFilterService, gitSignIn, freepodSignIn, badgeService)
         homeRoutes(homeService)
         cinemaRoutes(cinemaService)
         watchlistRoutes(watchlistService)

@@ -60,7 +60,7 @@
                     <span class="odd-final-score" th:text="|${memento.score}/${memento.count}|">4/5</span>
                     <div>
                         <p class="quiz-verdict" th:text="${memento.score == memento.count} ? 'Every series in order!' : 'Done for today'">Done for today</p>
-                        <button type="button" class="button button-primary" th:data-quiz-share="|Storm Movies Memento #${memento.number} · ${memento.score}/${memento.count}|">Share your score</button>
+                        <button type="button" class="button button-primary" th:data-quiz-share-url="@{/play/shared/memento/{user}/{day}(user=${account.id}, day=${memento.day})}" th:data-quiz-share="|Storm Movies Memento #${memento.number} · ${memento.score}/${memento.count}|">Share your score</button>
                     </div>
                 </div>
                 <div class="odd-results">

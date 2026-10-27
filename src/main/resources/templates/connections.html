@@ -49,7 +49,7 @@
                 <div>
                     <p class="quiz-verdict" th:text="${grid.won} ? (${grid.mistakes == 0} ? 'Perfect: no mistakes!' : (${grid.mistakes == 1} ? 'Solved, with 1 mistake' : |Solved, with ${grid.mistakes} mistakes|)) : 'Out of mistakes'">Solved</p>
                     <button type="button" class="button button-primary"
-                            th:data-quiz-share="|Storm Movies The Breakfast Club #${grid.number} · ${grid.won ? (grid.mistakes == 1 ? 'solved with 1 mistake' : 'solved with ' + grid.mistakes + ' mistakes') : grid.found.size + '/4 groups'}|">Share your score</button>
+                            th:data-quiz-share-url="@{/play/shared/connections/{user}/{day}(user=${account.id}, day=${grid.day})}" th:data-quiz-share="|Storm Movies The Breakfast Club #${grid.number} · ${grid.won ? (grid.mistakes == 1 ? 'solved with 1 mistake' : 'solved with ' + grid.mistakes + ' mistakes') : grid.found.size + '/4 groups'}|">Share your score</button>
                 </div>
             </div>
         </div>

@@ -150,15 +150,21 @@ class ConnectService(
     }
 
     /** How a puzzle stands, for the lists of one's games, inside their transaction: whether it is over, and in a line. */
-    fun standingOf(match: GameMatch): Pair<Boolean, String> {
-        val puzzle = connectPuzzleRepository.getById(match)
-        val links = chainLinkRepository.findLinks(match)
+    fun standingOf(match: GameMatch, puzzle: ConnectPuzzle = connectPuzzleRepository.getById(match), links: List<ChainLink> = chainLinkRepository.findLinks(match)): Pair<Boolean, String> {
         return when {
             links.last().movie.id == puzzle.target.id -> true to "Connected in ${links.size - 1}, par ${puzzle.par}" +
                 (if (links.any { it.throughBacon }) ", with a Bacon bonus" else "")
             match.endedAt != null -> true to "Not connected: par was ${puzzle.par}"
             else -> false to "${puzzle.start.primaryTitle} to ${puzzle.target.primaryTitle}: add a link"
         }
+    }
+
+    /** Where each of several puzzles stands, by the match's id, the puzzles and their links read in two queries. */
+    fun standingsOf(matches: List<GameMatch>): Map<Long, Pair<Boolean, String>> {
+        if (matches.isEmpty()) return emptyMap()
+        val puzzles = connectPuzzleRepository.findAllById(matches).associateBy { it.match.id }
+        val links = chainLinkRepository.findLinksOf(matches)
+        return matches.associate { it.id to standingOf(it, puzzles.getValue(it.id), links[it.id].orEmpty()) }
     }
 
     /** What a puzzle looks like, as a short text that changes with every move: for the pages that update by themselves. */

@@ -26,7 +26,9 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import java.util.Locale
 import kotlin.random.Random
 
 /** A row of a daily game's board: a player, their score as the board says it, and whether it is the visitor. */
@@ -47,6 +49,7 @@ data class OddResult(val movies: List<Movie>, val odd: Movie, val picked: Movie?
  */
 data class OddView(
     val number: Long,
+    val day: LocalDate,
     val count: Int,
     val index: Int,
     val current: List<Movie>,
@@ -69,6 +72,7 @@ data class FoundGroup(val label: String, val level: Int, val movies: List<Movie>
  */
 data class ConnectionsView(
     val number: Long,
+    val day: LocalDate,
     val remaining: List<Movie>,
     val found: List<FoundGroup>,
     val mistakes: Int,
@@ -92,6 +96,7 @@ data class DuelResult(val movies: List<Movie>, val higher: Movie, val picked: Mo
 /** A day's Face/Off for a player: the pair at hand, the one just answered, the score, and once over, every pair and the boards. */
 data class DuelView(
     val number: Long,
+    val day: LocalDate,
     val count: Int,
     val index: Int,
     val current: List<Movie>,
@@ -113,6 +118,7 @@ data class LineUpResult(val movie: Movie, val character: String, val culprit: Pe
 /** A day's The Usual Suspects for a player: the line-up at hand, the one just answered, the score, and once over, every line-up and the boards. */
 data class LineUpView(
     val number: Long,
+    val day: LocalDate,
     val count: Int,
     val index: Int,
     val current: LineUpCase?,
@@ -134,6 +140,7 @@ data class SeriesResult(val order: List<Movie>, val picked: List<Movie>) {
 /** A day's Memento for a player: the series at hand, the one just placed, the score, and once over, every series and the boards. */
 data class SeriesView(
     val number: Long,
+    val day: LocalDate,
     val count: Int,
     val index: Int,
     val current: SeriesAtHand?,
@@ -155,6 +162,7 @@ data class ScoreResult(val movie: Movie, val composer: Person, val picked: Perso
 /** A day's Amadeus for a player: the movie at hand, the one just answered, the score, and once over, every movie and the boards. */
 data class ScoreView(
     val number: Long,
+    val day: LocalDate,
     val count: Int,
     val index: Int,
     val current: Score?,
@@ -176,6 +184,7 @@ data class MaskResult(val movies: List<Movie>, val actor: Person, val picked: Pe
 /** A day's The Mask for a player: the puzzle at hand, the one just answered, the score, and once over, every puzzle and the boards. */
 data class MaskView(
     val number: Long,
+    val day: LocalDate,
     val count: Int,
     val index: Int,
     val current: MaskCase?,
@@ -185,6 +194,28 @@ data class MaskView(
     val results: List<MaskResult>,
     val boards: List<Board>
 )
+
+/**
+ * A day's result of a daily, as a link shares it: whose, which game, the
+ * score, and a mark per round, right or not, without the answers, so the
+ * daily is not spoiled for whoever opens the link.
+ */
+data class SharedDaily(
+    val slug: String,
+    val title: String,
+    val number: Long,
+    val day: LocalDate,
+    val today: Boolean,
+    val name: String,
+    val avatarUrl: String?,
+    val finished: Boolean,
+    val summary: String,
+    val marks: List<Boolean>
+) {
+    val playPath: String get() = "/play/$slug"
+    /** The day, as the page says it: "Today's", or "Monday 27 October". */
+    val dayText: String get() = if (today) "Today's" else day.format(DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.ENGLISH))
+}
 
 /**
  * The daily puzzles besides the quiz, the same for everyone of a taste on a
@@ -223,6 +254,7 @@ class DailyPuzzleService(
         val finished = answers.size >= puzzles.size
         OddView(
             number = numberOf(today),
+            day = today,
             count = puzzles.size,
             index = answers.size,
             current = if (finished) emptyList() else puzzles[answers.size].movies.mapNotNull(movies::get),
@@ -253,6 +285,7 @@ class DailyPuzzleService(
         val left = groups.filter { it !in foundGroups }.flatMap { it.movies }
         ConnectionsView(
             number = numberOf(today),
+            day = today,
             // The posters still to group, in an order of the day, the same on every visit.
             remaining = left.shuffled(Random(today.toEpochDay())).mapNotNull(movies::get),
             found = foundGroups.map(::shown),
@@ -298,6 +331,7 @@ class DailyPuzzleService(
         val finished = answers.size >= duels.size
         DuelView(
             number = numberOf(today),
+            day = today,
             count = duels.size,
             index = answers.size,
             current = if (finished) emptyList() else duels[answers.size].movies.mapNotNull(movies::get),
@@ -325,6 +359,7 @@ class DailyPuzzleService(
         val finished = answers.size >= lineUps.size
         LineUpView(
             number = numberOf(today),
+            day = today,
             count = lineUps.size,
             index = answers.size,
             current = if (finished) null else lineUps[answers.size].let { l -> LineUpCase(movies.getValue(l.movie), l.character, l.suspects.mapNotNull(people::get)) },
@@ -354,6 +389,7 @@ class DailyPuzzleService(
         val finished = done >= series.size
         SeriesView(
             number = numberOf(today),
+            day = today,
             count = series.size,
             index = done,
             current = if (finished) null else SeriesAtHand(series[done].movies.filter { it !in placed[done] }.mapNotNull(movies::get), placed[done].mapNotNull(movies::get)),
@@ -392,6 +428,7 @@ class DailyPuzzleService(
         val finished = answers.size >= scores.size
         ScoreView(
             number = numberOf(today),
+            day = today,
             count = scores.size,
             index = answers.size,
             current = if (finished) null else scores[answers.size].let { s -> Score(movies.getValue(s.movie), s.composers.mapNotNull(people::get)) },
@@ -419,6 +456,7 @@ class DailyPuzzleService(
         val finished = answers.size >= masks.size
         MaskView(
             number = numberOf(today),
+            day = today,
             count = masks.size,
             index = answers.size,
             current = if (finished) null else masks[answers.size].let { m -> MaskCase(m.movies.mapNotNull(movies::get), m.suspects.mapNotNull(people::get)) },
@@ -433,6 +471,40 @@ class DailyPuzzleService(
     /** Names the actor behind the mask at hand; nothing once all are answered. */
     suspend fun answerMask(user: User, personId: String, today: LocalDate = today(), now: Instant = Instant.now()) =
         pick(user, DailyGame.THE_MASK, personId, today, now, { it.masks.map { m -> m.suspects to m.actor } })
+
+    /* ── A result shared by its link ──────────────────────────────── */
+
+    /** A player's result of a daily on a day, for the link that shares it; null when there is none to show. */
+    suspend fun sharedOf(slug: String, userId: String, day: LocalDate, today: LocalDate = today()): SharedDaily? = transaction(readOnly = true) {
+        val game = gameOf(slug) ?: return@transaction null
+        val user = userRepository.findById(userId) ?: return@transaction null
+        val play = playIfAny(user, day, game) ?: return@transaction null
+        val data = dailyPuzzleRepository.findById(DailyPuzzlePk(day, game, play.filterKey))?.data ?: return@transaction null
+        val marks = when (game) {
+            // The grid: a mark per group found, then one per mistake.
+            DailyGame.CONNECTIONS -> List(play.answers.size) { true } + List(play.mistakes) { false }
+            DailyGame.MEMENTO -> data.series.runningFold(0) { from, series -> from + series.movies.size }.zipWithNext()
+                .map { (from, until) -> play.answers.drop(from).take(until - from) }
+                .zip(data.series).filter { (placed, series) -> placed.size == series.movies.size }.map { (placed, series) -> placed == series.order }
+            else -> play.answers.zip(choicesOf(game)(data)).map { (answer, choice) -> answer == choice.second }
+        }
+        val summary = when (game) {
+            DailyGame.CONNECTIONS -> if (play.answers.size == data.groups.size) "${play.mistakes} ${if (play.mistakes == 1) "mistake" else "mistakes"}" else "${play.answers.size}/4 groups"
+            DailyGame.MEMENTO -> "${play.score}/${data.series.size}"
+            else -> "${play.score}/${choicesOf(game)(data).size}"
+        }
+        SharedDaily(slug, GameRules.of(game).title, numberOf(day), day, day == today, user.name?.takeIf { user.shareName } ?: "Someone", user.avatarUrl, play.finished, summary, marks)
+    }
+
+    /** The puzzles of a game of one pick per puzzle, each as its choices and its answer; Connections and Memento have none. */
+    private fun choicesOf(game: DailyGame): (DailyPuzzleData) -> List<Pair<List<String>, String>> = when (game) {
+        DailyGame.ODD_ONE_OUT -> { data -> data.odd.map { it.movies to it.odd } }
+        DailyGame.FACE_OFF -> { data -> data.duels.map { it.movies to it.higher } }
+        DailyGame.USUAL_SUSPECTS -> { data -> data.lineUps.map { it.suspects to it.culprit } }
+        DailyGame.AMADEUS -> { data -> data.scores.map { it.composers to it.composer } }
+        DailyGame.THE_MASK -> { data -> data.masks.map { it.suspects to it.actor } }
+        DailyGame.CONNECTIONS, DailyGame.MEMENTO -> { _ -> emptyList() }
+    }
 
     /* ── Shared ───────────────────────────────────────────────────── */
 
@@ -543,6 +615,13 @@ class DailyPuzzleService(
     private fun today(): LocalDate = LocalDate.now(ZoneOffset.UTC)
 
     companion object {
+        /** The games by the path they are played at, which the links that share a result use. */
+        private val slugs = mapOf(
+            "odd-one-out" to DailyGame.ODD_ONE_OUT, "connections" to DailyGame.CONNECTIONS, "face-off" to DailyGame.FACE_OFF,
+            "usual-suspects" to DailyGame.USUAL_SUSPECTS, "memento" to DailyGame.MEMENTO, "amadeus" to DailyGame.AMADEUS, "the-mask" to DailyGame.THE_MASK
+        )
+        fun gameOf(slug: String): DailyGame? = slugs[slug]
+
         /** The puzzles a day of the games of one pick per puzzle. */
         const val TEN = 10
         const val ODD_PUZZLES = TEN

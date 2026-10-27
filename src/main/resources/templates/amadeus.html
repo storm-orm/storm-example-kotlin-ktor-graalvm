@@ -56,7 +56,7 @@
                     <span class="odd-final-score" th:text="|${amadeus.score}/${amadeus.count}|">7/10</span>
                     <div>
                         <p class="quiz-verdict" th:text="${amadeus.score == amadeus.count} ? 'Every one right!' : 'Done for today'">Done for today</p>
-                        <button type="button" class="button button-primary" th:data-quiz-share="|Storm Movies Amadeus #${amadeus.number} · ${amadeus.score}/${amadeus.count}|">Share your score</button>
+                        <button type="button" class="button button-primary" th:data-quiz-share-url="@{/play/shared/amadeus/{user}/{day}(user=${account.id}, day=${amadeus.day})}" th:data-quiz-share="|Storm Movies Amadeus #${amadeus.number} · ${amadeus.score}/${amadeus.count}|">Share your score</button>
                     </div>
                 </div>
                 <div class="odd-results">

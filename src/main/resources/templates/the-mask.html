@@ -54,7 +54,7 @@
                     <span class="odd-final-score" th:text="|${mask.score}/${mask.count}|">7/10</span>
                     <div>
                         <p class="quiz-verdict" th:text="${mask.score == mask.count} ? 'Every one right: you are enough!' : 'Done for today'">Done for today</p>
-                        <button type="button" class="button button-primary" th:data-quiz-share="|Storm Movies The Mask #${mask.number} · ${mask.score}/${mask.count}|">Share your score</button>
+                        <button type="button" class="button button-primary" th:data-quiz-share-url="@{/play/shared/the-mask/{user}/{day}(user=${account.id}, day=${mask.day})}" th:data-quiz-share="|Storm Movies The Mask #${mask.number} · ${mask.score}/${mask.count}|">Share your score</button>
                     </div>
                 </div>
                 <div class="odd-results">

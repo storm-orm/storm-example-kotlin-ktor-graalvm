@@ -23,7 +23,7 @@ import java.time.ZoneOffset
  * [over], and whether they play it ([mine]), which a club's round they have
  * not joined yet they do not.
  */
-data class GameEntry(val match: GameMatch, val with: String, val status: String, val yourMove: Boolean, val over: Boolean = false, val mine: Boolean = true) {
+data class GameEntry(val match: GameMatch, val with: String, val status: String, val yourMove: Boolean, val over: Boolean = false, val mine: Boolean = true, val since: String = "") {
     val title: String get() = when (match.game) {
         Game.CHAIN -> if (match.mode == GameMode.SOLO) "Catch Me If You Can" else "Chain Reaction"
         Game.DRAFT -> "The Wolf of Wall Street"
@@ -127,21 +127,44 @@ class PlayService(
      * close, to the archive. A match nobody moved in for [IDLE] ends here,
      * whatever its game: the list never grows with games left behind.
      */
-    private fun openGamesOf(user: User, now: Instant): List<GameEntry> =
-        gamePlayerRepository.findOpen(user).mapNotNull { me ->
-            val players = gamePlayerRepository.findPlayers(me.match)
-            val match = endIfIdle(me.match, players, now)
-            val entry = entryOf(user, match, me, now, players)
+    private fun openGamesOf(user: User, now: Instant): List<GameEntry> {
+        val mine = gamePlayerRepository.findOpen(user)
+        val players = gamePlayerRepository.findPlayersOf(mine.map { it.match })
+        // The matches as they stand now, the idle ones ended; then what each game says of them, a query or two per game, not per match.
+        val matches = mine.map { me -> endIfIdle(me.match, players[me.match.id].orEmpty(), now) }
+        val loads = Loads(
+            players,
+            chainService.turnsIn(matches.filter { it.game == Game.CHAIN }, players, now),
+            connectService.standingsOf(matches.filter { it.game == Game.CONNECT }),
+            draftService.turnsIn(matches.filter { it.game == Game.DRAFT }, players, now),
+            castService.standingsOf(user, matches.filter { it.game == Game.CAST || it.game == Game.REEL }, now)
+        )
+        return mine.zip(matches).mapNotNull { (me, match) ->
+            val its = players[match.id].orEmpty()
+            val entry = entryOf(user, match, me, now, its, loads).copy(since = agoText(lastMoveOf(match, its), now))
             if (entry.over) {
                 gamePlayerRepository.update(me.copy(closedAt = now, closedStatus = entry.status, closedWith = entry.with))
                 null
             } else entry
         }
+    }
+
+    /** What the games say of several matches, read in one go for the list, by the match's id; absent, each match is read on its own. */
+    private class Loads(
+        val players: Map<Long, List<GamePlayer>>,
+        val chainTurns: Map<Long, Turn?>,
+        val connectStandings: Map<Long, Pair<Boolean, String>>,
+        val draftTurns: Map<Long, Drafter?>,
+        val castStandings: Map<Long, Triple<Boolean, String, Boolean>>
+    )
+
+    /** When a match last moved: the latest of its players' moves, or its start. */
+    private fun lastMoveOf(match: GameMatch, players: List<GamePlayer>): Instant = (players.map { it.updatedAt } + match.createdAt).max()
 
     /** Ends a match whose last move, or start, is more than [IDLE] ago; as it is otherwise. */
     private fun endIfIdle(match: GameMatch, players: List<GamePlayer>, now: Instant): GameMatch {
         if (match.endedAt != null) return match
-        val lastMove = (players.map { it.updatedAt } + match.createdAt).max()
+        val lastMove = lastMoveOf(match, players)
         if (Duration.between(lastMove, now) <= IDLE) return match
         return match.copy(endedAt = now).also(gameMatchRepository::update)
     }
@@ -190,7 +213,7 @@ class PlayService(
     }
 
     /** How a match stands for the visitor: [me] is their player, or null for a club's round they have not played. */
-    private fun entryOf(user: User, match: GameMatch, me: GamePlayer?, now: Instant, players: List<GamePlayer> = gamePlayerRepository.findPlayers(match)): GameEntry {
+    private fun entryOf(user: User, match: GameMatch, me: GamePlayer?, now: Instant, players: List<GamePlayer> = gamePlayerRepository.findPlayers(match), loads: Loads? = null): GameEntry {
         val with = withOf(user, match, players)
         val entry = when (match.game) {
             Game.HIGHER_LOWER -> when {
@@ -202,7 +225,7 @@ class PlayService(
             }
             Game.CONNECT -> {
                 // Played together, no turns: an open puzzle is always one the visitor can add to.
-                val (over, standing) = connectService.standingOf(match)
+                val (over, standing) = if (loads != null) loads.connectStandings.getValue(match.id) else connectService.standingOf(match)
                 GameEntry(match, with, standing, yourMove = !over, over = over)
             }
             Game.SWIPE -> when {
@@ -211,18 +234,18 @@ class PlayService(
                 else -> GameEntry(match, with, "You swiped them all; waiting for the others", yourMove = false)
             }
             Game.DRAFT -> {
-                val turn = draftService.turnIn(match, now)
+                val turn = if (loads != null) loads.draftTurns[match.id] else draftService.turnIn(match, now)
                 when {
                     turn == null -> GameEntry(match, with, "The draft is in: see who won", yourMove = false, over = true)
                     turn.isUser(user) -> GameEntry(match, with, "Your pick", yourMove = true)
                     else -> GameEntry(match, with, "${turn.name}'s pick", yourMove = false)
                 }
             }
-            Game.CAST, Game.REEL -> castService.standingOf(user, match, now).let { (over, standing, yourMove) ->
+            Game.CAST, Game.REEL -> (if (loads != null) loads.castStandings.getValue(match.id) else castService.standingOf(user, match, now)).let { (over, standing, yourMove) ->
                 GameEntry(match, with, standing, yourMove = yourMove, over = over)
             }
             Game.CHAIN -> {
-                val turn = chainService.turnIn(match, players, now)
+                val turn = if (loads != null) loads.chainTurns[match.id] else chainService.turnIn(match, players, now)
                 when {
                     turn == null -> GameEntry(match, with, resultOf(user, players) { if (it == 1) "1 point" else "$it points" }, yourMove = false, over = true)
                     turn.player.user.id == user.id -> GameEntry(match, with, "Your turn", yourMove = true)
@@ -231,6 +254,18 @@ class PlayService(
             }
         }
         return entry.copy(mine = me != null)
+    }
+
+    /** How long ago a moment was, as the list says it: "just now", "5 min ago", "3 h ago", "2 days ago". */
+    private fun agoText(moment: Instant, now: Instant): String {
+        val minutes = Duration.between(moment, now).toMinutes()
+        return when {
+            minutes < 1 -> "just now"
+            minutes < 60 -> "$minutes min ago"
+            minutes < 60 * 24 -> "${minutes / 60} h ago"
+            minutes < 60 * 48 -> "yesterday"
+            else -> "${minutes / (60 * 24)} days ago"
+        }
     }
 
     /** Who a match is with, as the list says it. */

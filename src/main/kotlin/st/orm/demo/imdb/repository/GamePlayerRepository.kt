@@ -33,6 +33,10 @@ interface GamePlayerRepository : EntityRepository<GamePlayer, GamePlayerPk> {
             .orderBy(GamePlayer_.turnOrder)
             .resultList
 
+    /** The players of several matches at once, by the match's id, each list in the order of the turns: the Play page's list reads them in one go. */
+    fun findPlayersOf(matches: List<GameMatch>): Map<Long, List<GamePlayer>> =
+        if (matches.isEmpty()) emptyMap() else select(GamePlayer_.match inList matches).orderBy(GamePlayer_.turnOrder).resultList.groupBy { it.match.id }
+
     /** The user's players in any of these matches: which of a club's rounds they are in. */
     fun findMine(user: User, matches: List<GameMatch>): List<GamePlayer> =
         if (matches.isEmpty()) emptyList() else findAll((GamePlayer_.user eq user) and (GamePlayer_.match inList matches))

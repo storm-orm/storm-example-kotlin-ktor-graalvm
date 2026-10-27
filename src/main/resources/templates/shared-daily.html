@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(|${shared.title} #${shared.number}|)}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
+
+<!-- A result shared by its link: whose, the score and a mark per round; the answers stay hidden, so the day's game
+     is still there to play for whoever opens it. -->
+<header class="page-header">
+    <div class="container">
+        <a class="back-link" th:href="@{/play}">← Play</a>
+        <h1 class="page-title"><th:block th:text="${shared.title}">Face/Off</th:block> <span class="quiz-number" th:text="|#${shared.number}|">#3</span></h1>
+        <p class="page-subtitle" th:text="${shared.dayText}">Today's</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container">
+        <div class="stat-card shared-card">
+            <div class="shared-who">
+                <span class="nav-account-icon avatar-large">
+                    <img th:if="${shared.avatarUrl != null}" th:src="${shared.avatarUrl}" alt="">
+                    <span th:unless="${shared.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(shared.name, 0, 1))}">L</span>
+                </span>
+                <div>
+                    <p class="quiz-verdict" th:text="${shared.finished} ? |${shared.name} played ${shared.title} #${shared.number}| : |${shared.name} is playing ${shared.title} #${shared.number}|">Leon played Face/Off #3</p>
+                    <span class="odd-final-score" th:text="${shared.summary}">7/10</span>
+                </div>
+            </div>
+            <!-- A mark per round, as it went: lit for a right one, outlined for a miss; no answers. -->
+            <div class="shared-marks" th:unless="${shared.marks.isEmpty()}" aria-label="Round by round">
+                <span class="shared-mark" th:each="mark : ${shared.marks}" th:classappend="${mark} ? 'right' : 'wrong'"></span>
+            </div>
+            <p class="stat-note shared-note">The answers stay behind the curtain: play it yourself and compare.</p>
+            <a class="button button-primary" th:href="@{${shared.playPath}}">Play today's</a>
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

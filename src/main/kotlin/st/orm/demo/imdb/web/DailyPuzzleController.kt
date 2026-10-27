@@ -6,7 +6,11 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.thymeleaf.ThymeleafContent
+import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
+import io.ktor.server.response.respond
+import io.ktor.server.util.getOrFail
+import java.time.LocalDate
 import st.orm.demo.imdb.model.DailyGame
 import st.orm.demo.imdb.service.DailyPuzzleService
 import st.orm.demo.imdb.service.LevelService
@@ -93,6 +97,14 @@ fun Route.dailyPuzzleRoutes(dailyPuzzleService: DailyPuzzleService, levelService
         if (call.locked(DailyGame.THE_MASK)) return@post
         call.receiveParameters()["person"]?.let { dailyPuzzleService.answerMask(call.currentUser(), it) }
         call.respondRedirect("/play/the-mask")
+    }
+
+    // A result shared by its link: the score and the marks, no answers; 404 for a game nobody played.
+    get("/play/shared/{slug}/{user}/{day}") {
+        val day = runCatching { LocalDate.parse(call.parameters.getOrFail("day")) }.getOrNull() ?: return@get call.respond(HttpStatusCode.NotFound)
+        val shared = dailyPuzzleService.sharedOf(call.parameters.getOrFail("slug"), call.parameters.getOrFail("user"), day)
+            ?: return@get call.respond(HttpStatusCode.NotFound)
+        call.respondPage(ThymeleafContent("shared-daily", mapOf("shared" to shared)))
     }
 
     get("/play/amadeus") {

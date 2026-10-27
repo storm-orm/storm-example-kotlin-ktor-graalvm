@@ -15,9 +15,13 @@ import st.orm.demo.imdb.repository.FriendshipRepository
 import st.orm.demo.imdb.repository.GamePlayerRepository
 import st.orm.demo.imdb.repository.MovieNightRepository
 import st.orm.demo.imdb.repository.MovieNightVoteRepository
+import st.orm.demo.imdb.repository.ACTING_CATEGORIES
+import st.orm.demo.imdb.repository.DIRECTOR
 import st.orm.demo.imdb.repository.MovieSeenRepository
+import st.orm.demo.imdb.repository.PrincipalRepository
 import st.orm.demo.imdb.repository.UserRepository
 import st.orm.template.entityId
+import st.orm.template.ref
 import st.orm.template.transaction
 
 /** A night of one of the visitor's clubs still to decide, as the community page lists it. */
@@ -50,9 +54,10 @@ data class CommunityView(
     val nights: List<NightCard>,
     /** Everyone in the community, with what the visitor has in common with each, the most first. */
     val people: List<InCommon>,
-    /** Everyone in the community, for the seats behind the title. */
-    val seats: List<User>
+    /** What the keyboard behind the title types: titles and names from the visitor's own movies. */
+    val typed: List<String>
 ) {
+    val keyboard: List<List<String>> get() = CommunityService.KEYBOARD
     /** Whether the visitor has friends or clubs: without, the page is what manages them. */
     val hasCommunity: Boolean get() = friends.friends.isNotEmpty() || clubs.clubs.isNotEmpty()
     /** What waits on the visitor here: requests, nights and games. */
@@ -69,8 +74,10 @@ data class FriendView(
     val moviesInCommon: List<Movie>,
     val feed: List<SharedCheckIn>,
     val games: List<GameEntry>,
-    val seats: List<User>
-)
+    val typed: List<String>
+) {
+    val keyboard: List<List<String>> get() = CommunityService.KEYBOARD
+}
 
 /**
  * The visitor's community as one: friends and the members of their clubs.
@@ -88,7 +95,8 @@ class CommunityService(
     private val movieNightRepository: MovieNightRepository,
     private val movieNightVoteRepository: MovieNightVoteRepository,
     private val gamePlayerRepository: GamePlayerRepository,
-    private val playService: PlayService
+    private val playService: PlayService,
+    private val principalRepository: PrincipalRepository
 ) {
     suspend fun overview(user: User, now: Instant = Instant.now()): CommunityView {
         val friends = friendService.friendsOf(user)
@@ -114,7 +122,7 @@ class CommunityService(
                 people = tasteOverlap.inCommon(user, friends.friends + members) { other ->
                     if (other.id in friendIds) other.shareSeen else sharingMembers[other.id].orEmpty().any { it }
                 },
-                seats = (friends.friends + members).distinctBy { it.id }
+                typed = typedOf(user)
             )
         }
     }
@@ -130,9 +138,23 @@ class CommunityService(
                 moviesInCommon = if (friend.shareSeen) movieSeenRepository.findSeenInCommon(user, friend, IN_COMMON_SHOWN).map { it.movie } else emptyList(),
                 feed = friendService.feed(listOf(friend), FEED_LIMIT),
                 games = games.filter { entry -> gamePlayerRepository.findPlayers(entry.match).any { it.user.id == friend.id } },
-                seats = listOf(user, friend)
+                typed = typedOf(user)
             )
         }
+    }
+
+    /**
+     * What the keyboard behind the title types: the titles of the visitor's
+     * latest movies, each followed by a star or the director of it, so the
+     * keys spell out what they watched. Empty for someone who watched nothing.
+     */
+    private fun typedOf(user: User): List<String> {
+        val movies = movieSeenRepository.findMostRecent(user, TYPED_MOVIES).map { it.movie }
+        if (movies.isEmpty()) return emptyList()
+        val people = principalRepository.findTasteCredits(movies.map { it.ref() }, TYPED_BILLING)
+            .filter { it.category == DIRECTOR || it.category in ACTING_CATEGORIES }
+            .groupBy({ it.movie.entityId() }, { it.person.primaryName })
+        return movies.flatMap { movie -> listOf(movie.primaryTitle) + people[movie.id].orEmpty().take(1) }.distinct()
     }
 
     /**
@@ -150,8 +172,12 @@ class CommunityService(
         movieSeenRepository.findSeenInCommon(user, other, limit).map { it.movie }
     }
 
-    private companion object {
-        const val FEED_LIMIT = 36
+    companion object {
+        /** The rows of the keyboard behind the title, as a real one lays them out, the space bar last. */
+        val KEYBOARD: List<List<String>> = listOf("QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM").map { row -> row.map { it.toString() } } + listOf(listOf(" "))
+        private const val TYPED_MOVIES = 10
+        private const val TYPED_BILLING = 2
+        private const val FEED_LIMIT = 36
         /** The movies in common a friend's page shows. */
         private const val IN_COMMON_SHOWN = 18
     }

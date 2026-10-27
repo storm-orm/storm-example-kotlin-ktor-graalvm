@@ -4,6 +4,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import st.orm.demo.imdb.model.DailyGame
@@ -167,6 +168,15 @@ class DailyPuzzleServiceTest {
         assertEquals(1, view.score)
         assertEquals(2, view.results.size)
         assertEquals("tt0068646", view.results[1].picked!!.id)
+
+        // The result as its link shares it: the score and a mark per round, no answers.
+        val shared = runBlocking { service.sharedOf("odd-one-out", alice.id, day, today = day) }!!
+        assertEquals("The Outsiders", shared.title)
+        assertEquals("1/2", shared.summary)
+        assertEquals(listOf(true, false), shared.marks)
+        assertEquals("Alice", shared.name)
+        assertEquals("/play/odd-one-out", shared.playPath)
+        assertNull(runBlocking { service.sharedOf("odd-one-out", "nobody", day) })
     }
 
     @Test

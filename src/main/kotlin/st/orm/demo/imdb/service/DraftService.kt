@@ -153,10 +153,8 @@ class DraftService(
         "${draftPickRepository.findPicks(match).size}|${turnIn(match, now)?.player?.user?.id}"
 
     /** Whose turn it is in a draft, for the lists of one's games, inside their transaction; null once it is over. */
-    fun turnIn(match: GameMatch, now: Instant): Drafter? {
+    fun turnIn(match: GameMatch, now: Instant, drafters: List<Drafter> = draftersOf(match), picks: List<DraftPick> = draftPickRepository.findPicks(match)): Drafter? {
         if (match.endedAt != null) return null
-        val drafters = draftersOf(match)
-        val picks = draftPickRepository.findPicks(match)
         if (match.mode == GameMode.SOLO) return turnOf(drafters, picks.size)
         // The turns let go by count as picked, without writing them in a read.
         val missed = Duration.between(deadline(match, picks).minus(TURN), now).toMillis() / TURN.toMillis()
@@ -189,9 +187,15 @@ class DraftService(
     }
 
     /** The drafters in their order: the players by their turns, and on one's own the house after the player. */
-    private fun draftersOf(match: GameMatch): List<Drafter> {
-        val players = gamePlayerRepository.findPlayers(match).map(::Drafter)
-        return if (match.mode == GameMode.SOLO) players + Drafter(null) else players
+    private fun draftersOf(match: GameMatch, players: List<GamePlayer> = gamePlayerRepository.findPlayers(match)): List<Drafter> {
+        val drafters = players.map(::Drafter)
+        return if (match.mode == GameMode.SOLO) drafters + Drafter(null) else drafters
+    }
+
+    /** Whose pick it is in each of several drafts, by the match's id, their picks read in one query; null where a draft is in. */
+    fun turnsIn(matches: List<GameMatch>, players: Map<Long, List<GamePlayer>>, now: Instant): Map<Long, Drafter?> {
+        val picks = draftPickRepository.findPicksOf(matches)
+        return matches.associate { it.id to turnIn(it, now, draftersOf(it, players[it.id].orEmpty()), picks[it.id].orEmpty()) }
     }
 
     /** Who picks the [position]th pick, in the snake order; null once every round is drafted. */

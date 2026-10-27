@@ -47,7 +47,7 @@
                     <span class="odd-final-score" th:text="|${odd.score}/${odd.count}|">7/10</span>
                     <div>
                         <p class="quiz-verdict" th:text="${odd.score == odd.count} ? 'Every one right!' : 'Done for today'">Done for today</p>
-                        <button type="button" class="button button-primary" th:data-quiz-share="|Storm Movies The Outsiders #${odd.number} · ${odd.score}/${odd.count}|">Share your score</button>
+                        <button type="button" class="button button-primary" th:data-quiz-share-url="@{/play/shared/odd-one-out/{user}/{day}(user=${account.id}, day=${odd.day})}" th:data-quiz-share="|Storm Movies The Outsiders #${odd.number} · ${odd.score}/${odd.count}|">Share your score</button>
                     </div>
                 </div>
                 <div class="odd-results">

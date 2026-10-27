@@ -89,7 +89,7 @@ class LevelServiceTest {
         assertEquals(Level.BIT_PART, progress.level)
         assertFalse(progress.held)
         // Supporting asks for someone invited too: the ladder says so.
-        assertEquals(listOf("Chain Gang", "First Daily", "Double Bill", "0 of 1 invited"), progress.rites.map { it.text })
+        assertEquals(listOf("Chain Reaction", "First Daily", "Double Bill", "0 of 1 invited"), progress.rites.map { it.text })
     }
 
     @Test

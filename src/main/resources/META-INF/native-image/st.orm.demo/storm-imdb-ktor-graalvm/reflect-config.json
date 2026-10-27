@@ -1446,6 +1446,12 @@
     "allDeclaredFields": true
   },
   {
+    "name": "st.orm.demo.imdb.service.SharedDaily",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
     "name": "st.orm.demo.imdb.service.MaskView",
     "allDeclaredConstructors": true,
     "allPublicMethods": true,

@@ -5,7 +5,7 @@
 <nav th:replace="~{fragments/layout :: navbar('community')}"></nav>
 
 <header class="play-hero community-hero" th:classappend="${manage} ? 'manage'">
-    <div th:replace="~{fragments/community :: seats(${view != null ? view.seats : {}})}"></div>
+    <div th:replace="~{fragments/community :: keyboard(${view != null ? view.keyboard : {}}, ${view != null ? view.typed : {}})}"></div>
     <div class="container play-hero-content">
         <div class="page-title-row">
             <h1 class="page-title">Community<span class="attention-badge" th:if="${attention.community > 0}" th:text="${attention.community == 1} ? '1 to answer' : |${attention.community} to answer|">2 to answer</span></h1>
