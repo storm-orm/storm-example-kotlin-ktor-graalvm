@@ -79,15 +79,12 @@
 <section class="section" id="games">
     <div class="container game-grid">
         <div class="game-card game-quiz">
-            <!-- The groundhog himself, who sees his shadow every morning. -->
+            <!-- The day that repeats: a poster inside a loop that comes back round to its own arrow. -->
             <span class="game-art game-art-line" aria-hidden="true">
                 <svg class="art-svg" viewBox="0 0 48 48">
-                    <circle cx="13" cy="11" r="4.5"/><circle cx="35" cy="11" r="4.5"/>
-                    <path d="M8 25c0-9 7-14 16-14s16 5 16 14c0 9-6 16-16 16S8 34 8 25z"/>
-                    <circle cx="17.5" cy="22.5" r="1.8" fill="currentColor"/><circle cx="30.5" cy="22.5" r="1.8" fill="currentColor"/>
-                    <ellipse cx="24" cy="28" rx="3" ry="2" fill="currentColor"/>
-                    <path d="M21 30.5v4.5h2.6v-4.5M24.4 30.5v4.5H27v-4.5"/>
-                    <path d="M9 27h-5M9 30h-4M39 27h5M39 30h4"/>
+                    <path d="M39 27a15 15 0 1 1-4.4-13.6"/>
+                    <path d="M36 7v7h-7"/>
+                    <rect x="17.5" y="15" width="13" height="18" rx="2"/>
                 </svg>
             </span>
             <span class="game-title-row"><span class="game-title">Groundhog Day</span> <span class="game-level">Extra</span></span>
@@ -252,20 +249,16 @@
         <!-- Total Recall: the house picks a movie, its cast to name, or an actor or director, their movies; bid how many
              you can name, then name them. The choice of what to recall goes with the start form. -->
         <div class="game-card game-cast">
-            <!-- The face that is a mask over another face, as in the movie: it splits and slides open on the one
-                 beneath, and closes again (the keyframes in app.css). -->
+            <!-- One face over another: the front slides aside on the one beneath, and back (the keyframes in app.css). -->
             <span class="game-art game-art-line" aria-hidden="true">
-                <svg class="art-svg" viewBox="0 0 72 56">
-                    <ellipse cx="36" cy="28" rx="14" ry="17"/>
-                    <circle cx="30.5" cy="26" r="1.7" fill="currentColor"/><circle cx="41.5" cy="26" r="1.7" fill="currentColor"/>
-                    <path d="M26.5 21.5l6 1.5M45.5 21.5l-6 1.5M31 37h10"/>
-                    <g class="recall-half recall-half-left">
-                        <path class="recall-skin" d="M36 10C26 10 21 18 21 28c0 10 6 17 15 18z"/>
-                        <ellipse cx="30" cy="27" rx="2.6" ry="1.6"/><path d="M26 22.5c2-1.5 5-1.5 7-.5M31 37.5c2 1.5 3.5 1.8 5 1.8"/>
-                    </g>
-                    <g class="recall-half recall-half-right">
-                        <path class="recall-skin" d="M36 10c10 0 15 8 15 18 0 10-6 17-15 18z"/>
-                        <ellipse cx="42" cy="27" rx="2.6" ry="1.6"/><path d="M46 22.5c-2-1.5-5-1.5-7-.5M41 37.5c-2 1.5-3.5 1.8-5 1.8"/>
+                <svg class="art-svg" viewBox="0 0 64 48">
+                    <ellipse cx="38" cy="24" rx="13" ry="17"/>
+                    <circle cx="33.5" cy="21" r="1.7" fill="currentColor"/><circle cx="42.5" cy="21" r="1.7" fill="currentColor"/>
+                    <path d="M34 31h8"/>
+                    <g class="recall-front">
+                        <ellipse class="recall-skin" cx="38" cy="24" rx="13" ry="17"/>
+                        <circle cx="33.5" cy="21" r="1.7" fill="currentColor"/><circle cx="42.5" cy="21" r="1.7" fill="currentColor"/>
+                        <path d="M34 31c2 1.5 6 1.5 8 0"/>
                     </g>
                 </svg>
             </span>
