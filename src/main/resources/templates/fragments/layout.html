@@ -88,7 +88,7 @@
             </a>
         </div>
         <!-- Five places: Movies and My Movies open a menu of their pages; each of those pages names its own under its title. -->
-        <div class="nav-links" th:with="movies=${active == 'for-you' or active == 'browse' or active == 'recent' or active == 'search'}, mine=${active == 'seen' or active == 'watchlist' or active == 'lists' or active == 'insights' or active == 'wrapped'}">
+        <div class="nav-links" th:with="movies=${active == 'for-you' or active == 'browse' or active == 'recent' or active == 'search'}, mine=${active == 'seen' or active == 'watchlist' or active == 'top-ten' or active == 'lists' or active == 'insights' or active == 'wrapped'}">
             <a th:href="@{/}" th:classappend="${active == 'home'} ? 'active'">Home</a>
             <div class="nav-group">
                 <a th:href="@{/for-you}" th:classappend="${movies} ? 'active'" aria-haspopup="true">Movies</a>
@@ -103,6 +103,7 @@
                 <div class="nav-menu">
                     <a th:href="@{/seen}" th:classappend="${active == 'seen'} ? 'active'">Watched</a>
                     <a th:href="@{/watchlist}" th:classappend="${active == 'watchlist'} ? 'active'">Watchlist</a>
+                    <a th:href="@{/top-ten}" th:classappend="${active == 'top-ten'} ? 'active'">Top Ten</a>
                     <a th:href="@{/lists}" th:classappend="${active == 'lists'} ? 'active'">Lists</a>
                     <a th:href="@{/insights}" th:classappend="${active == 'insights' or active == 'wrapped'} ? 'active'">About You</a>
                 </div>
@@ -166,6 +167,7 @@
     <th:block th:unless="${movies}">
         <a th:href="@{/seen}" th:classappend="${active == 'seen'} ? 'active'">Watched</a>
         <a th:href="@{/watchlist}" th:classappend="${active == 'watchlist'} ? 'active'">Watchlist</a>
+        <a th:href="@{/top-ten}" th:classappend="${active == 'top-ten'} ? 'active'">Top Ten</a>
         <a th:href="@{/lists}" th:classappend="${active == 'lists'} ? 'active'">Lists</a>
         <a th:href="@{/insights}" th:classappend="${active == 'insights'} ? 'active'">About You</a>
     </th:block>

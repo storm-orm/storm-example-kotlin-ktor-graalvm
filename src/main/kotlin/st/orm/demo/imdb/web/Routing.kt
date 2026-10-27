@@ -32,6 +32,7 @@ import st.orm.demo.imdb.service.DailyPuzzleService
 import st.orm.demo.imdb.service.RecentlyAddedService
 import st.orm.demo.imdb.service.RecommendationService
 import st.orm.demo.imdb.service.SearchService
+import st.orm.demo.imdb.service.TopTenService
 import st.orm.demo.imdb.service.InsightsService
 import st.orm.demo.imdb.service.FriendService
 import st.orm.demo.imdb.service.ClubService
@@ -68,6 +69,7 @@ fun Application.configureRouting() {
     val movieNightService: MovieNightService by dependencies
     val inviteService: InviteService by dependencies
     val searchService: SearchService by dependencies
+    val topTenService: TopTenService by dependencies
     val browseService: BrowseService by dependencies
     val recentlyAddedService: RecentlyAddedService by dependencies
     val recommendationService: RecommendationService by dependencies
@@ -100,6 +102,7 @@ fun Application.configureRouting() {
         homeRoutes(homeService)
         cinemaRoutes(cinemaService)
         watchlistRoutes(watchlistService)
+        topTenRoutes(topTenService, searchService)
         listsRoutes(listService)
         movieSeenRoutes(movieSeenService, catchUpService, friendService, clubService)
         statisticsRoutes(statisticsService)

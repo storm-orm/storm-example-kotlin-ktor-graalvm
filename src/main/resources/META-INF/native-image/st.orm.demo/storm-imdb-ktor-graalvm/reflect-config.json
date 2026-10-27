@@ -1458,6 +1458,12 @@
     "allDeclaredFields": true
   },
   {
+    "name": "st.orm.demo.imdb.service.TopTenView",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
     "name": "st.orm.demo.imdb.service.SharedDaily",
     "allDeclaredConstructors": true,
     "allPublicMethods": true,

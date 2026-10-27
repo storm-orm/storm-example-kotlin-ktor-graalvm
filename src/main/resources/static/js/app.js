@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupQuiz();
     setupSponsor();
     setupKeyboard();
+    setupTopTen();
     setupCinema();
     setupNightVotes();
     setupSwipeDecks();
@@ -1695,6 +1696,51 @@ function setupKeyboard() {
             await wait(2400);
         }
     })();
+}
+
+// The top ten is dragged into order by the handle at the end of each row: a row carried above or below another
+// takes its place, the ranks follow, and the order is sent as the row is dropped.
+function setupTopTen() {
+    const list = document.querySelector('[data-top-ten]');
+    if (!list) return;
+    const rows = () => [...list.querySelectorAll('[data-top-ten-item]')];
+    const renumber = () => rows().forEach((row, i) => { row.querySelector('.top-ten-rank').textContent = String(i + 1); });
+    let drag = null;
+    list.addEventListener('pointerdown', event => {
+        const handle = event.target.closest('[data-drag-handle]');
+        if (!handle) return;
+        const row = handle.closest('[data-top-ten-item]');
+        drag = { row, offset: event.clientY - row.getBoundingClientRect().top };
+        row.classList.add('dragging');
+        handle.setPointerCapture(event.pointerId);
+        event.preventDefault();
+    });
+    list.addEventListener('pointermove', event => {
+        if (!drag) return;
+        const { row } = drag;
+        // The row carried past the middle of a neighbour takes its place.
+        for (const other of rows()) {
+            if (other === row) continue;
+            const rect = other.getBoundingClientRect();
+            const middle = rect.top + rect.height / 2;
+            const rowRect = row.getBoundingClientRect();
+            if (rowRect.top > rect.top && event.clientY < middle) { other.before(row); break; }
+            if (rowRect.top < rect.top && event.clientY > middle) { other.after(row); break; }
+        }
+        row.style.transform = `translateY(${event.clientY - drag.offset - row.getBoundingClientRect().top}px)`;
+        renumber();
+    });
+    const drop = () => {
+        if (!drag) return;
+        const { row } = drag;
+        drag = null;
+        row.classList.remove('dragging');
+        row.style.transform = '';
+        renumber();
+        fetch(list.dataset.topTenAction, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(rows().map(it => it.dataset.movieId)) }).catch(() => {});
+    };
+    list.addEventListener('pointerup', drop);
+    list.addEventListener('pointercancel', drop);
 }
 
 function setupQuiz() {

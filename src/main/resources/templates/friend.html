@@ -21,6 +21,24 @@
     </div>
 </header>
 
+<!-- The friend's top ten, as far as they share what they watch. -->
+<section class="section" th:unless="${view.topTen.isEmpty()}">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title" th:text="|${view.friend.name}'s Top Ten|">Alice's Top Ten</h2>
+        </div>
+        <div class="movie-row">
+            <a class="movie-card" th:each="movie, i : ${view.topTen}" th:href="@{/movie/{id}(id=${movie.id})}">
+                <div th:replace="~{fragments/cards :: posterThumb(${movie.id}, ${movie.primaryTitle})}"></div>
+                <div class="movie-card-info">
+                    <div class="movie-card-title"><span class="top-ten-mark" th:text="${i.count}">1</span> <th:block th:text="${movie.primaryTitle}">Heat</th:block></div>
+                    <div class="movie-card-year" th:text="${movie.startYear}">1995</div>
+                </div>
+            </a>
+        </div>
+    </div>
+</section>
+
 <!-- The games the two play, and the ways to start one. -->
 <section class="section" id="friend-games">
     <div class="container">

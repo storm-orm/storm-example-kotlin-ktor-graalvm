@@ -112,6 +112,15 @@ CREATE TABLE watchlist (
     PRIMARY KEY (user_id, movie_id)
 );
 
+-- V52: a user's top ten, in order.
+CREATE TABLE top_ten (
+    user_id  VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
+    movie_id VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
+    position INTEGER NOT NULL,
+    added_at TIMESTAMP NOT NULL,
+    PRIMARY KEY (user_id, movie_id)
+);
+
 CREATE TABLE movie_seen (
     user_id  VARCHAR NOT NULL REFERENCES app_user (id) ON DELETE CASCADE,
     movie_id VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,

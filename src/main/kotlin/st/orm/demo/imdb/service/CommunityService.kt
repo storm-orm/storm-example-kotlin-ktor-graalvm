@@ -21,6 +21,7 @@ import st.orm.demo.imdb.repository.ACTING_CATEGORIES
 import st.orm.demo.imdb.repository.DIRECTOR
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.PrincipalRepository
+import st.orm.demo.imdb.repository.TopTenRepository
 import st.orm.demo.imdb.repository.UserRepository
 import st.orm.template.entityId
 import st.orm.template.ref
@@ -76,7 +77,9 @@ data class FriendView(
     val moviesInCommon: List<Movie>,
     val feed: List<SharedCheckIn>,
     val games: List<GameEntry>,
-    val typed: List<String>
+    val typed: List<String>,
+    /** The friend's top ten, as far as they share what they watch. */
+    val topTen: List<Movie> = emptyList()
 ) {
     val keyboard: List<List<String>> get() = CommunityService.KEYBOARD
     /** The matches the friend can be challenged to. */
@@ -100,7 +103,8 @@ class CommunityService(
     private val movieNightVoteRepository: MovieNightVoteRepository,
     private val gamePlayerRepository: GamePlayerRepository,
     private val playService: PlayService,
-    private val principalRepository: PrincipalRepository
+    private val principalRepository: PrincipalRepository,
+    private val topTenRepository: TopTenRepository
 ) {
     suspend fun overview(user: User, now: Instant = Instant.now()): CommunityView {
         // The friends, the clubs and the games, each its own transaction, read side by side.
@@ -150,7 +154,8 @@ class CommunityService(
                 moviesInCommon = if (friend.shareSeen) movieSeenRepository.findSeenInCommon(user, friend, IN_COMMON_SHOWN).map { it.movie } else emptyList(),
                 feed = friendService.feed(listOf(friend), FEED_LIMIT),
                 games = games.filter { entry -> gamePlayerRepository.findPlayers(entry.match).any { it.user.id == friend.id } },
-                typed = typedOf(user)
+                typed = typedOf(user),
+                topTen = if (friend.shareSeen) topTenRepository.findAll(friend).map { it.movie } else emptyList()
             )
         }
     }

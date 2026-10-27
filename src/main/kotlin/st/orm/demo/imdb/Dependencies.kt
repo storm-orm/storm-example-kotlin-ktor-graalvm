@@ -7,6 +7,7 @@ import io.micrometer.observation.ObservationRegistry
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
 import st.orm.demo.imdb.service.AccountService
 import st.orm.demo.imdb.service.AttentionService
+import st.orm.demo.imdb.service.TopTenService
 import st.orm.demo.imdb.service.BadgeService
 import st.orm.demo.imdb.service.BrowseService
 import st.orm.demo.imdb.service.LevelService
@@ -112,7 +113,7 @@ fun Application.configureDependencies() {
         provide { AccountService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { HomeService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { TasteOverlap(resolve(), resolve()) }
-        provide { CommunityService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { CommunityService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { FriendService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { ClubService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { InviteService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
@@ -125,6 +126,7 @@ fun Application.configureDependencies() {
         }
         provide { ListService(resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { WatchlistService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { TopTenService(resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { MovieSeenService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { CatchUpService(resolve(), resolve()) }
         provide { StatisticsService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
