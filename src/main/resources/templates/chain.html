@@ -1,21 +1,22 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head('Movie Chain')}"></head>
+<head th:replace="~{fragments/layout :: head(${chain.match.mode.name() == 'SOLO'} ? 'Catch Me If You Can' : 'Movie Chain')}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
 
 <header class="page-header">
     <div class="container">
         <a class="back-link" th:href="@{/play}">← Play</a>
-        <h1 class="page-title">Movie Chain</h1>
+        <!-- On one's own the chain is Catch Me If You Can: the house chases every movie with one of its own. -->
+        <h1 class="page-title" th:text="${chain.match.mode.name() == 'SOLO'} ? 'Catch Me If You Can' : 'Movie Chain'">Movie Chain</h1>
         <p class="page-subtitle" th:switch="${chain.match.mode.name()}">
-            <th:block th:case="'SOLO'">Against the house: it answers every movie with one of its own.</th:block>
+            <th:block th:case="'SOLO'">Movie Chain against the house: it answers every movie of yours with one of its own. Catch it out, stuck for a link, and you win.</th:block>
             <th:block th:case="'FRIEND'">Against a friend, a day per turn.</th:block>
             <th:block th:case="*" th:text="|With ${chain.match.club.name}, a day per turn.|">With the club.</th:block>
             Each movie shares an actor with the one before, and scores the years between the two, at least one: leap
             across the eras. When the actor of the link before is in it too, it is an escape: allowed, but no points.
             A link through Kevin Bacon scores six more, a nod to Six Degrees of Kevin Bacon, the game in which every
-            actor is six movies or fewer from him.
+            actor is six movies or fewer from him; one through Meryl Streep three more, one for each of her Oscars.
         </p>
         <p th:replace="~{fragments/games :: poolNote(${chain.match}, ${chain.players})}"></p>
     </div>
@@ -127,6 +128,7 @@
                 </span>
                 <span class="chain-bacon" th:if="${link.throughBacon}"
                       title="Six Degrees of Kevin Bacon: every actor is said to be six movies or fewer from him">Bacon bonus +6</span>
+                <span class="chain-bacon" th:if="${link.throughStreep}" title="Meryl Streep: three Oscars, twenty-one nominations, the greatest of all time">Streep bonus +3</span>
             </li>
         </ol>
     </div>

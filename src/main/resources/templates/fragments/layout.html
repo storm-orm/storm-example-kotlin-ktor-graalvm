@@ -28,8 +28,8 @@
 <body>
 
 <nav class="navbar" th:fragment="navbar(active)">
-    <!-- The honours of the top three levels, worn on avatars and set on the ladder: a star in the pavement, a Golden
-         Globe, an Oscar. Drawn once here, in gold, so every page has them. -->
+    <!-- The honours of the top four levels, worn on avatars and set on the ladder: a star in the pavement, a Golden
+         Globe, an Oscar, the goat. Drawn once here, in gold, so every page has them. -->
     <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true">
         <defs>
             <linearGradient id="honour-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6dc8c"/><stop offset="0.5" stop-color="#c9962f"/><stop offset="1" stop-color="#e6bd5c"/></linearGradient>
@@ -50,17 +50,33 @@
                 <rect x="6" y="40.5" width="28" height="5" rx="1" fill="url(#honour-shade)"/>
             </symbol>
             <symbol id="honour-oscar" viewBox="0 0 40 48">
-                <circle cx="20" cy="5.5" r="3.6" fill="url(#honour-gold)"/>
-                <path d="M18.6 9h2.8l.3 2.4h-3.4z" fill="url(#honour-shade)"/>
-                <path d="M13 13.5q7-4.2 14 0l-1.6 18.5h-10.8z" fill="url(#honour-gold)"/>
-                <rect x="19.1" y="12.5" width="1.8" height="19.5" fill="url(#honour-shade)"/>
-                <rect x="16" y="15" width="8" height="1.6" rx="0.6" fill="url(#honour-shade)"/>
-                <rect x="12.2" y="31.8" width="15.6" height="2.4" fill="url(#honour-shade)"/>
-                <ellipse cx="20" cy="41.5" rx="11" ry="3.3" fill="url(#honour-shade)"/>
-                <rect x="9" y="36.5" width="22" height="5" fill="url(#honour-shade)"/>
-                <ellipse cx="20" cy="36.5" rx="11" ry="3.3" fill="url(#honour-gold)"/>
-                <g fill="#6e4b12"><circle cx="14" cy="36.3" r="1.1"/><circle cx="26" cy="36.3" r="1.1"/><circle cx="20" cy="34.3" r="1.1"/><circle cx="20" cy="38.5" r="1.1"/></g>
-                <rect x="6" y="43.5" width="28" height="4" rx="1" fill="url(#honour-gold)"/>
+                <!-- The statuette: a knight on a reel of film, arms folded over a sword, as the real one. -->
+                <rect x="6" y="44" width="28" height="3.5" rx="0.8" fill="url(#honour-shade)"/>
+                <ellipse cx="20" cy="41.5" rx="11" ry="3" fill="url(#honour-shade)"/>
+                <rect x="9" y="37.5" width="22" height="4" fill="url(#honour-shade)"/>
+                <ellipse cx="20" cy="37.5" rx="11" ry="3" fill="url(#honour-gold)"/>
+                <g fill="#6e4b12"><circle cx="13.5" cy="37.3" r="1"/><circle cx="26.5" cy="37.3" r="1"/><circle cx="20" cy="35.4" r="1"/><circle cx="20" cy="39.4" r="1"/><circle cx="16.5" cy="38.8" r="0.8"/><circle cx="23.5" cy="38.8" r="0.8"/></g>
+                <path d="M15.8 34.5 L16.6 23 L23.4 23 L24.2 34.5 Z" fill="url(#honour-gold)"/>
+                <path d="M20 24 V34.5" stroke="#8a5f18" stroke-width="0.9"/>
+                <path d="M13.2 11.5 C15.5 9.2 24.5 9.2 26.8 11.5 L25.6 23.5 C23 24.6 17 24.6 14.4 23.5 Z" fill="url(#honour-gold)"/>
+                <path d="M13.6 12.5 L19 18.2 M26.4 12.5 L21 18.2" stroke="#8a5f18" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+                <ellipse cx="20" cy="18.8" rx="2.4" ry="1.6" fill="url(#honour-shade)"/>
+                <rect x="16.5" y="17.2" width="7" height="1.3" rx="0.5" fill="url(#honour-shade)"/>
+                <path d="M19.3 19.5 H20.7 L20.5 34 H19.5 Z" fill="url(#honour-shade)"/>
+                <rect x="18.7" y="8" width="2.6" height="2.2" fill="url(#honour-shade)"/>
+                <ellipse cx="20" cy="5" rx="3" ry="3.6" fill="url(#honour-gold)"/>
+            </symbol>
+            <symbol id="honour-goat" viewBox="0 0 40 48">
+                <!-- The goat, head on: the horns curling back, the ears out, the beard down, in the same gold. -->
+                <path d="M11 7 C6 9 5 17 9 20 C10 15 12 11 15 10 Z" fill="url(#honour-shade)"/>
+                <path d="M29 7 C34 9 35 17 31 20 C30 15 28 11 25 10 Z" fill="url(#honour-shade)"/>
+                <path d="M13 12 C10 18 6 24 4 25 C7 27 11 26 14 23 Z" fill="url(#honour-gold)"/>
+                <path d="M27 12 C30 18 34 24 36 25 C33 27 29 26 26 23 Z" fill="url(#honour-gold)"/>
+                <path d="M14 10 C17 8 23 8 26 10 C28 15 28 24 27 30 C25 36 15 36 13 30 C12 24 12 15 14 10 Z" fill="url(#honour-gold)"/>
+                <path d="M16 33 C17 38 19 43 20 46 C21 43 23 38 24 33 C22 34 18 34 16 33 Z" fill="url(#honour-shade)"/>
+                <g fill="#5a3d10"><ellipse cx="16.3" cy="19" rx="1.4" ry="1.8"/><ellipse cx="23.7" cy="19" rx="1.4" ry="1.8"/></g>
+                <path d="M17.5 29 C19 30.5 21 30.5 22.5 29" stroke="#6e4b12" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+                <g fill="#6e4b12"><circle cx="18.2" cy="27" r="0.9"/><circle cx="21.8" cy="27" r="0.9"/></g>
             </symbol>
         </defs>
     </svg>

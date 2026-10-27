@@ -7,7 +7,6 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.thymeleaf.ThymeleafContent
 import st.orm.demo.imdb.service.DailyPuzzleService
-import st.orm.demo.imdb.service.GridGuess
 
 /**
  * The daily puzzles besides the quiz: the pages, and the answers, which
@@ -35,5 +34,41 @@ fun Route.dailyPuzzleRoutes(dailyPuzzleService: DailyPuzzleService) {
         val movies = call.receiveParameters().getAll("movie").orEmpty().toSet()
         val guess = dailyPuzzleService.guessConnections(call.currentUser(), movies)
         call.respondRedirect("/play/connections?guess=" + guess.name.lowercase().replace('_', '-'))
+    }
+
+    get("/play/face-off") {
+        call.respondPage(ThymeleafContent("face-off", mapOf("duel" to dailyPuzzleService.duelsOf(call.currentUser()))))
+    }
+
+    post("/play/face-off") {
+        call.receiveParameters()["movie"]?.let { dailyPuzzleService.answerDuel(call.currentUser(), it) }
+        call.respondRedirect("/play/face-off")
+    }
+
+    get("/play/usual-suspects") {
+        call.respondPage(ThymeleafContent("usual-suspects", mapOf("lineUp" to dailyPuzzleService.lineUpsOf(call.currentUser()))))
+    }
+
+    post("/play/usual-suspects") {
+        call.receiveParameters()["person"]?.let { dailyPuzzleService.answerLineUp(call.currentUser(), it) }
+        call.respondRedirect("/play/usual-suspects")
+    }
+
+    get("/play/memento") {
+        call.respondPage(ThymeleafContent("memento", mapOf("memento" to dailyPuzzleService.seriesOf(call.currentUser()))))
+    }
+
+    post("/play/memento") {
+        call.receiveParameters()["movie"]?.let { dailyPuzzleService.placeInSeries(call.currentUser(), it) }
+        call.respondRedirect("/play/memento")
+    }
+
+    get("/play/amadeus") {
+        call.respondPage(ThymeleafContent("amadeus", mapOf("amadeus" to dailyPuzzleService.scoresOf(call.currentUser()))))
+    }
+
+    post("/play/amadeus") {
+        call.receiveParameters()["person"]?.let { dailyPuzzleService.answerScore(call.currentUser(), it) }
+        call.respondRedirect("/play/amadeus")
     }
 }

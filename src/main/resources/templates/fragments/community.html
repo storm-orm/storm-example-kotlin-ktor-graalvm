@@ -25,7 +25,7 @@
 </th:block>
 
 <!-- An account's avatar, or its initial; [size] is an extra class, such as invite-avatar, or empty. -->
-<!-- A Star, a Legend or the GOAT wears their honour on their avatar, wherever it shows: that is the prestige. -->
+<!-- From Star on, one wears their honour on their avatar, wherever it shows: that is the prestige. -->
 <span th:fragment="avatar(user, size)" class="nav-account-icon" th:classappend="${size} + (${user.level != null and user.level.honour != null} ? ' honoured' : '')">
     <img th:if="${user.avatarUrl != null}" th:src="${user.avatarUrl}" alt="">
     <span th:unless="${user.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(user.name, 0, 1))}">A</span>

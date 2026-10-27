@@ -34,6 +34,7 @@ enum class Badge(val category: BadgeCategory, val title: String, val blurb: Stri
     LAUGH_TRACK(BadgeCategory.WATCHING, "Laugh Track", "Fifteen comedies.", 15, "C", "smile", "yellow"),
     FAR_OUT(BadgeCategory.WATCHING, "Far Out", "Fifteen science fiction movies.", 15, "SF", "rocket", "violet"),
     WORLD_CINEMA(BadgeCategory.WATCHING, "World Cinema", "Movies in five languages.", 5, "W", "globe", "green"),
+    YIPPEE_KI_YAY(BadgeCategory.WATCHING, "Yippee-Ki-Yay", "Five Bruce Willis movies. He stepped away in 2022; the movies stay.", 5, "BW", "tower", "orange"),
     CHECKED_IN(BadgeCategory.CHECK_INS, "Checked In", "Your first check-in: a movie watched on a day.", 1, "✓", "check", "cyan"),
     DOUBLE_BILL(BadgeCategory.CHECK_INS, "Double Bill", "Two movies checked in on one day.", 2, "2x", "tickets", "pink"),
     REGULAR(BadgeCategory.CHECK_INS, "Regular", "A check-in in four weeks running.", 4, "4w", "calendar", "cyan"),
@@ -44,6 +45,7 @@ enum class Badge(val category: BadgeCategory, val title: String, val blurb: Stri
     WINNER(BadgeCategory.GAMES, "Winner", "Higher or Lower or Movie Chain won against a friend or a club.", 1, "W", "trophy", "cyan"),
     CHAMPION(BadgeCategory.GAMES, "Champion", "Five games won against friends or clubs.", 5, "5", "crown", "yellow"),
     BACON_NUMBER(BadgeCategory.GAMES, "Bacon Number", "A link through Kevin Bacon in Movie Chain or Connect.", 1, "KB", "bacon", "orange"),
+    STREEP_NUMBER(BadgeCategory.GAMES, "Streep Number", "A link through Meryl Streep in Movie Chain: the GOAT's own rite.", 1, "MS", "statuette", "yellow"),
     CHAIN_GANG(BadgeCategory.GAMES, "Chain Gang", "Five links of your own in one Movie Chain.", 5, "5", "chain", "green"),
     PERFECT_GRID(BadgeCategory.GAMES, "Perfect Grid", "Movie Connections solved without a mistake.", 1, "4/4", "grid", "cyan"),
     ODD_EYE(BadgeCategory.GAMES, "Odd Eye", "Odd One Out, ten out of ten.", 1, "10", "eye", "pink"),
@@ -51,7 +53,8 @@ enum class Badge(val category: BadgeCategory, val title: String, val blurb: Stri
     DAILY_WEEK(BadgeCategory.GAMES, "Daily Week", "A daily played to the end seven days running.", 7, "7d", "seven", "yellow"),
     FIRST_FRIEND(BadgeCategory.SOCIAL, "First Friend", "Your first friend on the site.", 1, "+1", "friends", "pink"),
     CLUB_MEMBER(BadgeCategory.SOCIAL, "Club Member", "In a club.", 1, "C", "club", "violet"),
-    NIGHT_HOST(BadgeCategory.SOCIAL, "Night Host", "Hosted a movie night.", 1, "N", "house", "orange")
+    NIGHT_HOST(BadgeCategory.SOCIAL, "Night Host", "Hosted a movie night.", 1, "N", "house", "orange"),
+    STAR_SPONSOR(BadgeCategory.SOCIAL, "Star Sponsor", "Paid for your star, as one does on the Walk of Fame. Here it was on the house.", 1, "$", "dollar", "yellow")
 }
 
 data class UserBadgePk(

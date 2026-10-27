@@ -6,6 +6,7 @@ import st.orm.demo.imdb.model.GameMatch
 import st.orm.demo.imdb.model.GameMode
 import st.orm.demo.imdb.model.GamePlayer
 import st.orm.demo.imdb.model.KEVIN_BACON
+import st.orm.demo.imdb.model.MERYL_STREEP
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.Person
 import st.orm.demo.imdb.model.User
@@ -275,13 +276,14 @@ class ChainService(
     /**
      * An actor of both movies, the one the link goes through: the actor the
      * last link went through ([previousVia]) when the next movie has them too,
-     * an escape; else Kevin Bacon when both have him, for his bonus; else
-     * the best billed of the next movie that both share.
+     * an escape; else Kevin Bacon when both have him, for his bonus, or
+     * Meryl Streep for hers; else the best billed of the next movie that
+     * both share.
      */
     private fun sharedActor(previous: Movie, next: Movie, previousVia: Person?): Person? {
         val before = actorsOf(previous).toSet()
         val shared = principalRepository.findCast(next).filter { it.category in ACTING_CATEGORIES && it.person.id in before }.map { it.person }
-        return shared.firstOrNull { it.id == previousVia?.id } ?: shared.firstOrNull { it.id == KEVIN_BACON } ?: shared.firstOrNull()
+        return shared.firstOrNull { it.id == previousVia?.id } ?: shared.firstOrNull { it.id == KEVIN_BACON } ?: shared.firstOrNull { it.id == MERYL_STREEP } ?: shared.firstOrNull()
     }
 
     /**
@@ -289,12 +291,16 @@ class ChainService(
      * same actor as [previous]'s link, that actor in the next movie too, an
      * escape that keeps the chain going; else the years between the two
      * movies, at least one, so a leap across the eras scores most, and
-     * [BACON_BONUS] more through Kevin Bacon.
+     * [BACON_BONUS] more through Kevin Bacon, [STREEP_BONUS] through Meryl Streep.
      */
     private fun pointsFor(previous: ChainLink, next: Movie, via: Person): Int {
         if (previous.via?.id == via.id) return 0
         val years = previous.movie.startYear?.let { from -> next.startYear?.let { abs(it - from) } } ?: 0
-        return years.coerceAtLeast(1) + if (via.id == KEVIN_BACON) BACON_BONUS else 0
+        return years.coerceAtLeast(1) + when (via.id) {
+            KEVIN_BACON -> BACON_BONUS
+            MERYL_STREEP -> STREEP_BONUS
+            else -> 0
+        }
     }
 
     companion object {
@@ -311,6 +317,8 @@ class ChainService(
         const val HINTS_PER_MOVIE = 3
         /** The points more a link through Kevin Bacon scores: six, for the six degrees. */
         const val BACON_BONUS = 6
+        /** The points more a link through Meryl Streep scores: three, for her three Oscars. */
+        const val STREEP_BONUS = 3
         /** The ways the chain could have gone on, shown once it is over. */
         private const val ANSWERS = 5
         private const val ANSWER_VOTES = 1_000

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(|Memento #${memento.number}|)}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <a class="back-link" th:href="@{/play}">← Play</a>
+        <h1 class="page-title">Memento <span class="quiz-number" th:text="|#${memento.number}|">#1</span></h1>
+        <p class="page-subtitle">A series, shuffled. Tap its movies in the order they came out, the first first. A series in the right order scores.</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container quiz-layout">
+        <div class="stat-card odd-stage">
+            <div class="odd-progress">
+                <span class="quiz-pip" th:each="i : ${#numbers.sequence(1, memento.count)}"
+                      th:classappend="${i <= memento.index} ? 'answered' : (${i == memento.index + 1} ? 'current' : '')"></span>
+                <span class="odd-score" th:text="|${memento.score} right|">3 right</span>
+            </div>
+
+            <!-- The series just placed: right or not, and the order it came out in. -->
+            <div class="odd-reveal" th:if="${memento.last != null and !memento.finished}" th:classappend="${memento.last.right} ? 'right' : 'wrong'">
+                <p class="quiz-verdict" th:text="${memento.last.right} ? 'In order!' : 'Not quite'">In order!</p>
+                <p class="odd-reveal-text">
+                    <th:block th:each="movie, i : ${memento.last.order}">
+                        <strong th:text="${movie.primaryTitle}">Rocky</strong> <th:block th:text="|(${movie.startYear})|">(1976)</th:block><th:block th:unless="${i.last}">,</th:block>
+                    </th:block>
+                </p>
+            </div>
+
+            <th:block th:if="${memento.current != null}">
+                <!-- The movies placed so far, first to last, their years still hidden. -->
+                <div class="memento-placed" th:unless="${memento.current.picked.isEmpty()}">
+                    <div class="memento-slot" th:each="movie, i : ${memento.current.picked}">
+                        <span class="memento-rank" th:text="${i.count}">1</span>
+                        <div th:replace="~{fragments/cards :: posterThumb(${movie.id}, ${movie.primaryTitle})}"></div>
+                    </div>
+                    <span class="memento-next" th:text="${memento.current.remaining.size == 1} ? 'And the last one' : 'Which came next?'">Which came next?</span>
+                </div>
+                <p class="memento-ask" th:if="${memento.current.picked.isEmpty()}" th:text="|${memento.current.remaining.size} movies of one series: which came out first?|">Four movies of one series: which came out first?</p>
+
+                <!-- The movies still to place: a tap places the next. -->
+                <div class="odd-grid memento-grid">
+                    <form th:each="movie : ${memento.current.remaining}" th:action="@{/play/memento}" method="post" class="odd-pick">
+                        <input type="hidden" name="movie" th:value="${movie.id}">
+                        <button type="submit" class="odd-button" th:title="|Did ${movie.primaryTitle} come next?|">
+                            <div th:replace="~{fragments/cards :: posterThumb(${movie.id}, ${movie.primaryTitle})}"></div>
+                            <span class="odd-title" th:text="${movie.primaryTitle}">Rocky II</span>
+                        </button>
+                    </form>
+                </div>
+            </th:block>
+
+            <!-- Done: the score, and every series in the order it came out. -->
+            <th:block th:if="${memento.finished}">
+                <div class="odd-final">
+                    <span class="odd-final-score" th:text="|${memento.score}/${memento.count}|">4/5</span>
+                    <div>
+                        <p class="quiz-verdict" th:text="${memento.score == memento.count} ? 'Every series in order!' : 'Done for today'">Done for today</p>
+                        <button type="button" class="button button-primary" th:data-quiz-share="|Storm Movies Memento #${memento.number} · ${memento.score}/${memento.count}|">Share your score</button>
+                    </div>
+                </div>
+                <div class="odd-results">
+                    <div class="odd-result" th:each="result : ${memento.results}" th:classappend="${result.right} ? 'right' : 'wrong'">
+                        <div class="odd-result-posters">
+                            <a th:each="movie : ${result.order}" th:href="@{/movie/{id}(id=${movie.id})}" class="odd-result-poster is-odd" th:title="|${movie.primaryTitle} (${movie.startYear})|">
+                                <div th:replace="~{fragments/cards :: posterThumb(${movie.id}, ${movie.primaryTitle})}"></div>
+                            </a>
+                        </div>
+                        <p class="odd-result-text">
+                            <th:block th:each="movie, i : ${result.order}">
+                                <strong th:text="${movie.primaryTitle}">Rocky</strong> <th:block th:text="|(${movie.startYear})|">(1976)</th:block><th:block th:unless="${i.last}">,</th:block>
+                            </th:block>
+                        </p>
+                    </div>
+                </div>
+            </th:block>
+        </div>
+        <aside th:replace="~{fragments/games :: boards(${memento.boards})}"></aside>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head(|Daily Quiz #${quiz.number}|)}"></head>
+<head th:replace="~{fragments/layout :: head(|Groundhog Day #${quiz.number}|)}"></head>
 <body class="quiz-page">
 <nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
 
@@ -8,10 +8,10 @@
     <div class="container">
         <a class="back-link" th:href="@{/play}">← Play</a>
         <div class="quiz-title-row">
-            <h1 class="page-title">Daily Quiz <span class="quiz-number" th:text="|#${quiz.number}|">#1</span></h1>
+            <h1 class="page-title">Groundhog Day <span class="quiz-number" th:text="|#${quiz.number}|">#1</span></h1>
             <span class="quiz-streak" th:if="${quiz.streak > 0}" th:text="${quiz.streak == 1} ? '1-day streak' : |${quiz.streak}-day streak|">3-day streak</span>
         </div>
-        <p class="page-subtitle">Guess today's movie. A new clue with every miss: six clues, six guesses.</p>
+        <p class="page-subtitle">One movie, all day, every day. Guess today's: a new clue with every miss, six clues, six guesses.</p>
     </div>
 </header>
 

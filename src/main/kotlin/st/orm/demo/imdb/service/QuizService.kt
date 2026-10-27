@@ -67,7 +67,7 @@ data class QuizView(
 
     /** The line to share: the quiz's number, the score and the squares. */
     val shareText: String
-        get() = "Storm Movies quiz #$number · ${if (solved) "${guesses.size}/${QuizService.MAX_GUESSES}" else "X/${QuizService.MAX_GUESSES}"}\n$squares"
+        get() = "Storm Movies Groundhog Day #$number · ${if (solved) "${guesses.size}/${QuizService.MAX_GUESSES}" else "X/${QuizService.MAX_GUESSES}"}\n$squares"
 }
 
 /**

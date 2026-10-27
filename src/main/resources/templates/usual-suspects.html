@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(|The Usual Suspects #${lineUp.number}|)}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <a class="back-link" th:href="@{/play}">← Play</a>
+        <h1 class="page-title">The Usual Suspects <span class="quiz-number" th:text="|#${lineUp.number}|">#1</span></h1>
+        <p class="page-subtitle">A movie, a part, five faces in a line-up. Point at whoever played it. Ten a day.</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container quiz-layout">
+        <div class="stat-card odd-stage">
+            <div class="odd-progress">
+                <span class="quiz-pip" th:each="i : ${#numbers.sequence(1, lineUp.count)}"
+                      th:classappend="${i <= lineUp.index} ? 'answered' : (${i == lineUp.index + 1} ? 'current' : '')"></span>
+                <span class="odd-score" th:text="|${lineUp.score} right|">3 right</span>
+            </div>
+
+            <!-- The line-up just answered: right or not, and who it was. -->
+            <div class="odd-reveal" th:if="${lineUp.last != null and !lineUp.finished}" th:classappend="${lineUp.last.right} ? 'right' : 'wrong'">
+                <p class="quiz-verdict" th:text="${lineUp.last.right} ? 'Right!' : 'Not quite'">Right!</p>
+                <p class="odd-reveal-text">
+                    <th:block th:text="|${lineUp.last.character} in ${lineUp.last.movie.primaryTitle}:|">Neo in The Matrix:</th:block>
+                    <strong th:text="${lineUp.last.culprit.primaryName}">Keanu Reeves</strong>.
+                </p>
+            </div>
+
+            <!-- The case: the movie and the part; then the line-up, a tap points at one. -->
+            <th:block th:if="${lineUp.current != null}">
+                <div class="lineup-case">
+                    <div class="poster lineup-poster">
+                        <img th:src="@{/api/poster/{id}(id=${lineUp.current.movie.id})}" alt="" loading="lazy" onerror="this.classList.add('failed')">
+                    </div>
+                    <div>
+                        <p class="lineup-eyebrow">Who played</p>
+                        <h2 class="lineup-part" th:text="${lineUp.current.character}">Neo</h2>
+                        <p class="lineup-movie" th:text="|in ${lineUp.current.movie.primaryTitle} (${lineUp.current.movie.startYear})?|">in The Matrix (1999)?</p>
+                    </div>
+                </div>
+                <div class="lineup-row">
+                    <form th:each="person, i : ${lineUp.current.suspects}" th:action="@{/play/usual-suspects}" method="post" class="odd-pick">
+                        <input type="hidden" name="person" th:value="${person.id}">
+                        <button type="submit" class="odd-button lineup-button" th:title="|Was it ${person.primaryName}?|">
+                            <span class="lineup-height" th:text="${i.count}" aria-hidden="true">1</span>
+                            <span class="avatar avatar-large lineup-face">
+                                <span th:text="${#strings.substring(person.primaryName, 0, 1)}">K</span>
+                                <img th:src="@{/api/photo/{id}(id=${person.id})}" alt="" loading="lazy" onerror="this.classList.add('failed')">
+                            </span>
+                            <span class="odd-title" th:text="${person.primaryName}">Keanu Reeves</span>
+                        </button>
+                    </form>
+                </div>
+            </th:block>
+
+            <!-- Done: the score, and every case with its culprit. -->
+            <th:block th:if="${lineUp.finished}">
+                <div class="odd-final">
+                    <span class="odd-final-score" th:text="|${lineUp.score}/${lineUp.count}|">7/10</span>
+                    <div>
+                        <p class="quiz-verdict" th:text="${lineUp.score == lineUp.count} ? 'Every one right!' : 'Done for today'">Done for today</p>
+                        <button type="button" class="button button-primary" th:data-quiz-share="|Storm Movies The Usual Suspects #${lineUp.number} · ${lineUp.score}/${lineUp.count}|">Share your score</button>
+                    </div>
+                </div>
+                <div class="odd-results">
+                    <div class="odd-result" th:each="result : ${lineUp.results}" th:classappend="${result.right} ? 'right' : 'wrong'">
+                        <div class="odd-result-posters">
+                            <a th:href="@{/movie/{id}(id=${result.movie.id})}" class="odd-result-poster is-odd" th:title="${result.movie.primaryTitle}">
+                                <div th:replace="~{fragments/cards :: posterThumb(${result.movie.id}, ${result.movie.primaryTitle})}"></div>
+                            </a>
+                        </div>
+                        <p class="odd-result-text">
+                            <th:block th:text="|${result.character} in ${result.movie.primaryTitle}:|">Neo in The Matrix:</th:block>
+                            <a th:href="@{/person/{id}(id=${result.culprit.id})}"><strong th:text="${result.culprit.primaryName}">Keanu Reeves</strong></a>
+                            <th:block th:if="${!result.right and result.picked != null}" th:text="|, not ${result.picked.primaryName}|">, not Brad Pitt</th:block>
+                        </p>
+                    </div>
+                </div>
+            </th:block>
+        </div>
+        <aside th:replace="~{fragments/games :: boards(${lineUp.boards})}"></aside>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(|Face/Off #${duel.number}|)}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <a class="back-link" th:href="@{/play}">← Play</a>
+        <h1 class="page-title">Face/Off <span class="quiz-number" th:text="|#${duel.number}|">#1</span></h1>
+        <p class="page-subtitle">Two movies, face to face. Tap the one IMDb rates higher. Ten a day.</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container quiz-layout">
+        <div class="stat-card odd-stage">
+            <div class="odd-progress">
+                <span class="quiz-pip" th:each="i : ${#numbers.sequence(1, duel.count)}"
+                      th:classappend="${i <= duel.index} ? 'answered' : (${i == duel.index + 1} ? 'current' : '')"></span>
+                <span class="odd-score" th:text="|${duel.score} right|">3 right</span>
+            </div>
+
+            <!-- The pair just answered: right or not, and the two ratings. -->
+            <div class="odd-reveal" th:if="${duel.last != null and !duel.finished}" th:classappend="${duel.last.right} ? 'right' : 'wrong'">
+                <p class="quiz-verdict" th:text="${duel.last.right} ? 'Right!' : 'Not quite'">Right!</p>
+                <p class="odd-reveal-text">
+                    <strong th:text="${duel.last.higher.primaryTitle}">Heat</strong>
+                    <th:block th:text="|is rated ${#numbers.formatDecimal(duel.last.ratingOf(duel.last.higher), 1, 1)}|">is rated 8.3</th:block>;
+                    <th:block th:each="movie : ${duel.last.movies}" th:if="${movie.id != duel.last.higher.id}" th:text="|${movie.primaryTitle} ${#numbers.formatDecimal(duel.last.ratingOf(movie), 1, 1)}|">Collateral 7.5</th:block>.
+                </p>
+            </div>
+
+            <!-- The two posters, face to face: a tap picks the higher rated. -->
+            <div class="duel-grid" th:unless="${duel.finished}">
+                <th:block th:each="movie, i : ${duel.current}">
+                    <span class="duel-versus" th:if="${i.index == 1}" aria-hidden="true">vs</span>
+                    <form th:action="@{/play/face-off}" method="post" class="odd-pick">
+                        <input type="hidden" name="movie" th:value="${movie.id}">
+                        <button type="submit" class="odd-button duel-button" th:title="|Is ${movie.primaryTitle} rated higher?|">
+                            <div th:replace="~{fragments/cards :: posterThumb(${movie.id}, ${movie.primaryTitle})}"></div>
+                            <span class="odd-title" th:text="${movie.primaryTitle}">The Matrix</span>
+                            <span class="odd-year" th:text="${movie.startYear}">1999</span>
+                        </button>
+                    </form>
+                </th:block>
+            </div>
+
+            <!-- Done: the score, and every pair with its ratings. -->
+            <th:block th:if="${duel.finished}">
+                <div class="odd-final">
+                    <span class="odd-final-score" th:text="|${duel.score}/${duel.count}|">7/10</span>
+                    <div>
+                        <p class="quiz-verdict" th:text="${duel.score == duel.count} ? 'Every one right!' : 'Done for today'">Done for today</p>
+                        <button type="button" class="button button-primary" th:data-quiz-share="|Storm Movies Face/Off #${duel.number} · ${duel.score}/${duel.count}|">Share your score</button>
+                    </div>
+                </div>
+                <div class="odd-results">
+                    <div class="odd-result" th:each="result : ${duel.results}" th:classappend="${result.right} ? 'right' : 'wrong'">
+                        <div class="odd-result-posters">
+                            <a th:each="movie : ${result.movies}" th:href="@{/movie/{id}(id=${movie.id})}" class="odd-result-poster"
+                               th:classappend="${movie.id == result.higher.id} ? 'is-odd'" th:title="${movie.primaryTitle}">
+                                <div th:replace="~{fragments/cards :: posterThumb(${movie.id}, ${movie.primaryTitle})}"></div>
+                            </a>
+                        </div>
+                        <p class="odd-result-text">
+                            <th:block th:each="movie, i : ${result.movies}">
+                                <strong th:if="${movie.id == result.higher.id}" th:text="${movie.primaryTitle}">Heat</strong>
+                                <th:block th:unless="${movie.id == result.higher.id}" th:text="${movie.primaryTitle}">Collateral</th:block>
+                                <th:block th:text="${#numbers.formatDecimal(result.ratingOf(movie), 1, 1)}">8.3</th:block>
+                                <th:block th:if="${i.first}">·</th:block>
+                            </th:block>
+                        </p>
+                    </div>
+                </div>
+            </th:block>
+        </div>
+        <aside th:replace="~{fragments/games :: boards(${duel.boards})}"></aside>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

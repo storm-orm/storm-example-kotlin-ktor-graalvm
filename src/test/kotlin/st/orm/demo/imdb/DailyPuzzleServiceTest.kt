@@ -11,11 +11,16 @@ import st.orm.demo.imdb.model.DailyPuzzle
 import st.orm.demo.imdb.model.DailyPuzzleData
 import st.orm.demo.imdb.model.DailyPuzzlePk
 import st.orm.demo.imdb.model.Movie
+import st.orm.demo.imdb.model.Person
+import st.orm.demo.imdb.model.Principal
+import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.repository.ClubMemberRepository
 import st.orm.demo.imdb.repository.DailyPlayRepository
 import st.orm.demo.imdb.repository.DailyPuzzleRepository
 import st.orm.demo.imdb.repository.FriendshipRepository
 import st.orm.demo.imdb.repository.MovieRepository
+import st.orm.demo.imdb.repository.MovieSeenRepository
+import st.orm.demo.imdb.repository.PersonRepository
 import st.orm.demo.imdb.repository.PrincipalRepository
 import st.orm.demo.imdb.repository.RatingRepository
 import st.orm.demo.imdb.repository.UserRepository
@@ -24,9 +29,14 @@ import st.orm.demo.imdb.service.DailyPuzzleService
 import st.orm.demo.imdb.service.GridGuess
 import st.orm.demo.imdb.service.OddPuzzle
 import st.orm.demo.imdb.service.PuzzleFactory
+import st.orm.demo.imdb.service.SeriesPuzzle
 import st.orm.demo.imdb.service.Trait
 import st.orm.repository.repository
 import st.orm.template.ORMTemplate
+import st.orm.template.entityId
+import st.orm.template.ref
+import st.orm.template.refById
+import java.math.BigDecimal
 import st.orm.test.StormTest
 import java.time.LocalDate
 import kotlin.random.Random
@@ -44,7 +54,9 @@ class DailyPuzzleServiceTest {
         orm.repository<MovieRepository>(),
         orm.repository<FriendshipRepository>(),
         orm.repository<ClubMemberRepository>(),
-        orm.repository<UserRepository>()
+        orm.repository<UserRepository>(),
+        orm.repository<MovieSeenRepository>(),
+        orm.repository<PersonRepository>()
     )
 
     private val day = LocalDate.parse("2026-10-27")
@@ -187,5 +199,138 @@ class DailyPuzzleServiceTest {
         // Over: a right guess no longer counts.
         runBlocking { service.guessConnections(alice, groups[1].movies.toSet(), day) }
         assertEquals(1, runBlocking { service.connectionsOf(alice, day) }.found.size)
+    }
+
+    @Test
+    fun `a face-off pairs movies rated apart, never a movie with its sequel`(orm: ORMTemplate) {
+        val ratings = listOf("Dune" to "7.9", "Dune: Part Two" to "8.6", "Heat" to "8.3", "Up" to "8.3", "Se7en" to "8.6", "Cars" to "7.2")
+            .mapIndexed { i, (title, rating) -> Rating(Movie("m$i", title, title, 2000, 120), BigDecimal(rating), 100_000) }
+        repeat(20) { seed ->
+            val duels = factory(orm).faceOffs(ratings, Random(seed), count = 3)
+            val titles = duels.flatMap { it.movies }
+            assertEquals(titles.size, titles.toSet().size)
+            duels.forEach { duel ->
+                val (a, b) = duel.movies.map { id -> ratings.first { it.movie.id == id } }
+                assertTrue((a.averageRating - b.averageRating).abs() >= BigDecimal("0.3"), "${a.movie.primaryTitle} vs ${b.movie.primaryTitle}")
+                assertEquals(if (a.averageRating > b.averageRating) a.movie.id else b.movie.id, duel.higher)
+                assertFalse(setOf(a.movie.primaryTitle, b.movie.primaryTitle) == setOf("Dune", "Dune: Part Two"))
+            }
+        }
+    }
+
+    @Test
+    fun `a line-up has the one who played the part and four of the same category who are not in the movie`(orm: ORMTemplate) {
+        val movies = (1..6).map { Movie("m$it", "Title$it", "Title$it", 2000, 120) }
+        fun credit(movie: Int, ordering: Int, person: String, category: String, part: String?) =
+            Principal(refById<Movie>("m$movie"), ordering, Person(person, person.replace('_', ' '), null, null), category, part)
+        val credits = movies.flatMapIndexed { i, _ ->
+            listOf(
+                credit(i + 1, 1, "actor_$i", "actor", "Hero $i"),
+                credit(i + 1, 2, "actress_$i", "actress", "Heroine $i"),
+                // Billed low, but in the movie: never a suspect for it.
+                credit(i + 1, 9, "extra_$i", "actor", "Extra $i"),
+                credit(i + 1, 10, "himself_$i", "actor", "Self")
+            )
+        }
+        val lineUps = factory(orm).lineUps(movies, credits, Random(3), count = 4)
+        assertEquals(4, lineUps.size)
+        assertEquals(4, lineUps.map { it.movie }.toSet().size)
+        lineUps.forEach { lineUp ->
+            val culprit = credits.first { it.person.id == lineUp.culprit }
+            assertEquals(lineUp.movie, culprit.movie.entityId())
+            assertEquals(culprit.characters, lineUp.character)
+            assertEquals(5, lineUp.suspects.toSet().size)
+            assertTrue(lineUp.culprit in lineUp.suspects)
+            val inMovie = credits.filter { it.movie.entityId() == lineUp.movie }.map { it.person.id }
+            lineUp.suspects.filter { it != lineUp.culprit }.forEach { suspect ->
+                assertFalse(suspect in inMovie, suspect)
+                assertEquals(culprit.category, credits.first { it.person.id == suspect }.category)
+            }
+        }
+    }
+
+    @Test
+    fun `a part named after its actor, or the actor as themselves, is never asked`(orm: ORMTemplate) {
+        fun part(name: String, part: String?) = PuzzleFactory.usablePart(Principal(refById<Movie>("m1"), 1, Person("p", name, null, null), "actor", part))
+        assertTrue(part("Keanu Reeves", "Neo"))
+        assertFalse(part("John Malkovich", "John Malkovich"))
+        assertFalse(part("Bruce Willis", "Self"))
+        assertFalse(part("Bruce Willis", "Narrator"))
+        assertFalse(part("Bruce Willis", "John McClane (voice)"))
+        assertFalse(part("Bruce Willis", null))
+    }
+
+    @Test
+    fun `a memento series is movies that share a title word and an actor in the same part, in the order they came out`(orm: ORMTemplate) {
+        val movies = listOf(
+            Movie("rocky3", "Rocky III", "Rocky III", 1982, 99), Movie("rocky1", "Rocky", "Rocky", 1976, 120), Movie("rocky2", "Rocky II", "Rocky II", 1979, 119),
+            Movie("psycho", "American Psycho", "American Psycho", 2000, 102), Movie("hustle", "American Hustle", "American Hustle", 2013, 138),
+            Movie("sniper", "American Sniper", "American Sniper", 2014, 133), Movie("rain", "Rain Man", "Rain Man", 1988, 133)
+        )
+        fun credit(movie: String, person: String, part: String) = Principal(refById<Movie>(movie), 1, Person(person, person, null, null), "actor", part)
+        val credits = listOf(
+            credit("rocky1", "stallone", "Rocky"), credit("rocky2", "stallone", "Rocky"), credit("rocky3", "stallone", "Rocky"),
+            // The same actors, other parts: no series.
+            credit("psycho", "bale", "Patrick Bateman"), credit("hustle", "bale", "Irving Rosenfeld"), credit("hustle", "cooper", "Richie DiMaso"), credit("sniper", "cooper", "Chris Kyle"),
+            credit("rain", "hoffman", "Raymond Babbitt")
+        )
+        val series = factory(orm).series(movies, credits, Random(1), count = 5)
+        // Rocky alone: the American movies share a word and actors, but not a part.
+        assertEquals(1, series.size)
+        assertEquals(listOf("rocky1", "rocky2", "rocky3"), series.single().order)
+        assertEquals(series.single().order.toSet(), series.single().movies.toSet())
+    }
+
+    @Test
+    fun `an amadeus puzzle has the movie's composer among four`(orm: ORMTemplate) {
+        val movies = (1..5).map { Movie("m$it", "Title$it", "Title$it", 2000, 120) }
+        val composers = listOf("zimmer", "williams", "horner", "elfman", "morricone")
+        val credits = movies.mapIndexed { i, movie -> Principal(movie.ref(), 7, Person(composers[i], composers[i], null, null), "composer", null) } +
+            Principal(movies[0].ref(), 1, Person("actor", "Actor", null, null), "actor", "Lead")
+        val scores = factory(orm).scores(movies, credits, Random(2), count = 10)
+        assertEquals(5, scores.size)
+        scores.forEach { score ->
+            val composer = credits.first { it.category == "composer" && it.movie.entityId() == score.movie }.person.id
+            assertEquals(composer, score.composer)
+            assertEquals(4, score.composers.toSet().size)
+            assertTrue(composer in score.composers)
+        }
+    }
+
+    @Test
+    fun `a memento series is placed movie by movie, a point when the order is the order of release`(orm: ORMTemplate) {
+        val series = listOf(
+            SeriesPuzzle(listOf("tt0234215", "tt0133093"), listOf("tt0133093", "tt0234215")),
+            SeriesPuzzle(listOf("tt0110912", "tt0068646", "tt0211915"), listOf("tt0068646", "tt0110912", "tt0211915"))
+        )
+        orm.repository<DailyPuzzleRepository>().insert(DailyPuzzle(DailyPuzzlePk(day, DailyGame.MEMENTO, ""), DailyPuzzleData(series = series)))
+        val service = service(orm)
+        val alice = orm.insertUser("alice-memento", name = "Alice")
+
+        var view = runBlocking { service.seriesOf(alice, day) }
+        assertEquals(0, view.index)
+        assertEquals(2, view.current!!.remaining.size)
+
+        runBlocking { service.placeInSeries(alice, "tt0133093", day) }
+        view = runBlocking { service.seriesOf(alice, day) }
+        assertEquals(listOf("tt0133093"), view.current!!.picked.map { it.id })
+        assertEquals(listOf("tt0234215"), view.current!!.remaining.map { it.id })
+        // Placed already, or not of the series at hand: nothing.
+        runBlocking { service.placeInSeries(alice, "tt0133093", day) }
+        runBlocking { service.placeInSeries(alice, "tt0068646", day) }
+        assertEquals(1, runBlocking { service.seriesOf(alice, day) }.current!!.picked.size)
+
+        runBlocking { service.placeInSeries(alice, "tt0234215", day) }
+        view = runBlocking { service.seriesOf(alice, day) }
+        assertEquals(1, view.index)
+        assertEquals(1, view.score)
+        assertTrue(view.last!!.right)
+
+        // The second series out of order: no point.
+        listOf("tt0110912", "tt0068646", "tt0211915").forEach { runBlocking { service.placeInSeries(alice, it, day) } }
+        view = runBlocking { service.seriesOf(alice, day) }
+        assertTrue(view.finished)
+        assertEquals(1, view.score)
+        assertFalse(view.results[1].right)
     }
 }

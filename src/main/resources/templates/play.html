@@ -76,10 +76,10 @@
     <div class="container game-grid">
         <a class="game-card game-quiz" th:href="@{/play/quiz}">
             <span class="game-art game-art-quiz" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></span>
-            <span class="game-title">Daily Quiz</span>
-            <span class="game-text">One movie a day, six clues, six guesses. Play on your own, and see how your clubs did.</span>
+            <span class="game-title">Groundhog Day</span>
+            <span class="game-text">One movie, all day, every day: six clues, six guesses. Play on your own, and see how your clubs did.</span>
             <span class="game-modes">On your own · your friends and clubs see the scores</span>
-            <span class="button button-primary game-button">Play today's quiz</span>
+            <span class="button button-primary game-button">Play today's movie</span>
             <!-- Yesterday's movie, now it can be told: its poster, and how many got it. -->
             <span class="quiz-yesterday" th:if="${play.yesterday != null}">
                 <span class="poster quiz-yesterday-poster">
@@ -115,6 +115,42 @@
             <span class="button button-primary game-button">Play today's</span>
         </a>
 
+        <!-- Face/Off: a daily of ten pairs of posters, which is rated higher. -->
+        <a class="game-card game-face-off" th:href="@{/play/face-off}">
+            <span class="game-art game-art-duel" aria-hidden="true"><span class="game-art-poster"></span><span class="game-art-versus">vs</span><span class="game-art-poster"></span></span>
+            <span class="game-title">Face/Off</span>
+            <span class="game-text">Two posters face to face, ten times a day: which one does IMDb rate higher?</span>
+            <span class="game-modes">Daily · your friends and clubs see the scores</span>
+            <span class="button button-primary game-button">Play today's</span>
+        </a>
+
+        <!-- The Usual Suspects: a daily of ten line-ups, who played the part. -->
+        <a class="game-card game-suspects" th:href="@{/play/usual-suspects}">
+            <span class="game-art game-art-lineup" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>
+            <span class="game-title">The Usual Suspects</span>
+            <span class="game-text">A movie, a part, five faces in a line-up: point at whoever played it. Ten a day.</span>
+            <span class="game-modes">Daily · your friends and clubs see the scores</span>
+            <span class="button button-primary game-button">Play today's</span>
+        </a>
+
+        <!-- Memento: a daily of series to put in the order they came out. -->
+        <a class="game-card game-memento" th:href="@{/play/memento}">
+            <span class="game-art game-art-memento" aria-hidden="true"><span class="game-art-poster"></span><span class="game-art-poster"></span><span class="game-art-poster"></span><span class="game-art-poster"></span></span>
+            <span class="game-title">Memento</span>
+            <span class="game-text">A series, shuffled: tap its movies in the order they came out. Up to five series a day.</span>
+            <span class="game-modes">Daily · your friends and clubs see the scores</span>
+            <span class="button button-primary game-button">Play today's</span>
+        </a>
+
+        <!-- Amadeus: a daily of ten of the visitor's own movies, who wrote the score. -->
+        <a class="game-card game-amadeus" th:href="@{/play/amadeus}">
+            <span class="game-art game-art-score" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></span>
+            <span class="game-title">Amadeus</span>
+            <span class="game-text">Movies you watched, four composers each: who wrote the score? Ten a day, made of your own movies.</span>
+            <span class="game-modes">Daily · yours alone · your friends and clubs see the scores</span>
+            <span class="button button-primary game-button">Play today's</span>
+        </a>
+
         <!-- Higher or Lower: started here, on one's own, against a friend, or as a round for a club. -->
         <div class="game-card game-higher-lower">
             <span class="game-art game-art-cards" aria-hidden="true">
@@ -134,7 +170,7 @@
                 <span class="game-art-poster"></span><span class="game-line"></span><span class="game-art-poster"></span><span class="game-line"></span><span class="game-art-poster"></span>
             </span>
             <span class="game-title">Movie Chain</span>
-            <span class="game-text">Take turns adding a movie that shares an actor with the last one. A day per turn; whoever misses theirs is skipped.</span>
+            <span class="game-text">Take turns adding a movie that shares an actor with the last one. A day per turn; whoever misses theirs is skipped. On your own it is Catch Me If You Can: the house answers every movie of yours with one of its own.</span>
             <th:block th:if="${locks['CHAIN'] == null}">
             <form th:replace="~{fragments/games :: startForm('/play/chain', 'Start a chain', 'Start a chain')}"></form>
             </th:block>

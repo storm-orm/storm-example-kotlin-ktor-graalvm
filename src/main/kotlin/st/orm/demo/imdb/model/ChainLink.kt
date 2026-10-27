@@ -50,4 +50,7 @@ data class ChainLink(
 
     /** Whether the link goes through Kevin Bacon, which the games reward. */
     val throughBacon: Boolean get() = via?.id == KEVIN_BACON
+
+    /** Whether the link goes through Meryl Streep, which Movie Chain rewards too. */
+    val throughStreep: Boolean get() = via?.id == MERYL_STREEP
 }

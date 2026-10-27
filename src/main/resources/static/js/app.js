@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupPickers();
     setupLists();
     setupQuiz();
+    setupSponsor();
     setupCinema();
     setupNightVotes();
     setupSwipeDecks();
@@ -1647,6 +1648,14 @@ function setupLists() {
 // The games: a movie picked from the suggestions is the move, the quiz's guess or the chain's next
 // movie, sent at once; the quiz's score shares through the device's share sheet where there is one,
 // and is copied otherwise.
+// The star's pay link on the levels page: it opens the small print, and paying is free.
+function setupSponsor() {
+    const dialog = document.querySelector('[data-sponsor-dialog]');
+    if (!dialog) return;
+    document.querySelectorAll('[data-sponsor-star]').forEach(button => button.addEventListener('click', () => dialog.showModal()));
+    dialog.querySelector('[data-sponsor-close]').addEventListener('click', () => dialog.close());
+}
+
 function setupQuiz() {
     document.querySelectorAll('[data-pick-submits]').forEach(form => form.addEventListener('pick', () => form.submit()));
     document.querySelectorAll('[data-quiz-share]').forEach(button => button.addEventListener('click', async () => {

@@ -6,7 +6,10 @@ import st.orm.demo.imdb.model.BadgeCategory
 import st.orm.demo.imdb.model.DailyGame
 import st.orm.demo.imdb.model.Game
 import st.orm.demo.imdb.model.GameMode
+import st.orm.demo.imdb.model.BRUCE_WILLIS
 import st.orm.demo.imdb.model.KEVIN_BACON
+import st.orm.demo.imdb.model.MERYL_STREEP
+import st.orm.demo.imdb.model.Person
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.model.UserBadge
 import st.orm.demo.imdb.model.UserBadge_
@@ -22,11 +25,13 @@ import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieLanguageRepository
 import st.orm.demo.imdb.repository.MovieNightRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
+import st.orm.demo.imdb.repository.PrincipalRepository
 import st.orm.demo.imdb.repository.SwipeRepository
 import st.orm.demo.imdb.repository.SwipeRoundSwipeRepository
 import st.orm.demo.imdb.repository.UserBadgeRepository
 import st.orm.template.entityId
 import st.orm.template.eq
+import st.orm.template.refById
 import st.orm.template.transaction
 import java.time.Duration
 import java.time.Instant
@@ -76,7 +81,8 @@ class BadgeService(
     private val movieNightRepository: MovieNightRepository,
     private val gamePlayerRepository: GamePlayerRepository,
     private val swipeRepository: SwipeRepository,
-    private val swipeRoundSwipeRepository: SwipeRoundSwipeRepository
+    private val swipeRoundSwipeRepository: SwipeRoundSwipeRepository,
+    private val principalRepository: PrincipalRepository
 ) {
     /** When each user's badges were last awarded, for the pages that award now and then. */
     private val awarded = ConcurrentHashMap<String, Instant>()
@@ -104,6 +110,11 @@ class BadgeService(
         progressIn(user, now).filter { it.earned && it.badge !in before }.map { it.badge }
     }
 
+    /** Gives the user a badge nothing counts, such as the star's sponsorship; nothing when they have it. */
+    suspend fun give(user: User, badge: Badge, now: Instant = Instant.now()) = transaction {
+        if (userBadgeRepository.findAll(user).none { it.badge == badge }) userBadgeRepository.insert(UserBadge(user, badge, now))
+    }
+
     /** How many badges the user has earned, as stored: the Play page reads this, the levels page and the check-ins award. */
     suspend fun countOf(user: User): Int = transaction(readOnly = true) { userBadgeRepository.count(UserBadge_.user eq user).toInt() }
 
@@ -112,7 +123,8 @@ class BadgeService(
         val earned = userBadgeRepository.findAll(user).associate { it.badge to it.earnedAt }.toMutableMap()
         val counts = countsOf(user, now)
         return Badge.entries.map { badge ->
-            val done = counts[badge] ?: 0
+            // A badge nothing counts, given rather than earned, stands at its goal once given.
+            val done = counts[badge] ?: if (badge in earned) badge.goal else 0
             if (done >= badge.goal && badge !in earned) {
                 userBadgeRepository.insert(UserBadge(user, badge, now))
                 earned[badge] = now
@@ -138,6 +150,7 @@ class BadgeService(
         counts[Badge.LAUGH_TRACK] = genres["Comedy"] ?: 0
         counts[Badge.FAR_OUT] = genres["Sci-Fi"] ?: 0
         counts[Badge.WORLD_CINEMA] = movieLanguageRepository.countSeen(user).size
+        counts[Badge.YIPPEE_KI_YAY] = principalRepository.countSeenWith(user, refById<Person>(BRUCE_WILLIS)).toInt()
         // Checking in: the days, and the weeks in a row.
         val days = checkInRepository.findAll(user).map { LocalDate.ofInstant(it.watchedAt, ZoneOffset.UTC) }
         counts[Badge.CHECKED_IN] = days.size
@@ -147,6 +160,7 @@ class BadgeService(
         // Playing.
         val links = chainLinkRepository.findByPlayer(user)
         counts[Badge.BACON_NUMBER] = links.count { it.via?.id == KEVIN_BACON }
+        counts[Badge.STREEP_NUMBER] = links.count { it.via?.id == MERYL_STREEP }
         counts[Badge.CHAIN_GANG] = links.groupingBy { it.match.entityId() }.eachCount().values.maxOrNull() ?: 0
         val dailies = dailyPlayRepository.findAll(user).filter { it.finished }
         counts[Badge.PERFECT_GRID] = dailies.count { it.id.game == DailyGame.CONNECTIONS && it.score == 4 && it.mistakes == 0 }

@@ -4258,8 +4258,8 @@ body::after {
 .walk-star-walk { font-size: 10px; letter-spacing: 1.6px; text-transform: uppercase; color: #8a5a1c; }
 .walk-place { margin-top: 8px; }
 
-/* The Golden Globe and the Oscar on their shelf: the statuette in gold, the name on the plinth once the level is
-   reached, the award and where it is handed out under it. Dim until reached, lit once it is. */
+/* The Golden Globe, the Oscar and the goat on their shelf: the statuette in gold, the name on the plinth once the
+   level is reached. Dim until reached, lit once it is. */
 .honour-trophy { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; margin-top: 12px; padding: 16px 26px 12px; border-radius: 6px; opacity: 0.7; transition: opacity 0.3s ease;
     background: linear-gradient(180deg, #2b2231, #15111a 70%, #0f0c12); box-shadow: inset 0 0 0 1px rgba(233, 200, 122, 0.25), 0 10px 30px rgba(0, 0, 0, 0.45); }
 .honour-trophy.set { opacity: 1; box-shadow: inset 0 0 0 1px rgba(233, 200, 122, 0.55), 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 34px rgba(233, 200, 122, 0.25); }
@@ -4267,7 +4267,7 @@ body::after {
 .honour-trophy-plate { padding: 3px 14px; border-radius: 2px; background: linear-gradient(160deg, #f3d27a, #c9962f 60%, #e2b95a); color: #3a2a12; font-family: var(--font-display); font-size: 16px; letter-spacing: 2px; text-transform: uppercase; max-width: 240px; text-align: center; }
 .honour-trophy-caption { font-size: 10px; letter-spacing: 1.6px; text-transform: uppercase; color: #c9a65a; text-align: center; }
 
-/* The honour worn on the avatar of a Star, a Legend or the GOAT, wherever it shows. */
+/* The honour worn on the avatar from Star on, wherever it shows. */
 .nav-account-icon { position: relative; }
 .nav-account-icon.honoured { overflow: visible; }
 .nav-account-icon.honoured img { border-radius: 50%; }
@@ -4276,6 +4276,73 @@ body::after {
 .seat .nav-account-icon { width: 24px; height: 24px; font-size: 12px; border: 0; }
 .seat .honour-mark { width: 12px; height: 13px; right: -4px; bottom: -4px; }
 .goat-note strong { color: #e6bd5c; }
+
+/* ── Face/Off, The Usual Suspects, Memento, Amadeus ───────────────── */
+
+.game-face-off { --tone: var(--accent-rgb); }
+.game-suspects { --tone: var(--cyan-rgb); }
+.game-memento { --tone: var(--violet-rgb); }
+.game-amadeus { --tone: var(--yellow-rgb); }
+
+/* The cards' art: two posters face to face; five heads in a line-up, one lit; posters out of order; the bars of a score. */
+.game-art-duel { gap: 10px; }
+.game-art-duel .game-art-poster + .game-art-poster { transform: rotate(8deg); }
+.game-art-versus { font-family: var(--font-display); font-size: 22px; color: rgb(var(--tone)); text-transform: uppercase; }
+.game-art-lineup { gap: 6px; align-items: flex-end; }
+.game-art-lineup span { width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgb(var(--tone)); background: rgba(var(--tone), 0.15); box-shadow: 0 0 10px rgba(var(--tone), 0.45); }
+.game-art-lineup span:nth-child(2), .game-art-lineup span:nth-child(4) { margin-bottom: 6px; }
+.game-art-lineup span:nth-child(3) { background: rgb(var(--tone)); }
+.game-art-memento { gap: 6px; }
+.game-art-memento .game-art-poster:nth-child(1) { transform: translateY(6px) rotate(-6deg); }
+.game-art-memento .game-art-poster:nth-child(3) { transform: translateY(-6px) rotate(5deg); }
+.game-art-memento .game-art-poster:nth-child(4) { transform: translateY(4px); }
+.game-art-score { gap: 5px; align-items: flex-end; height: 54px; }
+.game-art-score span { width: 7px; border-radius: 4px; background: rgb(var(--tone)); box-shadow: 0 0 10px rgba(var(--tone), 0.5); }
+.game-art-score span:nth-child(1) { height: 16px; }
+.game-art-score span:nth-child(2) { height: 32px; }
+.game-art-score span:nth-child(3) { height: 22px; }
+.game-art-score span:nth-child(4) { height: 40px; }
+.game-art-score span:nth-child(5) { height: 26px; }
+.game-art-score span:nth-child(6) { height: 12px; }
+
+/* Face/Off: the two posters, a "vs" between them. */
+.duel-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 20px; align-items: center; max-width: 520px; }
+.duel-versus { font-family: var(--font-display); font-size: 34px; color: var(--accent-strong); text-transform: uppercase; }
+.odd-year { color: var(--text-muted); font-size: 12.5px; }
+
+/* The Usual Suspects and Amadeus: the case, the poster and the question beside it. */
+.lineup-case { display: flex; gap: 18px; align-items: center; }
+.lineup-poster { width: 84px; flex-shrink: 0; }
+.lineup-eyebrow { margin: 0; color: var(--text-muted); font-size: 12px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; }
+.lineup-part { margin: 2px 0; font-family: var(--font-display); font-size: 36px; line-height: 1.05; }
+.lineup-movie { margin: 0; color: var(--text-muted); }
+/* The line-up: five faces against the height lines of the wall, numbered. */
+.lineup-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; padding: 18px 10px 14px; border-radius: var(--radius);
+    background: repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0 1px, transparent 1px 26px), linear-gradient(180deg, #1c1824, #120f17); }
+.lineup-height { font-size: 11px; color: var(--text-muted); letter-spacing: 1px; }
+.lineup-face { width: 86px; height: 86px; font-size: 32px; }
+.lineup-button:hover .lineup-face { box-shadow: 0 0 0 2px var(--accent), 0 14px 30px rgba(var(--accent-rgb), 0.3); }
+
+/* Memento: the movies placed so far, numbered, and the ones still to place. */
+.memento-placed { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.memento-slot { position: relative; width: 64px; }
+.memento-rank { position: absolute; top: -8px; left: -8px; z-index: 3; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; }
+.memento-next { margin-left: 8px; color: var(--text-muted); }
+.memento-ask { margin: 0; color: var(--text-muted); }
+.memento-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+/* Amadeus: the four names to choose from. */
+.score-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 560px; }
+.score-choice { width: 100%; justify-content: center; padding: 14px; font-size: 16px; }
+
+@media (max-width: 640px) {
+    .lineup-row { gap: 6px; padding: 12px 6px 10px; }
+    .lineup-face { width: 52px; height: 52px; font-size: 20px; }
+    .lineup-row .odd-title { font-size: 11px; }
+    .lineup-part { font-size: 28px; }
+    .memento-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .score-choices { grid-template-columns: 1fr; }
+}
 
 /* ── What waits on the visitor: fuchsia counts ─────────────────────── */
 
@@ -4342,6 +4409,13 @@ body::after {
 .level-rites { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .level-rite { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 7px; border-radius: 999px; border: 1px dashed rgba(255, 255, 255, 0.25); color: var(--text-muted); font-size: 12.5px; }
 .level-rite.done { border: 1px solid rgba(var(--yellow-rgb), 0.55); color: var(--yellow); }
+/* The star's pay link: a rite chip that is a button, underlined so it reads as one, until it is paid. */
+.rite-pay { cursor: pointer; background: none; font: inherit; font-size: 12.5px; color: var(--yellow); border-color: rgba(var(--yellow-rgb), 0.55); text-decoration: underline; text-decoration-style: dotted; text-underline-offset: 3px; }
+.rite-pay:hover { background: rgba(var(--yellow-rgb), 0.12); text-decoration-style: solid; }
+.sponsor-dialog { max-width: 440px; padding: 26px 28px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-raised); color: var(--text); box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6); }
+.sponsor-dialog::backdrop { background: rgba(0, 0, 0, 0.6); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.sponsor-title { margin: 4px 0 10px; font-family: var(--font-display); font-size: 32px; line-height: 1.05; }
+.sponsor-text { margin: 0 0 18px; color: var(--text-muted); }
 .rite-icon { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .levels-held { color: var(--yellow); }
 .levels-motto { margin: 10px 0 4px; font-family: var(--font-display); font-size: 20px; letter-spacing: 0.5px; text-transform: uppercase; line-height: 1.2; color: var(--accent-strong); }

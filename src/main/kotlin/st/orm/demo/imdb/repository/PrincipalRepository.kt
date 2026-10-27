@@ -37,6 +37,9 @@ val ACTING_CATEGORIES = listOf("actor", "actress")
 /** The credit category of a director, as the IMDB dataset names it. */
 const val DIRECTOR = "director"
 
+/** The credit category of a composer, as the IMDB dataset names it. */
+const val COMPOSER = "composer"
+
 /**
  * Query result shape: one movie in a person's filmography — the credit
  * itself (which carries the movie and role) plus the movie's rating for
@@ -153,6 +156,13 @@ data class CandidateCredit(
 )
 
 interface PrincipalRepository : EntityRepository<Principal, PrincipalPk> {
+
+    /** How many of the user's watched movies the person acts in: Bruce Willis's badge counts his. */
+    fun countSeenWith(user: User, person: Ref<Person>): Long =
+        selectCount()
+            .innerJoin<MovieSeen>().on<Movie>()
+            .where((Principal_.person eq person) and (Principal_.category inList ACTING_CATEGORIES) and (MovieSeen_.user eq user))
+            .singleResult
 
     /** The cast and crew of several movies at once, in no particular order. */
     fun findByMovies(movies: List<Ref<Movie>>) =

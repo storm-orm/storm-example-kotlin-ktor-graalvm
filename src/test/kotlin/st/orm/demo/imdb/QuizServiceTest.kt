@@ -86,7 +86,7 @@ class QuizServiceTest {
         assertTrue(quiz.finished)
         assertEquals("The Matrix", quiz.answer!!.primaryTitle)
         assertEquals("🟥⬜🟩", quiz.squares)
-        assertEquals("Storm Movies quiz #2 · 3/6\n🟥⬜🟩", quiz.shareText)
+        assertEquals("Storm Movies Groundhog Day #2 · 3/6\n🟥⬜🟩", quiz.shareText)
         assertEquals(6, quiz.clues.count { it.text != null })
         assertEquals(1, quiz.streak)
         // A finished game takes no more guesses.
@@ -109,7 +109,7 @@ class QuizServiceTest {
         assertTrue(bobs.finished)
         assertFalse(bobs.solved)
         assertNotNull(bobs.answer)
-        assertEquals("Storm Movies quiz #2 · X/6\n⬜⬜⬜⬜⬜⬜", bobs.shareText)
+        assertEquals("Storm Movies Groundhog Day #2 · X/6\n⬜⬜⬜⬜⬜⬜", bobs.shareText)
         // Alice has not played: her clubs' board waits till she finishes, but the club page shows Bob's game.
         assertTrue(runBlocking { service.quizOf(alice, day) }.boards.isEmpty())
         assertEquals(listOf("Bob" to false), runBlocking { service.boardOf(club.id, alice, day) }.map { it.name to it.solved })
