@@ -118,6 +118,7 @@ CREATE TABLE top_ten (
     movie_id VARCHAR NOT NULL REFERENCES movie (id) ON DELETE CASCADE,
     position INTEGER NOT NULL,
     added_at TIMESTAMP NOT NULL,
+    mention  BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (user_id, movie_id)
 );
 

@@ -10,10 +10,10 @@ import st.orm.template.eq
 
 interface TopTenRepository : EntityRepository<TopTen, TopTenPk> {
 
-    /** The user's top ten, the best first. */
+    /** The user's top ten, the best first, and their honourable mentions after it, as they came. */
     fun findAll(user: User): List<TopTen> =
         select(TopTen_.user eq user)
-            .orderBy(TopTen_.position)
+            .orderBy(TopTen_.mention, TopTen_.position, TopTen_.addedAt)
             .resultList
 
     fun contains(user: User, movie: Movie): Boolean =

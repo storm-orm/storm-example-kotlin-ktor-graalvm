@@ -26,7 +26,13 @@ fun Route.topTenRoutes(topTenService: TopTenService, searchService: SearchServic
         // The picker gives the movie's id; a title typed and sent takes the best match.
         val movieId = form["movie"]?.takeIf { it.isNotBlank() }
             ?: form["title"]?.trim()?.takeIf { it.isNotEmpty() }?.let { searchService.findTitleSuggestions(it).firstOrNull()?.id }
-        movieId?.let { topTenService.add(call.currentUser(), it) }
+        movieId?.let { topTenService.add(call.currentUser(), it, asMention = form["mention"] != null) }
+        call.respondRedirect("/top-ten")
+    }
+
+    // A mention lifted into the ten, while there is room.
+    post("/top-ten/promote") {
+        call.receiveParameters()["movie"]?.let { topTenService.promote(call.currentUser(), it) }
         call.respondRedirect("/top-ten")
     }
 

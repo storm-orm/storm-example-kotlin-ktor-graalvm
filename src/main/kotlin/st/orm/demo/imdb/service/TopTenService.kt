@@ -1,5 +1,6 @@
 package st.orm.demo.imdb.service
 
+import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.TopTen
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.repository.MovieRepository
@@ -9,17 +10,23 @@ import st.orm.demo.imdb.repository.UserRepository
 import st.orm.template.transaction
 import java.time.Instant
 
-/** The visitor's top ten: the movies in their order, and whether there is room for another. */
-data class TopTenView(val entries: List<TopTen>) {
+/** The visitor's top ten in its order, their honourable mentions in none, and the room left in each. */
+data class TopTenView(val entries: List<TopTen>, val mentions: List<TopTen>) {
     val full: Boolean get() = entries.size >= TopTenService.SIZE
+    val mentionsFull: Boolean get() = mentions.size >= TopTenService.MENTIONS
     /** The places still open, to show as empty: 1 to 10 less what is filled. */
     val open: List<Int> get() = (entries.size + 1..TopTenService.SIZE).toList()
 }
 
+/** Someone's top ten and honourable mentions, as movies, for the pages of others. */
+data class TopTenMovies(val topTen: List<Movie>, val mentions: List<Movie>)
+
 /**
- * A user's top ten: the ten movies they rate above all, in their order. A
- * movie put in counts as watched, as one cannot rate what one has not
- * seen; the list is dragged into order on its page.
+ * A user's top ten: the ten movies they rate above all, in their order,
+ * and under them their honourable mentions, fifteen at most, in no order.
+ * A movie put in counts as watched, as one cannot rate what one has not
+ * seen; the ten are dragged into order on their page, and a movie taken
+ * out of a full ten to make room goes down to the mentions.
  */
 class TopTenService(
     private val topTenRepository: TopTenRepository,
@@ -28,34 +35,56 @@ class TopTenService(
     private val movieSeenService: MovieSeenService,
     private val userRepository: UserRepository
 ) {
-    suspend fun topTenOf(user: User): TopTenView = transaction(readOnly = true) { TopTenView(topTenRepository.findAll(user)) }
+    suspend fun topTenOf(user: User): TopTenView = transaction(readOnly = true) { viewOf(user) }
 
-    /** The user's top ten as a list of movies, for the pages of others. */
-    suspend fun moviesOf(user: User) = transaction(readOnly = true) { topTenRepository.findAll(user).map { it.movie } }
+    private fun viewOf(user: User): TopTenView = topTenRepository.findAll(user).partition { !it.mention }.let { (ten, mentions) -> TopTenView(ten, mentions) }
 
-    /** Puts a movie at the end of the top ten, and marks it watched when it was not; nothing when the ten are full or it is in already. */
-    suspend fun add(user: User, movieId: String, now: Instant = Instant.now()) {
+    /** The user's top ten and mentions as movies, for the pages of others. */
+    suspend fun moviesOf(user: User): TopTenMovies = transaction(readOnly = true) {
+        viewOf(user).let { TopTenMovies(it.entries.map { e -> e.movie }, it.mentions.map { e -> e.movie }) }
+    }
+
+    /**
+     * Puts a movie in: at the end of the top ten while there is room, else
+     * among the mentions ([asMention] puts it there to begin with), and
+     * marks it watched when it was not. Nothing when it is in already, or
+     * where it would go is full.
+     */
+    suspend fun add(user: User, movieId: String, asMention: Boolean = false, now: Instant = Instant.now()) {
         val movie = transaction(readOnly = true) { movieRepository.findById(movieId) } ?: return
         val stored = userRepository.touch(user, now)
         val added = transaction {
-            val entries = topTenRepository.findAll(stored)
-            if (entries.size >= SIZE || entries.any { it.movie.id == movie.id }) return@transaction false
-            topTenRepository.insert(TopTen(stored, movie, entries.size + 1, now))
+            val view = viewOf(stored)
+            if ((view.entries + view.mentions).any { it.movie.id == movie.id }) return@transaction false
+            when {
+                !asMention && !view.full -> topTenRepository.insert(TopTen(stored, movie, view.entries.size + 1, now))
+                !view.mentionsFull -> topTenRepository.insert(TopTen(stored, movie, 0, now, mention = true))
+                else -> return@transaction false
+            }
             true
         }
         if (added && !movieSeenRepository.contains(stored, movie)) movieSeenService.toggle(stored, movie.id, historic = true)
     }
 
-    /** Takes a movie out, the ones after it moving up. */
-    suspend fun remove(user: User, movieId: String) = transaction {
-        val movie = movieRepository.findById(movieId) ?: return@transaction
-        topTenRepository.remove(user, movie)
-        renumber(topTenRepository.findAll(user))
+    /** Takes a movie out: from a full ten it goes down to the mentions while there is room, from the mentions it goes; the ten close up. */
+    suspend fun remove(user: User, movieId: String, now: Instant = Instant.now()) = transaction {
+        val view = viewOf(user)
+        val entry = (view.entries + view.mentions).firstOrNull { it.movie.id == movieId } ?: return@transaction
+        if (!entry.mention && view.full && !view.mentionsFull) topTenRepository.update(entry.copy(position = 0, addedAt = now, mention = true))
+        else topTenRepository.remove(user, entry.movie)
+        renumber(viewOf(user).entries)
+    }
+
+    /** Lifts a mention into the top ten, at the end, while there is room. */
+    suspend fun promote(user: User, movieId: String) = transaction {
+        val view = viewOf(user)
+        val entry = view.mentions.firstOrNull { it.movie.id == movieId } ?: return@transaction
+        if (!view.full) topTenRepository.update(entry.copy(position = view.entries.size + 1, mention = false))
     }
 
     /** Puts the top ten in the order given, by movie id; an order that is not the same movies changes nothing. */
     suspend fun reorder(user: User, movieIds: List<String>) = transaction {
-        val entries = topTenRepository.findAll(user)
+        val entries = viewOf(user).entries
         if (movieIds.toSet() != entries.map { it.movie.id }.toSet() || movieIds.size != entries.size) return@transaction
         val byMovie = entries.associateBy { it.movie.id }
         renumber(movieIds.map { byMovie.getValue(it) })
@@ -68,5 +97,6 @@ class TopTenService(
 
     companion object {
         const val SIZE = 10
+        const val MENTIONS = 15
     }
 }

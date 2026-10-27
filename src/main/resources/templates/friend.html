@@ -36,6 +36,18 @@
                 </div>
             </a>
         </div>
+        <th:block th:unless="${view.mentions.isEmpty()}">
+            <h3 class="choice-heading">Honourable mentions</h3>
+            <div class="movie-row">
+                <a class="movie-card" th:each="movie : ${view.mentions}" th:href="@{/movie/{id}(id=${movie.id})}">
+                    <div th:replace="~{fragments/cards :: posterThumb(${movie.id}, ${movie.primaryTitle})}"></div>
+                    <div class="movie-card-info">
+                        <div class="movie-card-title" th:text="${movie.primaryTitle}">Heat</div>
+                        <div class="movie-card-year" th:text="${movie.startYear}">1995</div>
+                    </div>
+                </a>
+            </div>
+        </th:block>
     </div>
 </section>
 

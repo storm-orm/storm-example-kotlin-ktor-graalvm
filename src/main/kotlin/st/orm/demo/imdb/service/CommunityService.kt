@@ -78,8 +78,9 @@ data class FriendView(
     val feed: List<SharedCheckIn>,
     val games: List<GameEntry>,
     val typed: List<String>,
-    /** The friend's top ten, as far as they share what they watch. */
-    val topTen: List<Movie> = emptyList()
+    /** The friend's top ten, as far as they share what they watch, and their honourable mentions. */
+    val topTen: List<Movie> = emptyList(),
+    val mentions: List<Movie> = emptyList()
 ) {
     val keyboard: List<List<String>> get() = CommunityService.KEYBOARD
     /** The matches the friend can be challenged to. */
@@ -155,7 +156,8 @@ class CommunityService(
                 feed = friendService.feed(listOf(friend), FEED_LIMIT),
                 games = games.filter { entry -> gamePlayerRepository.findPlayers(entry.match).any { it.user.id == friend.id } },
                 typed = typedOf(user),
-                topTen = if (friend.shareSeen) topTenRepository.findAll(friend).map { it.movie } else emptyList()
+                topTen = if (friend.shareSeen) topTenRepository.findAll(friend).filter { !it.mention }.map { it.movie } else emptyList(),
+                mentions = if (friend.shareSeen) topTenRepository.findAll(friend).filter { it.mention }.map { it.movie } else emptyList()
             )
         }
     }

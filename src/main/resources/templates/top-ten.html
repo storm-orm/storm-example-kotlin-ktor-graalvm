@@ -53,9 +53,49 @@
             </form>
             <div class="stat-card" th:if="${topTen.full}">
                 <h2>Ten in</h2>
-                <p class="stat-note">The ten are full. Take one out to put another in.</p>
+                <p class="stat-note">The ten are full. Take one out and it goes down to your honourable mentions.</p>
             </div>
+            <!-- A mention in, straight to the mentions, while there is room for one. -->
+            <form class="stat-card" th:unless="${topTen.mentionsFull}" th:action="@{/top-ten/add}" method="post" data-pick-submits>
+                <h2>An honourable mention</h2>
+                <p class="stat-note" th:text="|${topTen.mentions.size()} of fifteen, in no order. A mention counts as watched too.|">0 of fifteen, in no order.</p>
+                <input type="hidden" name="mention" value="">
+                <div class="picker search-box quiz-picker" data-picker="movie" data-picker-source="/api/search/titles">
+                    <input type="search" placeholder="A movie title…" autocomplete="off" aria-label="A movie to mention" name="title" data-picker-input>
+                    <input type="hidden" name="movie" data-picker-value>
+                    <div class="search-suggestions" data-picker-suggestions hidden></div>
+                </div>
+            </form>
         </aside>
+    </div>
+</section>
+
+<!-- The honourable mentions: the movies below the ten, in no order; each can go up into the ten while there is room, or out. -->
+<section class="section" id="mentions">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Honourable Mentions</h2>
+            <span class="section-note" th:text="|${topTen.mentions.size()} of 15 · in no order|">3 of 15 · in no order</span>
+        </div>
+        <div class="empty-state" th:if="${topTen.mentions.isEmpty()}">The ones that did not make the ten but deserve a word: a movie taken out of a full ten lands here, or put one in on the right.</div>
+        <div class="mentions" th:unless="${topTen.mentions.isEmpty()}">
+            <div class="mention" th:each="entry : ${topTen.mentions}">
+                <a th:href="@{/movie/{id}(id=${entry.movie.id})}" th:title="${entry.movie.primaryTitle}">
+                    <div th:replace="~{fragments/cards :: posterThumb(${entry.movie.id}, ${entry.movie.primaryTitle})}"></div>
+                </a>
+                <span class="mention-title" th:text="${entry.movie.primaryTitle}">Heat</span>
+                <span class="mention-actions">
+                    <form th:action="@{/top-ten/promote}" method="post" th:unless="${topTen.full}">
+                        <input type="hidden" name="movie" th:value="${entry.movie.id}">
+                        <button type="submit" class="link-button" title="Into the ten">↑ Into the ten</button>
+                    </form>
+                    <form th:action="@{/top-ten/remove}" method="post">
+                        <input type="hidden" name="movie" th:value="${entry.movie.id}">
+                        <button type="submit" class="link-button" title="Take it out">×</button>
+                    </form>
+                </span>
+            </div>
+        </div>
     </div>
 </section>
 
