@@ -368,7 +368,8 @@ private fun Application.configureStorm() {
                     "db/migration/V39__closed_games.sql",
                     "db/migration/V40__name_that_cast.sql",
                     "db/migration/V41__levels.sql",
-                    "db/migration/V42__match_pools.sql"
+                    "db/migration/V42__match_pools.sql",
+                    "db/migration/V43__night_swipe.sql"
                 )))
                 .load()
                 .migrate()

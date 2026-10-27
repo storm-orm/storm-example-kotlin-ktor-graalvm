@@ -10,6 +10,7 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.thymeleaf.ThymeleafContent
 import io.ktor.server.util.getOrFail
+import st.orm.demo.imdb.model.NightMethod
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.service.MovieNightService
 import st.orm.demo.imdb.service.MovieSeenService
@@ -47,7 +48,9 @@ fun Route.movieNightRoutes(movieNightService: MovieNightService, movieSeenServic
             serviceIds = if (form["where"] == "cinema") emptySet() else form.getAll("service").orEmpty().mapNotNull { it.toIntOrNull() }.toSet(),
             cinema = form["where"] == "cinema",
             listId = form["list"]?.toLongOrNull(),
-            country = call.country()?.code
+            country = call.country()?.code,
+            // A vote on a few, or a swipe round of the club on a deck.
+            method = if (form["method"] == "swipe") NightMethod.SWIPE else NightMethod.VOTE
         )
         when (planned) {
             is Planned.Night -> call.respondRedirect("/nights/${planned.night.id}")

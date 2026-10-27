@@ -4094,3 +4094,7 @@ body::after {
 .pool-kind { display: inline-flex; align-items: center; gap: 8px; }
 .pool-kind::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 8px rgba(var(--cyan-rgb), 0.7); }
 .pool-count { padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border); }
+
+/* A night chosen by swiping: the way into the round, above the deck. */
+.night-swipe { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin: 0 0 18px; padding: 14px 18px; border-radius: var(--radius); border: 1px solid rgba(var(--cyan-rgb), 0.4); background: rgba(var(--cyan-rgb), 0.06); }
+.night-swipe .stat-note { margin: 0; flex: 1 1 320px; }

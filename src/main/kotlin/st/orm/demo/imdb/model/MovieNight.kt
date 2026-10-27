@@ -16,6 +16,9 @@ import java.time.LocalDate
  * the members vote ([MovieNightVote]), and the [winner] is the movie of
  * the night once the host picks it.
  */
+/** How a night's movie is chosen: by a vote on the candidates, or by a swipe round of the club on them. */
+enum class NightMethod { VOTE, SWIPE }
+
 data class MovieNight(
     @PK val id: Long = 0,
     @FK val club: Club,
@@ -27,5 +30,8 @@ data class MovieNight(
     val cinema: Boolean,
     @FK val list: Ref<MovieList>?,
     @FK val winner: Movie?,
-    val createdAt: Instant
+    val createdAt: Instant,
+    val method: NightMethod = NightMethod.VOTE,
+    /** The club's swipe round on the candidates, for a night chosen by swiping. */
+    @FK val swipeMatch: Ref<GameMatch>? = null
 ) : Entity<Long>

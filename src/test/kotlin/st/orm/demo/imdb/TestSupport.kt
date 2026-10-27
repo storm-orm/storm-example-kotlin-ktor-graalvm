@@ -27,8 +27,10 @@ import st.orm.demo.imdb.service.MovieSeenService
 import st.orm.demo.imdb.service.MovieSourceService
 import st.orm.demo.imdb.service.PoolService
 import st.orm.demo.imdb.service.RecommendationService
+import st.orm.demo.imdb.service.SwipeService
 import st.orm.demo.imdb.service.TmdbClient
 import st.orm.demo.imdb.service.TmdbService
+import st.orm.demo.imdb.service.WatchlistService
 import st.orm.repository.repository
 import st.orm.template.ORMTemplate
 import st.orm.test.SqlCapture
@@ -94,4 +96,16 @@ fun ORMTemplate.liftTo(user: User, level: Level): User {
     val users = repository<UserRepository>()
     users.update(users.getById(user.id).copy(level = level))
     return users.getById(user.id)
+}
+
+fun swipeService(orm: ORMTemplate): SwipeService {
+    val recommendations = recommendationService(orm)
+    return SwipeService(
+        matchService(orm), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(),
+        orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(),
+        WatchlistService(orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository<CheckInRepository>(), recommendations),
+        movieSeenService(orm),
+        recommendations,
+        poolService(orm)
+    )
 }

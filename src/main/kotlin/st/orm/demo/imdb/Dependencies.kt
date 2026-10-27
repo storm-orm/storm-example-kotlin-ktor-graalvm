@@ -117,6 +117,7 @@ fun Application.configureDependencies() {
             MovieNightService(
                 resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(),
                 resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(),
+                resolve(), resolve(), resolve(), resolve(),
             )
         }
         provide { ListService(resolve(), resolve(), resolve(), resolve(), resolve()) }

@@ -9,8 +9,8 @@
         <a class="back-link" th:href="@{/clubs/{id}(id=${plan.club.id})}" th:text="|← ${plan.club.name}|">← Office film club</a>
         <h1 class="page-title">Plan a Movie Night</h1>
         <p class="page-subtitle">
-            Pick the day and where you will watch. Six movies nobody in the club has seen go to the vote:
-            the ones most of you want to see first.
+            Pick the day, where you will watch, and how you will choose: the club votes on six movies nobody has
+            seen, or swipes a deck of them until the one you all want comes out on top.
         </p>
     </div>
 </header>
@@ -60,6 +60,26 @@
                 </div>
             </th:block>
             <input type="hidden" name="where" value="home" th:unless="${plan.cinemas}">
+            <!-- How the movie is chosen: a vote on six, or a swipe round on a deck of thirty. -->
+            <h3 class="choice-heading">How do you choose?</h3>
+            <div class="night-where-choice">
+                <label class="choice-tile night-where-tile">
+                    <input type="radio" name="method" value="vote" checked>
+                    <span class="night-where-icon" aria-hidden="true">🎟️</span>
+                    <span class="night-place">
+                        <span>Vote</span>
+                        <span class="night-place-who">six picks, everyone votes</span>
+                    </span>
+                </label>
+                <label class="choice-tile night-where-tile">
+                    <input type="radio" name="method" value="swipe">
+                    <span class="night-where-icon" aria-hidden="true">🎬</span>
+                    <span class="night-place">
+                        <span>Swipe together</span>
+                        <span class="night-place-who">a deck of thirty, the most wanted wins</span>
+                    </span>
+                </label>
+            </div>
 
             <!-- At home: the members' services, the host's own ticked, as the night is not always at the host's. -->
             <div class="night-services" th:if="${plan.country != null}">

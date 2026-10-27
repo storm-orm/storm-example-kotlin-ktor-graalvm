@@ -335,7 +335,8 @@ CREATE TABLE movie_night (
     cinema     BOOLEAN NOT NULL,
     list_id    BIGINT REFERENCES movie_list (id) ON DELETE SET NULL,
     winner_id  VARCHAR REFERENCES movie (id) ON DELETE SET NULL,
-    created_at TIMESTAMP NOT NULL
+    created_at TIMESTAMP NOT NULL,
+    method     VARCHAR NOT NULL DEFAULT 'VOTE'
 );
 CREATE INDEX idx_movie_night_club_id_night_on ON movie_night (club_id, night_on DESC);
 CREATE TABLE movie_night_provider (
@@ -410,6 +411,9 @@ CREATE TABLE game_player (
     PRIMARY KEY (match_id, user_id)
 );
 CREATE INDEX idx_game_player_user_id ON game_player (user_id);
+
+-- V43: a night chosen by swiping has the club's round on its candidates.
+ALTER TABLE movie_night ADD COLUMN swipe_match_id BIGINT REFERENCES game_match (id) ON DELETE SET NULL;
 CREATE INDEX idx_game_player_user_closed ON game_player (user_id, closed_at);
 CREATE TABLE game_card (
     match_id BIGINT NOT NULL REFERENCES game_match (id) ON DELETE CASCADE,

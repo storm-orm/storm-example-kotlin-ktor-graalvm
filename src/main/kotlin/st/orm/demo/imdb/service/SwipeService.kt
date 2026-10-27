@@ -1,5 +1,6 @@
 package st.orm.demo.imdb.service
 
+import st.orm.demo.imdb.model.Club
 import st.orm.demo.imdb.model.Game
 import st.orm.demo.imdb.model.GameMatch
 import st.orm.demo.imdb.model.GameMode
@@ -221,6 +222,22 @@ class SwipeService(
         )
         swipeRoundCardRepository.insert(movies.mapIndexed { position, movie -> SwipeRoundCard(match, position, movie) })
         match
+    }
+
+    /**
+     * Starts a club's round on a deck given: a movie night's candidates,
+     * which the members swipe to choose the night's movie, joining as they
+     * swipe. The host, a member, is in it from the start.
+     */
+    fun startRoundWith(host: User, club: Club, movies: List<Movie>, now: Instant): GameMatch {
+        val (match, _) = matchService.start(
+            GameMatch(game = Game.SWIPE, mode = GameMode.CLUB, club = club, host = host, createdAt = now,
+                closesAt = now.plus(MatchService.ROUND), endedAt = null),
+            listOf(host),
+            now
+        )
+        swipeRoundCardRepository.insert(movies.take(ROUND_CARDS).mapIndexed { position, movie -> SwipeRoundCard(match, position, movie) })
+        return match
     }
 
     /** The round for the visitor, or null when they may not look at it. */

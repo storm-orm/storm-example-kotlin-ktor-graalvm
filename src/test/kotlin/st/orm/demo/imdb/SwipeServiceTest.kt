@@ -37,18 +37,7 @@ class SwipeServiceTest {
 
     private val now = Instant.parse("2026-10-27T18:00:00Z")
 
-    private fun service(orm: ORMTemplate): SwipeService {
-        val recommendations = recommendationService(orm)
-        val matches = matchService(orm)
-        return SwipeService(
-            matches, orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(),
-            orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository(),
-            WatchlistService(orm.repository(), orm.repository(), orm.repository(), orm.repository(), orm.repository<CheckInRepository>(), recommendations),
-            movieSeenService(orm),
-            recommendations,
-            poolService(orm)
-        )
-    }
+    private fun service(orm: ORMTemplate): SwipeService = swipeService(orm)
 
     @Test
     fun `a swipe does what the movie page's buttons do, and the deck deals a movie once`(orm: ORMTemplate) {

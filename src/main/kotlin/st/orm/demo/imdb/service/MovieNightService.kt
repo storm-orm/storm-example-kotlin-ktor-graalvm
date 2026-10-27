@@ -8,11 +8,14 @@ import st.orm.demo.imdb.model.MovieNightCandidate
 import st.orm.demo.imdb.model.MovieNightProvider
 import st.orm.demo.imdb.model.MovieNightVote
 import st.orm.demo.imdb.model.MovieNightVotePk
+import st.orm.demo.imdb.model.NightMethod
+import st.orm.demo.imdb.model.SwipeWay
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.model.WatchProvider
 import st.orm.demo.imdb.repository.CheckInRepository
 import st.orm.demo.imdb.repository.ClubMemberRepository
 import st.orm.demo.imdb.repository.ClubRepository
+import st.orm.demo.imdb.repository.GameMatchRepository
 import st.orm.demo.imdb.repository.MovieListItemRepository
 import st.orm.demo.imdb.repository.MovieListRepository
 import st.orm.demo.imdb.repository.MovieNightCandidateRepository
@@ -22,6 +25,8 @@ import st.orm.demo.imdb.repository.MovieNightVoteRepository
 import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.RecommendationRepository
+import st.orm.demo.imdb.repository.SwipeRoundSwipeRepository
+import st.orm.demo.imdb.repository.UserRepository
 import st.orm.demo.imdb.repository.UserWatchProviderRepository
 import st.orm.demo.imdb.repository.WatchProviderRepository
 import st.orm.demo.imdb.repository.WatchlistRepository
@@ -76,7 +81,9 @@ data class NightView(
     val memberCount: Int,
     val canDecide: Boolean,
     val canCheckIn: Boolean,
-    val checkedIn: Boolean
+    val checkedIn: Boolean,
+    /** The club's swipe round on the candidates, for a night chosen by swiping. */
+    val swipeMatchId: Long? = null
 ) {
     val decided: Boolean get() = night.winner != null
     val day: String get() = NIGHT_DAY.format(night.nightOn)
@@ -130,7 +137,11 @@ class MovieNightService(
     private val userWatchProviderRepository: UserWatchProviderRepository,
     private val watchProviderRepository: WatchProviderRepository,
     private val checkInRepository: CheckInRepository,
-    private val tmdbService: TmdbService
+    private val tmdbService: TmdbService,
+    private val swipeService: SwipeService,
+    private val swipeRoundSwipeRepository: SwipeRoundSwipeRepository,
+    private val gameMatchRepository: GameMatchRepository,
+    private val userRepository: UserRepository
 ) {
 
     /* ── Planning ─────────────────────────────────────────────────── */
@@ -196,15 +207,17 @@ class MovieNightService(
         cinema: Boolean,
         listId: Long?,
         country: String?,
-        now: Instant = Instant.now()
+        now: Instant = Instant.now(),
+        method: NightMethod = NightMethod.VOTE
     ): Planned {
         val pool = readPool(user, clubId, serviceIds, listId) ?: return Planned.NotAllowed
         val inCinemas = if (cinema && country != null) tmdbService.nowPlayingIn(country, now) else emptyList()
         val cinemaMovies = transaction(readOnly = true) { movieRepository.findAllById(inCinemas.filter { it !in pool.movies }) }.associateBy { it.id }
-        val candidates = candidatesOf(pool, inCinemas, cinemaMovies, country, cinema)
+        // A vote is on a few; a swipe round takes a deck.
+        val candidates = candidatesOf(pool, inCinemas, cinemaMovies, country, cinema, if (method == NightMethod.SWIPE) SwipeService.ROUND_CARDS else CANDIDATES)
         if (candidates.isEmpty()) return Planned.NothingFound
         return transaction {
-            val night = movieNightRepository.insertAndFetch(MovieNight(
+            val planned = movieNightRepository.insertAndFetch(MovieNight(
                 club = pool.club,
                 host = user,
                 title = title.trim().take(TITLE_LENGTH).ifEmpty { DEFAULT_TITLE },
@@ -213,10 +226,16 @@ class MovieNightService(
                 cinema = cinema,
                 list = pool.list?.ref(),
                 winner = null,
-                createdAt = now
+                createdAt = now,
+                method = method
             ))
-            movieNightProviderRepository.insert(pool.services.map { MovieNightProvider(night, it) })
-            movieNightCandidateRepository.insert(candidates.mapIndexed { i, (movie, reason) -> MovieNightCandidate(night, movie, i, reason) })
+            movieNightProviderRepository.insert(pool.services.map { MovieNightProvider(night = planned, it) })
+            movieNightCandidateRepository.insert(candidates.mapIndexed { i, (movie, reason) -> MovieNightCandidate(planned, movie, i, reason) })
+            // Chosen by swiping: the club's round on the candidates, the members joining as they swipe.
+            val night = if (method == NightMethod.SWIPE) {
+                val round = swipeService.startRoundWith(user, pool.club, candidates.map { it.first }, now)
+                planned.copy(swipeMatch = round.ref()).also(movieNightRepository::update)
+            } else planned
             Planned.Night(night)
         }
     }
@@ -279,7 +298,8 @@ class MovieNightService(
         inCinemas: List<String>,
         cinemaMovies: Map<String, Movie>,
         country: String?,
-        cinema: Boolean
+        cinema: Boolean,
+        limit: Int = CANDIDATES
     ): List<Pair<Movie, String>> {
         fun score(id: String) = (pool.listed[id] ?: 0) * LISTED_WEIGHT + (pool.fit[id] ?: 0.0) * FIT_WEIGHT
         val unseen = pool.movies.values.filter { it.id !in pool.seen }.sortedByDescending { score(it.id) }
@@ -291,7 +311,7 @@ class MovieNightService(
             val playing = inCinemas.mapNotNull { pool.movies[it] ?: cinemaMovies[it].takeIf { pool.list == null } }.filter { it.id !in pool.seen }
             playing.withIndex()
                 .sortedByDescending { (rank, movie) -> score(movie.id) + (playing.size - rank) * POPULARITY_WEIGHT / playing.size }
-                .take(CANDIDATES)
+                .take(limit)
                 .forEach { add(it.value, "In cinemas") }
         }
         if (pool.services.isNotEmpty() && country != null) {
@@ -307,7 +327,7 @@ class MovieNightService(
         return found.values
             .sortedByDescending { (movie, _) -> score(movie.id) }
             .let { if (cinema && pool.services.isNotEmpty()) mix(it) else it }
-            .take(CANDIDATES)
+            .take(limit)
             .map { (movie, where) -> movie to reasonOf(movie, where.first(), pool) }
     }
 
@@ -336,8 +356,7 @@ class MovieNightService(
     suspend fun nightOf(user: User, nightId: Long, today: LocalDate = LocalDate.now(ZoneOffset.UTC)): NightView? = transaction(readOnly = true) {
         val night = movieNightRepository.findById(nightId) ?: return@transaction null
         val me = clubMemberRepository.findMember(night.club, user.id) ?: return@transaction null
-        val votes = movieNightVoteRepository.findVotes(night)
-        val byMovie = votes.groupBy({ it.movie.entityId() }, { it.user })
+        val byMovie = supportOf(night)
         val most = byMovie.values.maxOfOrNull { it.size }?.coerceAtLeast(1) ?: 1
         val winner = night.winner
         NightView(
@@ -347,8 +366,9 @@ class MovieNightService(
                 val voters = byMovie[it.movie.id].orEmpty()
                 CandidateView(it, voters, 100.0 * voters.size / most)
             },
-            myVotes = votes.filter { it.user.id == user.id }.map { it.movie.entityId() }.toSet(),
-            voterCount = votes.map { it.user.id }.distinct().size,
+            myVotes = byMovie.filterValues { wanting -> wanting.any { it.id == user.id } }.keys,
+            voterCount = byMovie.values.flatten().distinctBy { it.id }.size,
+            swipeMatchId = night.swipeMatch?.entityId(),
             memberCount = clubMemberRepository.countMembers(night.club).toInt(),
             canDecide = night.host.id == user.id || me.admin,
             canCheckIn = winner != null && !night.nightOn.isAfter(today) && !night.nightOn.isBefore(today.minusDays(CHECK_IN_DAYS)),
@@ -379,6 +399,17 @@ class MovieNightService(
      * the most votes, the better ranked of a tie, the best ranked without
      * any. [reopen] takes the pick back, for another round of votes.
      */
+    /** Who wants each candidate, by movie id: the voters, or, chosen by swiping, whoever swiped it right in the round. */
+    private fun supportOf(night: MovieNight): Map<String, List<User>> = when (night.method) {
+        NightMethod.VOTE -> movieNightVoteRepository.findVotes(night).groupBy({ it.movie.entityId() }, { it.user })
+        NightMethod.SWIPE -> {
+            val match = night.swipeMatch?.let { gameMatchRepository.findById(it.entityId()) } ?: return emptyMap()
+            val swipes = swipeRoundSwipeRepository.findSwipes(match).filter { it.way == SwipeWay.WANT }
+            val users = userRepository.findAllById(swipes.map { it.user.entityId() }.distinct()).associateBy { it.id }
+            swipes.groupBy({ it.movie.entityId() }, { users.getValue(it.user.entityId()) })
+        }
+    }
+
     suspend fun decide(user: User, nightId: Long, reopen: Boolean = false) = transaction {
         val night = movieNightRepository.findById(nightId) ?: return@transaction
         val me = clubMemberRepository.findMember(night.club, user.id) ?: return@transaction
@@ -387,7 +418,7 @@ class MovieNightService(
             movieNightRepository.update(night.copy(winner = null))
             return@transaction
         }
-        val votes = movieNightVoteRepository.findVotes(night).groupingBy { it.movie.entityId() }.eachCount()
+        val votes = supportOf(night).mapValues { it.value.size }
         val winner = movieNightCandidateRepository.findCandidates(night)
             .maxWithOrNull(compareBy<MovieNightCandidate> { votes[it.movie.id] ?: 0 }.thenByDescending { it.position })
             ?: return@transaction

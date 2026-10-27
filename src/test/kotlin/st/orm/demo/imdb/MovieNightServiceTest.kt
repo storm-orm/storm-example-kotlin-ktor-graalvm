@@ -9,6 +9,8 @@ import org.junit.jupiter.api.Test
 import st.orm.demo.imdb.model.Club
 import st.orm.demo.imdb.model.ClubMember
 import st.orm.demo.imdb.model.MovieSeen
+import st.orm.demo.imdb.model.NightMethod
+import st.orm.demo.imdb.model.SwipeWay
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.model.Watchlist
 import st.orm.demo.imdb.repository.CheckInRepository
@@ -32,6 +34,7 @@ import st.orm.demo.imdb.service.Planned
 import st.orm.demo.imdb.service.TmdbClient
 import st.orm.repository.repository
 import st.orm.template.ORMTemplate
+import st.orm.template.entityId
 import st.orm.test.StormTest
 import tools.jackson.module.kotlin.jacksonObjectMapper
 import java.time.Instant
@@ -56,7 +59,8 @@ class MovieNightServiceTest {
         orm.repository<UserWatchProviderRepository>(),
         orm.repository<WatchProviderRepository>(),
         orm.repository<CheckInRepository>(),
-        tmdbService(orm, TmdbClient(null, jacksonObjectMapper()))
+        tmdbService(orm, TmdbClient(null, jacksonObjectMapper())),
+        swipeService(orm), orm.repository(), orm.repository(), orm.repository()
     )
 
     private val now = Instant.parse("2026-10-26T10:00:00Z")
@@ -93,6 +97,33 @@ class MovieNightServiceTest {
         assertEquals("On 2 watchlists", view.candidates.first().candidate.reason)
         assertFalse(view.canDecide)
         assertNull(runBlocking { service.nightOf(carol, night.id) })
+    }
+
+    @Test
+    fun `a night chosen by swiping runs the club's round on the deck, and the most swiped right wins`(orm: ORMTemplate) {
+        val alice = orm.insertUser("alice-swipe-night", name = "Alice")
+        val bob = orm.insertUser("bob-swipe-night", name = "Bob")
+        val club = club(orm, alice to true, bob to false)
+        val movies = orm.repository<MovieRepository>()
+        orm.repository<WatchlistRepository>().insert(listOf(Watchlist(alice, movies.getById("tt0110912"), now), Watchlist(bob, movies.getById("tt0068646"), now)))
+        val service = service(orm)
+        val night = (runBlocking { service.plan(alice, club.id, "Swipe night", LocalDate.parse("2026-10-30"), emptySet(), false, null, "NL", now, NightMethod.SWIPE) } as Planned.Night).night
+        assertEquals(NightMethod.SWIPE, night.method)
+        val matchId = night.swipeMatch!!.entityId()
+
+        // Both want The Godfather; Alice passes on Pulp Fiction.
+        val swipes = swipeService(orm)
+        runBlocking { swipes.swipeInRound(bob, matchId, "tt0068646", SwipeWay.WANT, now) }
+        runBlocking { swipes.swipeInRound(alice, matchId, "tt0068646", SwipeWay.WANT, now) }
+        runBlocking { swipes.swipeInRound(alice, matchId, "tt0110912", SwipeWay.PASS, now) }
+        val view = runBlocking { service.nightOf(bob, night.id) }!!
+        assertEquals(matchId, view.swipeMatchId)
+        assertEquals(2, view.candidates.first { it.movie.id == "tt0068646" }.voters.size)
+        assertTrue(view.myVotes.contains("tt0068646"))
+        assertEquals(2, view.voterCount)
+
+        runBlocking { service.decide(alice, night.id) }
+        assertEquals("The Godfather", runBlocking { service.nightOf(alice, night.id) }!!.night.winner!!.primaryTitle)
     }
 
     @Test
