@@ -4277,6 +4277,10 @@ body::after {
 .seat .honour-mark { width: 12px; height: 13px; right: -4px; bottom: -4px; }
 .goat-note strong { color: #e6bd5c; }
 
+/* Total Recall: what to recall, a movie's cast or a person's movies, chosen beside the start buttons. */
+.recall-of { display: inline-flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 14px; }
+.recall-of select { padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-raised); color: var(--text); font: inherit; font-size: 14px; }
+
 /* ── Face/Off, The Usual Suspects, Memento, Amadeus ───────────────── */
 
 .game-face-off { --tone: var(--accent-rgb); }

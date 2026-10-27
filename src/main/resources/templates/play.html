@@ -212,32 +212,27 @@
             <span class="game-lock" th:if="${locks['CONNECT'] != null}" th:text="${locks['CONNECT'].text}">Unlocks at Bit Part · 12 movies to go</span>
         </div>
 
-        <!-- Role Call: a movie from the house; bid how many of its cast you can name, then name them. -->
+        <!-- Total Recall: the house picks a movie, its cast to name, or an actor or director, their movies; bid how many
+             you can name, then name them. The choice of what to recall goes with the start form. -->
         <div class="game-card game-cast">
             <span class="game-art game-art-cast" aria-hidden="true">
                 <span class="game-art-poster"></span><span class="game-art-bid">12</span>
             </span>
-            <span class="game-title">Role Call</span>
-            <span class="game-text">The house picks a movie. How many of its cast can you name, the director too? Bid against your
-                friend or your club: the highest bid has to name them all. On your own, name as many as you know.</span>
+            <span class="game-title">Total Recall</span>
+            <span class="game-text">The house picks a movie, or an actor or a director. How many of the cast can you name, the director
+                too, or how many of their movies? Bid against your friend or your club: the highest bid has to name them all.
+                On your own, name as many as you know.</span>
             <th:block th:if="${locks['CAST'] == null}">
+            <label class="recall-of">
+                <span>Recall</span>
+                <select name="of" form="cast-start" aria-label="What to recall">
+                    <option value="movie">the cast of a movie</option>
+                    <option value="person">the movies of an actor or director</option>
+                </select>
+            </label>
             <form th:replace="~{fragments/games :: startForm('/play/cast', 'Challenge', 'Start a round')}"></form>
             </th:block>
-            <span class="game-lock" th:if="${locks['CAST'] != null}" th:text="${locks['CAST'].text}">Unlocks at Bit Part · 12 movies to go</span>
-        </div>
-
-        <!-- Reel Call: Role Call the other way round, a person from the house, their movies to name. -->
-        <div class="game-card game-reel">
-            <span class="game-art game-art-cast" aria-hidden="true">
-                <span class="game-art-poster"></span><span class="game-art-poster"></span><span class="game-art-bid">24</span>
-            </span>
-            <span class="game-title">Reel Call</span>
-            <span class="game-text">The house picks an actor or a director. How many of their movies can you name? Bid against your
-                friend or your club: the highest bid has to name them all. On your own, name as many as you know.</span>
-            <th:block th:if="${locks['REEL'] == null}">
-            <form th:replace="~{fragments/games :: startForm('/play/reel', 'Challenge', 'Start a round')}"></form>
-            </th:block>
-            <span class="game-lock" th:if="${locks['REEL'] != null}" th:text="${locks['REEL'].text}">Unlocks at Supporting</span>
+            <span class="game-lock" th:if="${locks['CAST'] != null}" th:text="${locks['CAST'].text}">Unlocks at Supporting</span>
         </div>
     </div>
 </section>

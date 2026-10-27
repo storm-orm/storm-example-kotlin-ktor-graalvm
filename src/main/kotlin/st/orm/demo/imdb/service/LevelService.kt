@@ -176,7 +176,7 @@ class LevelService(
             progress,
             Level.entries.map { LevelRung(it, GameRules.unlockedAt(it), LevelRites.statusOf(it, earned, invited), progress.level.reaches(it), it == progress.level) },
             walkOf(user),
-            GameRules.all,
+            GameRules.named,
             movieSeenRepository.findMostRecent(user, WALL_POSTERS).map { it.movie }
         )
     }

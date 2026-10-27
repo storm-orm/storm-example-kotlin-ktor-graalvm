@@ -30,7 +30,7 @@ import st.orm.template.transaction
 import java.time.Duration
 import java.time.Instant
 
-/** Where a round of Role Call is: the players bidding, the top bidder naming, or over. */
+/** Where a round of Total Recall is: the players bidding, the top bidder naming, or over. */
 enum class CastPhase { BIDDING, NAMING, OVER }
 
 /** A player's bid as the round shows it: how many, once the bidding is over; before that, only that they bid. */
@@ -40,13 +40,13 @@ data class CastBidView(val user: User, val count: Int?, val you: Boolean)
 data class CastReveal(val credit: Credit, val named: Boolean, val personId: String?, val movieId: String? = null)
 
 /**
- * A round of Role Call for a player: the movie, where the round is,
+ * A round of Total Recall for a player: the movie, where the round is,
  * the bids, who names and how many they bid ([target], none on one's own),
  * the names given so far, and, once over, the whole cast with the ones named.
  */
 data class CastView(
     val match: GameMatch,
-    /** The movie whose cast is the question, in Role Call; or the person whose movies are, in Reel Call. */
+    /** The movie whose cast is the question; or the person whose movies are, in a round of a person. */
     val movie: Movie?,
     val person: Person?,
     val phase: CastPhase,
@@ -68,7 +68,7 @@ data class CastView(
     val strikesLeft: Int get() = CastService.STRIKES - strikes
     /** Whether the round is of a person, their movies to name. */
     val reel: Boolean get() = person != null
-    val title: String get() = if (reel) "Reel Call" else "Role Call"
+    val title: String get() = "Total Recall"
     /** What is to be named: "actors and the director", or "movies". */
     val named: String get() = if (reel) "movies" else "cast"
 }
@@ -82,7 +82,7 @@ data class CastLiveAnswer(val answer: String, val credit: String?)
 data class CastLive(val version: String, val phase: String, val right: Int, val strikes: Int, val answers: List<CastLiveAnswer>)
 
 /**
- * Role Call: the house picks a well-known movie, and the players say
+ * Total Recall: the house picks a well-known movie, and the players say
  * how many of its cast they can name, the director counting too. With a
  * friend or a club everyone bids at once, in their own time: the bidding
  * closes once all have bid, or after a day. The highest bid, of equal ones
@@ -126,8 +126,8 @@ class CastService(
             val players = matchService.playersOf(host, opponents, rule)?.second ?: return@transaction null
             poolService.poolOf(host, players, rule.pool, minimumVotes, POOL, minimum = MINIMUM_SHARED)
         } ?: return null
-        // Role Call: a movie with cast enough, its credits asked outside any transaction, so no connection waits on TMDB.
-        // Reel Call: someone top-billed in the pool's movies with well-known movies enough to name.
+        // Of a movie: one with cast enough, its credits asked outside any transaction, so no connection waits on TMDB.
+        // Of a person: someone top-billed in the pool's movies with well-known movies enough to name.
         val movie = if (game == Game.CAST) pool.movies.shuffled().take(TRIES).firstOrNull { movieCredits(it, askTmdb = host.name != null, now).size >= minimumCredits } ?: return null else null
         val person = if (game == Game.REEL) transaction(readOnly = true) { personFor(pool) } ?: return null else null
         return transaction {
@@ -402,7 +402,7 @@ class CastService(
         private const val MINIMUM_CREDITS = 8
         /** The movies the players must share for the round to be played from them. */
         private const val MINIMUM_SHARED = 8
-        /** The actors of a movie who may be the question of Reel Call: the top-billed. */
+        /** The actors of a movie who may be the question of a round of a person: the top-billed. */
         private const val TOP_BILLED = 4
         /** The votes a movie needs to count among a person's movies to name. */
         private const val REEL_VOTES = 10_000

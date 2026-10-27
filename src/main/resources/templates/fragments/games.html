@@ -3,7 +3,8 @@
 <body>
 
 <!-- The ways to start a match: on one's own, against one of the visitor's friends, or with one of their clubs. -->
-<form th:fragment="startForm(action, friendLabel, clubLabel)" class="game-start" th:action="${action}" method="post">
+<!-- The form carries an id from its action ("cast-start" for /play/cast), for a field outside it that belongs to it. -->
+<form th:fragment="startForm(action, friendLabel, clubLabel)" class="game-start" th:action="${action}" method="post" th:id="${#strings.replace(action, '/play/', '') + '-start'}">
     <button type="submit" name="mode" value="solo" class="button button-primary">On your own</button>
     <span class="game-with" th:unless="${play.company.friends.isEmpty()}">
         <select name="friend" aria-label="Friend">

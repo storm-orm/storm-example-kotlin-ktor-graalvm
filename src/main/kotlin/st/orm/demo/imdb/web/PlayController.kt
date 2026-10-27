@@ -49,7 +49,7 @@ private fun Parameters.opponents(): Opponents = when (this["mode"]) {
 /** A match's page: its template and its model. */
 private fun page(template: String, vararg model: Pair<String, Any?>): Pair<String, Map<String, Any?>> = template to mapOf(*model)
 
-/** What came of a name given in Role Call, and the round as it stands after it, for the page that sent it. */
+/** What came of a name given in Total Recall, and the round as it stands after it, for the page that sent it. */
 @Serializable
 data class CastNamed(val verdict: String, val live: CastLive)
 
@@ -90,24 +90,25 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
         call.respondRedirect("/play#your-games")
     }
 
-    for ((path, game, start) in listOf<Triple<String, Game, suspend (User, Opponents) -> GameMatch?>>(
-        Triple("/play/higher-lower", Game.HIGHER_LOWER) { user, opponents -> higherLowerService.start(user, opponents) },
-        Triple("/play/chain", Game.CHAIN) { user, opponents -> chainService.start(user, opponents) },
-        Triple("/play/draft", Game.DRAFT) { user, opponents -> draftService.start(user, opponents) },
-        Triple("/play/swipe", Game.SWIPE) { user, opponents -> swipeService.startRound(user, opponents) },
-        Triple("/play/connect", Game.CONNECT) { user, opponents -> connectService.start(user, opponents) },
-        Triple("/play/cast", Game.CAST) { user, opponents -> castService.start(user, opponents) },
-        Triple("/play/reel", Game.REEL) { user, opponents -> castService.start(user, opponents, game = Game.REEL) }
+    for ((path, game, start) in listOf<Triple<String, Game, suspend (User, Opponents, Parameters) -> GameMatch?>>(
+        Triple("/play/higher-lower", Game.HIGHER_LOWER) { user, opponents, _ -> higherLowerService.start(user, opponents) },
+        Triple("/play/chain", Game.CHAIN) { user, opponents, _ -> chainService.start(user, opponents) },
+        Triple("/play/draft", Game.DRAFT) { user, opponents, _ -> draftService.start(user, opponents) },
+        Triple("/play/swipe", Game.SWIPE) { user, opponents, _ -> swipeService.startRound(user, opponents) },
+        Triple("/play/connect", Game.CONNECT) { user, opponents, _ -> connectService.start(user, opponents) },
+        // Total Recall: of a movie, its cast to name, or of a person, their movies, as the form says.
+        Triple("/play/cast", Game.CAST) { user, opponents, params -> castService.start(user, opponents, game = if (params["of"] == "person") Game.REEL else Game.CAST) }
     )) {
         post(path) {
-            val opponents = call.receiveParameters().opponents()
+            val params = call.receiveParameters()
+            val opponents = params.opponents()
             val user = call.currentUser()
             if (opponents.mode != GameMode.SOLO && user.name == null) return@post call.respondRedirect("/signin?rd=/play")
             // A game the visitor's level does not reach yet: the Play page says what it takes.
             if (!levelService.canStart(call.levelProgress(), game)) return@post call.respondRedirect("/play?locked=${game.name}#games")
             // At the most games open, the oldest on one's own closes; with all of them played with others, none starts.
             if (!playService.makeRoom(user)) return@post call.respondRedirect("/play?full#your-games")
-            val match = start(user, opponents)
+            val match = start(user, opponents, params)
                 ?: return@post call.respondRedirect(if (opponents.mode == GameMode.SOLO) "/play" else "/play?refused=${game.name}#games")
             call.respondRedirect("/play/matches/${match.id}")
         }
@@ -215,7 +216,7 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
         }
     }
 
-    // Role Call: a bid, a name given, or the namer stopping. A name sent by the page's script is answered
+    // Total Recall: a bid, a name given, or the namer stopping. A name sent by the page's script is answered
     // with the round as it stands, so the page adds it in place; without the script, back to the round.
     post("/play/matches/{id}/bid") {
         val matchId = call.parameters.getOrFail<Long>("id")
@@ -241,7 +242,7 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
         call.respondRedirect("/play/matches/$matchId")
     }
 
-    // Where a round of Role Call stands, for the page that follows the namer without reloading.
+    // Where a round of Total Recall stands, for the page that follows the namer without reloading.
     get("/api/play/matches/{id}/cast") {
         val live = castService.liveOf(call.currentUser(), call.parameters.getOrFail<Long>("id"))
             ?: return@get call.respond(HttpStatusCode.NotFound)

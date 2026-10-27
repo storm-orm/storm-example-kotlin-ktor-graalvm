@@ -7,7 +7,7 @@
 <header class="page-header">
     <div class="container">
         <a class="back-link" th:href="@{/play}">← Play</a>
-        <h1 class="page-title" th:text="${round.title}">Role Call</h1>
+        <h1 class="page-title" th:text="${round.title}">Total Recall</h1>
         <p class="page-subtitle" th:with="what=${round.reel} ? 'their movies' : 'the cast, the director counting too'">
             <th:block th:switch="${round.match.mode.name()}">
                 <th:block th:case="'SOLO'" th:text="|On your own: name as many of ${what} as you can. Three wrong names and it is over.|">On your own.</th:block>

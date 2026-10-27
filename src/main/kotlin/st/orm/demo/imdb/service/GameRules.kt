@@ -35,14 +35,18 @@ object GameRules {
         GameRule(Game.CHAIN, "Movie Chain", Level.BIT_PART, PoolKind.UNION),
         GameRule(Game.CONNECT, "Connect", Level.BIT_PART, PoolKind.UNION),
         GameRule(Game.DRAFT, "Movie Draft", Level.SUPPORTING, PoolKind.UNION),
-        GameRule(Game.CAST, "Role Call", Level.SUPPORTING, PoolKind.INTERSECTION),
-        GameRule(Game.REEL, "Reel Call", Level.SUPPORTING, PoolKind.INTERSECTION)
+        // Total Recall is one game of two kinds, of a movie (CAST) or of a person (REEL): one rule each, one name.
+        GameRule(Game.CAST, "Total Recall", Level.SUPPORTING, PoolKind.INTERSECTION),
+        GameRule(Game.REEL, "Total Recall", Level.SUPPORTING, PoolKind.INTERSECTION)
     ).associateBy { it.game }
 
     fun of(game: Game): GameRule = rules.getValue(game)
 
-    /** The games a level unlocks, in their order. */
-    fun unlockedAt(level: Level): List<GameRule> = rules.values.filter { it.level == level }
+    /** The games a level unlocks, in their order, a game of two kinds once. */
+    fun unlockedAt(level: Level): List<GameRule> = rules.values.filter { it.level == level }.distinctBy { it.title }
 
     val all: List<GameRule> get() = rules.values.toList()
+
+    /** Every game once, by name, for the lists that tell about them. */
+    val named: List<GameRule> get() = rules.values.distinctBy { it.title }
 }

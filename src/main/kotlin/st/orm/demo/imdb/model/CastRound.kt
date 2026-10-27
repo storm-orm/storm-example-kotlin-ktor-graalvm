@@ -11,8 +11,8 @@ import st.orm.template.ref
 import java.time.Instant
 
 /**
- * A round of Role Call, of the movie the house picked, whose cast is to be
- * named; or of Reel Call, of the person the house picked, whose movies
+ * A round of Total Recall, of the movie the house picked, whose cast is to be
+ * named; or of the person the house picked, whose movies
  * are. A dependent one-to-one: the key is the match itself. The players'
  * bids are its [CastBid]s and the names given its [CastAnswer]s.
  */

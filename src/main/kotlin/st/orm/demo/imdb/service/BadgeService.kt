@@ -206,7 +206,7 @@ class BadgeService(
     }
 
     companion object {
-        /** The bid a Role Call round has to be won at for its badge. */
+        /** The bid a Total Recall round has to be won at for its badge. */
         const val CAST_CALL_BID = 10
         /** The games a win counts in: the ones with a score to compare. */
         private val SCORED_GAMES = setOf(Game.HIGHER_LOWER, Game.CHAIN)
