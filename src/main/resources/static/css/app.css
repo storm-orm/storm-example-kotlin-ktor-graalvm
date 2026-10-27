@@ -4236,7 +4236,8 @@ body::after {
 
 /* The star in the pavement, in its own colours: coral-pink terrazzo flecked with charcoal, a brass star with
    the bronze emblem, the name set in brass under it. Unlit until the level is reached, lit with a glow once it is. */
-.level-rung.walk .level-rung-mark { border: 0; border-radius: 0; background: linear-gradient(160deg, #e9c87a, #b8873a 60%, #d9b25e); clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); box-shadow: none; opacity: 0.45; }
+/* The star on the line is the biggest mark on the ladder, set over the line's end. */
+.level-rung.walk .level-rung-mark { width: 44px; height: 44px; margin: -8px 0 0 -10px; border: 0; border-radius: 0; background: linear-gradient(160deg, #e9c87a, #b8873a 60%, #d9b25e); clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); box-shadow: none; opacity: 0.55; }
 .level-rung.walk.reached .level-rung-mark, .level-rung.walk.current .level-rung-mark { opacity: 1; filter: drop-shadow(0 0 8px rgba(233, 200, 122, 0.8)); }
 .walk-star { display: inline-flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 12px; padding: 16px 22px 12px; border-radius: 6px; color: #3a2a12; opacity: 0.7; transition: opacity 0.3s ease, transform 0.2s ease;
     background:
