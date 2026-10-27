@@ -74,19 +74,25 @@ class LevelService(
         return LevelProgress(level, score, watched, checkedIn)
     }
 
-    /** The games the user cannot start yet, by the game's name, each with why. */
-    suspend fun locksOf(user: User): Map<String, GameLock> = transaction {
-        val progress = progressIn(user)
+    /** The games a user at [progress] cannot start yet, by the game's name, each with why. */
+    fun locksOf(progress: LevelProgress): Map<String, GameLock> =
         GameRules.all.filter { !progress.level.reaches(it.level) }
             .associate { it.game.name to GameLock(it.game, it.level, ceil(it.level.threshold - progress.score).toInt().coerceAtLeast(1)) }
-    }
+
+    /** The games the user cannot start yet, by the game's name, each with why. */
+    suspend fun locksOf(user: User): Map<String, GameLock> = locksOf(progressOf(user))
+
+    /** Whether a user at [progress] may start a game: their level reaches the game's. */
+    fun canStart(progress: LevelProgress, game: Game): Boolean = progress.level.reaches(GameRules.of(game).level)
 
     /** Whether the user may start a game: their level reaches the game's. */
-    suspend fun canStart(user: User, game: Game): Boolean = transaction { progressIn(user).level.reaches(GameRules.of(game).level) }
+    suspend fun canStart(user: User, game: Game): Boolean = canStart(progressOf(user), game)
 
     /** The levels page for the user. */
-    suspend fun levelsOf(user: User): LevelsView = transaction {
-        val progress = progressIn(user)
+    suspend fun levelsOf(user: User): LevelsView = levelsOf(user, progressOf(user))
+
+    /** The levels page for the user, at [progress]. */
+    suspend fun levelsOf(user: User, progress: LevelProgress): LevelsView = transaction {
         LevelsView(
             progress,
             Level.entries.map { LevelRung(it, GameRules.unlockedAt(it), progress.level.reaches(it), it == progress.level) },

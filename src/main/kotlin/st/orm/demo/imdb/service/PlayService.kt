@@ -1,5 +1,6 @@
 package st.orm.demo.imdb.service
 
+import java.util.concurrent.ConcurrentHashMap
 import st.orm.demo.imdb.model.Club
 import st.orm.demo.imdb.model.Game
 import st.orm.demo.imdb.model.GameMatch
@@ -83,17 +84,34 @@ class PlayService(
         val company = matchService.companyOf(user)
         val open = openGamesOf(user, now)
         // The club's rounds the visitor has no part in yet; one they closed is not offered again.
-        val clubRounds = gameMatchRepository.findOpen(company.clubs, now, LIMIT)
-            .filter { gamePlayerRepository.findById(GamePlayerPk(matchId = it.id, userId = user.id)) == null }
-        val entries = open + clubRounds.map { entryOf(user, it, null, now) }
+        val rounds = gameMatchRepository.findOpen(company.clubs, now, LIMIT)
+        val joined = gamePlayerRepository.findMine(user, rounds).map { it.match.id }.toSet()
+        val entries = open + rounds.filter { it.id !in joined }.map { entryOf(user, it, null, now) }
         PlayView(
             entries.sortedWith(compareByDescending<GameEntry> { it.yourMove }.thenByDescending { it.match.createdAt }),
             gamePlayerRepository.findClosed(user, 0, FINISHED_SHOWN).content().map { closedEntryOf(user, it, now) },
             company,
-            ratingRepository.findBestKnown(user.movieFilter, POSTER_VOTES, POSTER_POOL).shuffled().take(POSTERS).map { it.movie },
+            wallOf(user).shuffled().take(POSTERS),
             quizService.yesterdayOf(user, LocalDate.ofInstant(now, ZoneOffset.UTC))
         )
     }
+
+    /**
+     * The posters of the wall: some of the best-known movies of the visitor's
+     * taste, kept in memory a while per taste, as the query is a heavy one
+     * and the wall is the same for everyone of a taste.
+     */
+    private fun wallOf(user: User): List<Movie> {
+        val key = user.movieFilter?.key.orEmpty()
+        val kept = walls[key]?.takeIf { Duration.between(it.first, Instant.now()) < WALL_KEPT }
+        if (kept != null) return kept.second
+        val movies = ratingRepository.findBestKnown(user.movieFilter, POSTER_VOTES, POSTER_POOL).map { it.movie }
+        walls[key] = Instant.now() to movies
+        return movies
+    }
+
+    /** The walls by taste, each with when it was read. */
+    private val walls = ConcurrentHashMap<String, Pair<Instant, List<Movie>>>()
 
     /**
      * Closes a game for the visitor: on their own or with a friend the game
@@ -132,30 +150,35 @@ class PlayService(
      */
     private fun openGamesOf(user: User, now: Instant): List<GameEntry> =
         gamePlayerRepository.findOpen(user).mapNotNull { me ->
-            val match = endIfIdle(me.match, now)
-            val entry = entryOf(user, match, me, now)
+            val players = gamePlayerRepository.findPlayers(me.match)
+            val match = endIfIdle(me.match, players, now)
+            val entry = entryOf(user, match, me, now, players)
             if (entry.over) {
-                gamePlayerRepository.update(me.copy(closedAt = now))
+                gamePlayerRepository.update(me.copy(closedAt = now, closedStatus = entry.status, closedWith = entry.with))
                 null
             } else entry
         }
 
     /** Ends a match whose last move, or start, is more than [IDLE] ago; as it is otherwise. */
-    private fun endIfIdle(match: GameMatch, now: Instant): GameMatch {
+    private fun endIfIdle(match: GameMatch, players: List<GamePlayer>, now: Instant): GameMatch {
         if (match.endedAt != null) return match
-        val lastMove = (gamePlayerRepository.findPlayers(match).map { it.updatedAt } + match.createdAt).max()
+        val lastMove = (players.map { it.updatedAt } + match.createdAt).max()
         if (Duration.between(lastMove, now) <= IDLE) return match
         return match.copy(endedAt = now).also(gameMatchRepository::update)
     }
 
+    /** Closes a game for a player, keeping how it stood: ended as it is, or, in a club, left to the others. */
     private fun close(me: GamePlayer, now: Instant) {
-        if (me.match.mode != GameMode.CLUB && me.match.endedAt == null) gameMatchRepository.update(me.match.copy(endedAt = now))
-        gamePlayerRepository.update(me.copy(closedAt = now))
+        val match = if (me.match.mode != GameMode.CLUB && me.match.endedAt == null) me.match.copy(endedAt = now).also(gameMatchRepository::update) else me.match
+        val entry = entryOf(me.user, match, me, now)
+        val status = if (entry.over) entry.status else "You left this game"
+        gamePlayerRepository.update(me.copy(closedAt = now, closedStatus = status, closedWith = entry.with))
     }
 
-    /** How a closed game stands: how it ended, or, for a club's game the visitor left, that they did. */
+    /** How a closed game stood when it closed, as kept then; worked out for one closed before that was kept. */
     private fun closedEntryOf(user: User, me: GamePlayer, now: Instant): GameEntry =
-        entryOf(user, me.match, me, now).let { if (it.over) it else it.copy(status = "You left this game", yourMove = false, over = true) }
+        me.closedStatus?.let { GameEntry(me.match, me.closedWith ?: "", it, yourMove = false, over = true) }
+            ?: entryOf(user, me.match, me, now).let { if (it.over) it else it.copy(status = "You left this game", yourMove = false, over = true) }
 
     /**
      * What a match looks like at [now], as a short text that changes
@@ -188,8 +211,7 @@ class PlayService(
     }
 
     /** How a match stands for the visitor: [me] is their player, or null for a club's round they have not played. */
-    private fun entryOf(user: User, match: GameMatch, me: GamePlayer?, now: Instant): GameEntry {
-        val players = gamePlayerRepository.findPlayers(match)
+    private fun entryOf(user: User, match: GameMatch, me: GamePlayer?, now: Instant, players: List<GamePlayer> = gamePlayerRepository.findPlayers(match)): GameEntry {
         val with = withOf(user, match, players)
         val entry = when (match.game) {
             Game.HIGHER_LOWER -> when {
@@ -258,6 +280,8 @@ class PlayService(
         private const val LIMIT = 12
         /** A match nobody moved in for this long ends by itself. */
         val IDLE: Duration = Duration.ofDays(7)
+        /** How long a taste's wall is kept in memory. */
+        private val WALL_KEPT: Duration = Duration.ofMinutes(15)
         /** The games that closed last, under the open ones. */
         private const val FINISHED_SHOWN = 3
         private const val ARCHIVE_PAGE = 20

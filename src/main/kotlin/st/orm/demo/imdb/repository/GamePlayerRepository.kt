@@ -13,6 +13,7 @@ import st.orm.repository.EntityRepository
 import st.orm.repository.select
 import st.orm.template.and
 import st.orm.template.eq
+import st.orm.template.inList
 import st.orm.template.isNotNull
 import st.orm.template.isNull
 
@@ -31,6 +32,10 @@ interface GamePlayerRepository : EntityRepository<GamePlayer, GamePlayerPk> {
         select(GamePlayer_.match eq match)
             .orderBy(GamePlayer_.turnOrder)
             .resultList
+
+    /** The user's players in any of these matches: which of a club's rounds they are in. */
+    fun findMine(user: User, matches: List<GameMatch>): List<GamePlayer> =
+        if (matches.isEmpty()) emptyList() else findAll((GamePlayer_.user eq user) and (GamePlayer_.match inList matches))
 
     /** The user's games still open to them, each with its match, the newest first. */
     fun findOpen(user: User): List<GamePlayer> =

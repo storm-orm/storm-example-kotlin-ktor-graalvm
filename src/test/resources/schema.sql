@@ -408,6 +408,8 @@ CREATE TABLE game_player (
     hint_shown INTEGER NOT NULL DEFAULT 0,
     closed_at  TIMESTAMP,
     pool_seen  INTEGER,
+    closed_status VARCHAR,
+    closed_with   VARCHAR,
     PRIMARY KEY (match_id, user_id)
 );
 CREATE INDEX idx_game_player_user_id ON game_player (user_id);

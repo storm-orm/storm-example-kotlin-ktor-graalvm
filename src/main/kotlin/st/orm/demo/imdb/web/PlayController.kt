@@ -68,9 +68,10 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
     get("/play") {
         val full = call.request.queryParameters["full"] != null
         val user = call.currentUser()
-        val locks = levelService.locksOf(user)
+        val level = call.levelProgress()
+        val locks = levelService.locksOf(level)
         call.respondPage(ThymeleafContent("play", mapOf("play" to playService.playOf(user), "full" to full, "maxOpen" to PlayService.MAX_OPEN,
-            "locks" to locks, "level" to levelService.progressOf(user), "badgeCount" to badgeService.countOf(user), "locked" to call.request.queryParameters["locked"]?.let { locks[it] },
+            "locks" to locks, "level" to level, "badgeCount" to badgeService.countOf(user), "locked" to call.request.queryParameters["locked"]?.let { locks[it] },
             "refused" to call.request.queryParameters["refused"]?.let { name -> GameRules.all.firstOrNull { it.game.name == name } })))
     }
 
@@ -99,7 +100,7 @@ fun Route.playRoutes(playService: PlayService, higherLowerService: HigherLowerSe
             val user = call.currentUser()
             if (opponents.mode != GameMode.SOLO && user.name == null) return@post call.respondRedirect("/signin?rd=/play")
             // A game the visitor's level does not reach yet: the Play page says what it takes.
-            if (!levelService.canStart(user, game)) return@post call.respondRedirect("/play?locked=${game.name}#games")
+            if (!levelService.canStart(call.levelProgress(), game)) return@post call.respondRedirect("/play?locked=${game.name}#games")
             // At the most games open, the oldest on one's own closes; with all of them played with others, none starts.
             if (!playService.makeRoom(user)) return@post call.respondRedirect("/play?full#your-games")
             val match = start(user, opponents)

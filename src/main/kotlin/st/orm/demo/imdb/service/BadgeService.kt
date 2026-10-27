@@ -6,6 +6,7 @@ import st.orm.demo.imdb.model.DailyGame
 import st.orm.demo.imdb.model.KEVIN_BACON
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.model.UserBadge
+import st.orm.demo.imdb.model.UserBadge_
 import st.orm.demo.imdb.repository.CastAnswerRepository
 import st.orm.demo.imdb.repository.CastBidRepository
 import st.orm.demo.imdb.repository.ChainLinkRepository
@@ -19,6 +20,7 @@ import st.orm.demo.imdb.repository.MovieNightRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.UserBadgeRepository
 import st.orm.template.entityId
+import st.orm.template.eq
 import st.orm.template.transaction
 import java.time.Instant
 import java.time.LocalDate
@@ -81,8 +83,8 @@ class BadgeService(
         progressIn(user, now).filter { it.earned && it.badge !in before }.map { it.badge }
     }
 
-    /** How many badges the user has earned, for the Play page. */
-    suspend fun countOf(user: User, now: Instant = Instant.now()): Int = transaction { progressIn(user, now).count { it.earned } }
+    /** How many badges the user has earned, as stored: the Play page reads this, the levels page and the check-ins award. */
+    suspend fun countOf(user: User): Int = transaction(readOnly = true) { userBadgeRepository.count(UserBadge_.user eq user).toInt() }
 
     /** Every badge's progress, inside the caller's transaction, the ones newly reached stored. */
     private fun progressIn(user: User, now: Instant): List<BadgeProgress> {

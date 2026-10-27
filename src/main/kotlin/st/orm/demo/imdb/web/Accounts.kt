@@ -17,6 +17,7 @@ import st.orm.demo.imdb.service.Countries
 import st.orm.demo.imdb.service.Country
 import st.orm.demo.imdb.service.FreepodSignIn
 import st.orm.demo.imdb.service.FriendService
+import st.orm.demo.imdb.service.LevelProgress
 import st.orm.demo.imdb.service.LevelService
 import st.orm.demo.imdb.service.StreamingService
 import st.orm.demo.imdb.service.TmdbService
@@ -36,6 +37,7 @@ private val TmdbServiceKey = AttributeKey<TmdbService>("TmdbService")
 private val StreamingServiceKey = AttributeKey<StreamingService>("StreamingService")
 private val LevelServiceKey = AttributeKey<LevelService>("LevelService")
 private val AccountIdKey = AttributeKey<String>("AccountId")
+private val LevelProgressKey = AttributeKey<LevelProgress>("LevelProgress")
 private val CurrentUserKey = AttributeKey<User>("CurrentUser")
 
 private const val ACCOUNT_COOKIE = "account"
@@ -75,7 +77,7 @@ suspend fun ApplicationCall.respondPage(content: ThymeleafContent) {
     val user = currentUser()
     val requestCount = if (user.name != null) application.attributes[FriendServiceKey].countRequests(user) else 0L
     val hasServices = isSignedIn() && country() != null && application.attributes[StreamingServiceKey].servicesOf(user).isNotEmpty()
-    val level = if (user.name != null) application.attributes[LevelServiceKey].progressOf(user) else null
+    val level = if (user.name != null) levelProgress() else null
     val layout = mapOf(
         "account" to user,
         "level" to level,
@@ -85,6 +87,14 @@ suspend fun ApplicationCall.respondPage(content: ThymeleafContent) {
         "hasServices" to hasServices
     )
     respond(ThymeleafContent(content.template, content.model + layout))
+}
+
+/** Where the visitor stands with the levels, worked out once per request: the layout's ring and the pages share it. */
+suspend fun ApplicationCall.levelProgress(): LevelProgress {
+    attributes.getOrNull(LevelProgressKey)?.let { return it }
+    val progress = application.attributes[LevelServiceKey].progressOf(currentUser())
+    attributes.put(LevelProgressKey, progress)
+    return progress
 }
 
 /**

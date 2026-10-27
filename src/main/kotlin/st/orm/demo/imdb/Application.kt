@@ -370,7 +370,8 @@ private fun Application.configureStorm() {
                     "db/migration/V41__levels.sql",
                     "db/migration/V42__match_pools.sql",
                     "db/migration/V43__night_swipe.sql",
-                    "db/migration/V44__badges.sql"
+                    "db/migration/V44__badges.sql",
+                    "db/migration/V45__closed_game_status.sql"
                 )))
                 .load()
                 .migrate()
