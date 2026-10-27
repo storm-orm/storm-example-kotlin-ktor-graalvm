@@ -3,7 +3,14 @@ package st.orm.demo.imdb.service
 import java.util.Locale
 
 /** A country, by its ISO 3166-1 alpha-2 code, with its English name. */
-data class Country(val code: String, val name: String)
+data class Country(val code: String, val name: String) {
+    /** The name as it reads in a sentence: "the Netherlands", "France". */
+    val inSentence: String get() = if (name in WITH_THE) "the $name" else name
+
+    private companion object {
+        val WITH_THE = setOf("Netherlands", "United States", "United Kingdom", "Philippines", "Czech Republic", "United Arab Emirates", "Dominican Republic", "Bahamas", "Maldives", "Gambia")
+    }
+}
 
 /**
  * The countries a user can be from, for where movies play: every country

@@ -108,7 +108,7 @@ fun Application.configureDependencies() {
             )
         }
         provide { AccountService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
-        provide { HomeService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
+        provide { HomeService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { TasteOverlap(resolve(), resolve()) }
         provide { CommunityService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }
         provide { FriendService(resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve(), resolve()) }

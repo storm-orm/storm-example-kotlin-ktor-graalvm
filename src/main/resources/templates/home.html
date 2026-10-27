@@ -84,6 +84,37 @@
 
 <!-- Genre navigation -->
 
+<!-- Tonight: three doors, at home, at the cinema, with the club. -->
+<section class="section tonight" id="tonight" th:with="tonight=${view.tonight}">
+    <div class="container tonight-grid">
+        <a class="tonight-door door-home" th:if="${tonight.watch != null}" th:href="@{/movie/{id}(id=${tonight.watch.movie.id})}">
+            <span class="tonight-poster"><span th:replace="~{fragments/cards :: posterThumb(${tonight.watch.movie.id}, ${tonight.watch.movie.primaryTitle})}"></span></span>
+            <span class="tonight-text">
+                <span class="tonight-eyebrow">Watch tonight</span>
+                <span class="tonight-title" th:text="${tonight.watch.movie.primaryTitle}">Heat</span>
+                <span class="tonight-note" th:text="${tonight.watch.reason}">On Netflix</span>
+            </span>
+        </a>
+        <a class="tonight-door door-cinema" th:href="${tonight.country != null} ? '#cinema-section' : @{/signin}">
+            <span class="tonight-art" aria-hidden="true"><span class="tonight-ticket"></span></span>
+            <span class="tonight-text">
+                <span class="tonight-eyebrow">Go out</span>
+                <span class="tonight-title">In cinemas now</span>
+                <span class="tonight-note" th:text="${tonight.country != null} ? |What plays in ${tonight.country.inSentence} this week| : 'Set your country to see what plays near you'">What plays in the Netherlands this week</span>
+            </span>
+        </a>
+        <a class="tonight-door door-club"
+           th:href="${tonight.night != null} ? @{/nights/{id}(id=${tonight.night.id})} : (${tonight.club != null} ? @{/clubs/{id}/nights/new(id=${tonight.club.id})} : @{/community})">
+            <span class="tonight-art" aria-hidden="true"><span class="tonight-seats"><span></span><span></span><span></span></span></span>
+            <span class="tonight-text">
+                <span class="tonight-eyebrow">Together</span>
+                <span class="tonight-title" th:text="${tonight.night != null} ? ${tonight.night.title} : (${tonight.club != null} ? 'Plan a movie night' : 'Find your people')">Movie night</span>
+                <span class="tonight-note" th:text="${tonight.night != null} ? |${tonight.nightDay} · ${tonight.nightState}| : (${tonight.club != null} ? |With ${tonight.club.name}: vote, or swipe a deck together| : 'Friends and clubs: nights in, nights out, and games')">Saturday 31 October · The vote is open</span>
+            </span>
+        </a>
+    </div>
+</section>
+
 <!-- What to watch next: the visitor's recommendations, or the catalogue's picks for a new visitor. -->
 <section class="section" th:if="${!view.recommendations.watchNext.isEmpty()}" id="watch-next-section">
     <div class="container">

@@ -1,12 +1,21 @@
 package st.orm.demo.imdb.service
 
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+import st.orm.demo.imdb.model.Club
 import st.orm.demo.imdb.model.Genre
 import st.orm.demo.imdb.model.Movie
+import st.orm.demo.imdb.model.MovieNight
 import st.orm.demo.imdb.model.MovieSeen
+import st.orm.demo.imdb.model.NightMethod
 import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.model.User
 import st.orm.demo.imdb.model.Watchlist
+import st.orm.demo.imdb.repository.ClubMemberRepository
 import st.orm.demo.imdb.repository.MovieGenreRepository
+import st.orm.demo.imdb.repository.MovieNightRepository
 import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.MovieSeenRepository
 import st.orm.demo.imdb.repository.MovieViewRepository
@@ -24,6 +33,27 @@ data class FeaturedMovie(
     val genres: List<Genre>
 )
 
+/** A movie for tonight, and why: "On Netflix", or the site's pick. */
+data class TonightPick(val movie: Movie, val reason: String)
+
+/**
+ * Tonight's three doors on the home page: what to watch at home and where,
+ * the cinemas of the visitor's country, and their clubs' next night, with
+ * a club to plan one for when none is.
+ */
+data class TonightView(val watch: TonightPick?, val country: Country?, val night: MovieNight?, val club: Club?) {
+    /** The night's day: "Saturday 31 October". */
+    val nightDay: String? get() = night?.nightOn?.format(DateTimeFormatter.ofPattern("EEEE d MMMM", Locale.ENGLISH))
+    /** How the night stands: the winner, the deck to swipe, or the vote. */
+    val nightState: String? get() = night?.let {
+        when {
+            it.winner != null -> "Watching ${it.winner.primaryTitle}"
+            it.method == NightMethod.SWIPE -> "Swipe the deck"
+            else -> "The vote is open"
+        }
+    }
+}
+
 /** Everything the home page shows. */
 data class HomeView(
     val featured: FeaturedMovie?,
@@ -33,6 +63,8 @@ data class HomeView(
     val watchlistEntries: List<Watchlist>,
     val seenEntries: List<MovieSeen>,
     val recommendations: HomeRecommendations,
+    /** Tonight's doors: at home, at the cinema, with the club. */
+    val tonight: TonightView,
     /** What the visitor's friends saw lately, as far as they share it. */
     val friendsSeen: List<SharedCheckIn>,
     /** What the other members of the visitor's clubs saw lately, as far as they share it. */
@@ -56,7 +88,11 @@ class HomeService(
     private val movieSeenRepository: MovieSeenRepository,
     private val recommendationService: RecommendationService,
     private val friendService: FriendService,
-    private val clubService: ClubService
+    private val clubService: ClubService,
+    private val clubMemberRepository: ClubMemberRepository,
+    private val movieNightRepository: MovieNightRepository,
+    private val streamingService: StreamingService,
+    private val tmdbService: TmdbService
 ) {
 
     /**
@@ -67,12 +103,34 @@ class HomeService(
      * their own: they count the picks shown in a write after their read, which
      * must not wait for a connection while this transaction holds one.
      */
-    suspend fun buildHomeView(user: User): HomeView {
+    suspend fun buildHomeView(user: User, country: Country? = null, today: LocalDate = LocalDate.now(ZoneOffset.UTC)): HomeView {
         val recommendations = recommendationService.forHome(user)
-        return transaction(readOnly = true) { homeView(user, recommendations) }
+        val tonight = tonight(user, recommendations, country, today)
+        return transaction(readOnly = true) { homeView(user, recommendations, tonight) }
     }
 
-    private suspend fun homeView(user: User, recommendations: HomeRecommendations): HomeView {
+    /**
+     * Tonight's three doors: a pick to watch at home, on the visitor's own
+     * services where their platforms are known; the cinemas of their
+     * country; and their clubs' next night, or the way to plan one.
+     */
+    private suspend fun tonight(user: User, recommendations: HomeRecommendations, country: Country?, today: LocalDate): TonightView {
+        val picks = recommendations.watchNext.map { it.movie }
+        val services = if (user.name != null) streamingService.servicesOf(user) else emptyList()
+        // Only what is stored: the home page waits on no lookup.
+        val streaming = if (country != null && services.isNotEmpty()) tmdbService.watchProviderIds(picks, country.code, maxLookups = 0) else emptyMap()
+        val onService = picks.firstNotNullOfOrNull { movie ->
+            streaming[movie.id]?.firstNotNullOfOrNull { id -> services.firstOrNull { it.id == id } }?.let { TonightPick(movie, "On ${it.name}") }
+        }
+        val watch = onService ?: picks.firstOrNull()?.let { TonightPick(it, if (recommendations.personal) "Our top pick for you" else "A pick from the catalogue") }
+        val (clubs, night) = transaction(readOnly = true) {
+            val clubs = if (user.name != null) clubMemberRepository.findClubs(user).map { it.club } else emptyList()
+            clubs to movieNightRepository.findNextOf(clubs, today)
+        }
+        return TonightView(watch, country, night, clubs.firstOrNull())
+    }
+
+    private suspend fun homeView(user: User, recommendations: HomeRecommendations, tonight: TonightView): HomeView {
         val community = user.name != null && (friendService.hasFriends(user) || clubService.isMember(user))
         val feedLimit = if (community) COMMUNITY_ROW_LIMIT else LIST_PREVIEW_LIMIT
         return HomeView(
@@ -82,6 +140,7 @@ class HomeService(
             watchlistEntries = watchlistRepository.findMostRecent(user, LIST_PREVIEW_LIMIT),
             seenEntries = if (community) emptyList() else movieSeenRepository.findMostRecent(user, LIST_PREVIEW_LIMIT),
             recommendations = recommendations,
+            tonight = tonight,
             friendsSeen = friendService.latestOfFriends(user, feedLimit),
             clubsSeen = if (community) clubService.latestInClubs(user, feedLimit) else emptyList(),
             community = community,
