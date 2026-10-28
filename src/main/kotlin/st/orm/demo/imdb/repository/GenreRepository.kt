@@ -1,5 +1,7 @@
 package st.orm.demo.imdb.repository
 
+import kotlinx.serialization.Serializable
+import st.orm.GenerateMetamodel
 import st.orm.demo.imdb.model.Genre
 import st.orm.demo.imdb.model.Genre_
 import st.orm.demo.imdb.model.MovieGenre
@@ -10,7 +12,10 @@ import st.orm.repository.select
  * Query result shape: a genre together with the number of movies in it,
  * for the genre navigation bar on the home page. Not backed by a database
  * table or view, so it is a plain data class — deliberately not a Data type.
+ * Serializable, as it is cached with the catalogue statistics.
  */
+@Serializable
+@GenerateMetamodel
 data class GenreMovieCount(
     val genre: Genre,
     val movieCount: Long

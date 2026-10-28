@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Finished Games')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <a class="back-link" th:href="@{/play}">← Play</a>
+        <h1 class="page-title">Finished Games</h1>
+        <p class="page-subtitle">Every game that ended, or that you closed, the last first.</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container">
+        <div class="game-list finished" th:unless="${archive.games.isEmpty()}">
+            <th:block th:each="entry : ${archive.games}"><a th:replace="~{fragments/games :: entry(${entry})}"></a></th:block>
+        </div>
+        <div class="empty-state" th:if="${archive.games.isEmpty()}">No finished games yet.</div>
+        <div class="pager" th:if="${archive.page > 0 or archive.hasNext}">
+            <a class="button" th:if="${archive.page > 0}" th:href="@{/play/archive(page=${archive.page - 1})}">← Newer</a>
+            <a class="button" th:if="${archive.hasNext}" th:href="@{/play/archive(page=${archive.page + 1})}">Older →</a>
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

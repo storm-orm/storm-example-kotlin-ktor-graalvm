@@ -4,7 +4,23 @@
 <body>
 <nav th:replace="~{fragments/layout :: navbar('home')}"></nav>
 
-<!-- Featured: the most recently viewed movie. -->
+<!-- Fewer than ten movies marked, and the catch-up page not seen yet: it is the quickest way to what the site does. -->
+<section class="welcome" id="welcome" th:if="${!catchUpSeen and view.seenCount < 10}">
+    <div class="container welcome-inner">
+        <div>
+            <h2 class="welcome-title">Catch up on the movies you've already seen</h2>
+            <p>
+                Catching up is for the past: flick through the most watched movies and tick the ones you've seen,
+                no dates needed. From now on, check in whenever you watch something, and the day is kept with it.
+                A minute of catching up is enough for For You to pick for you, and for About You to show your
+                favourite actors, directors and genres.
+            </p>
+        </div>
+        <a class="button button-primary welcome-button" th:href="@{/seen/catch-up}">Catch up now</a>
+    </div>
+</section>
+
+<!-- Featured: one of the visitor's best picks at random, or of the catalogue's for a new visitor. -->
 <section class="hero" th:if="${view.featured != null}" th:with="featured=${view.featured}">
     <div class="hero-backdrop"
          th:style="|background-image: url('/api/poster/${featured.movie.id}')|"
@@ -13,54 +29,171 @@
         <div class="hero-poster">
             <div th:replace="~{fragments/cards :: posterThumb(${featured.movie.id}, ${featured.movie.primaryTitle})}"></div>
         </div>
-        <div>
-            <div class="hero-eyebrow">Featured · Last viewed</div>
-            <h1 class="hero-title" th:text="${featured.movie.primaryTitle}">Title</h1>
-            <div class="hero-meta">
-                <span class="rating-badge" th:if="${featured.rating != null}">
-                    <span class="star">★</span>
-                    <span th:text="${featured.rating.averageRating}">8.7</span>
-                </span>
-                <span class="votes" th:if="${featured.rating != null}"
-                      th:text="|${#numbers.formatInteger(featured.rating.voteCount, 1, 'COMMA')} votes|">votes</span>
-                <span th:if="${featured.movie.startYear != null}" th:text="${featured.movie.startYear}">1999</span>
-                <span th:if="${featured.movie.runtimeMinutes != null}" th:text="|${featured.movie.runtimeMinutes} min|">136 min</span>
+        <div class="hero-main">
+            <!-- On a phone the head lies on the backdrop, or the trailer behind it, and the body follows below. -->
+            <div class="hero-head">
+                <div class="hero-eyebrow" th:text="${view.recommendations.personal} ? 'Featured · For you' : 'Featured'">Featured · For you</div>
+                <h1 class="hero-title" th:text="${featured.movie.primaryTitle}">Title</h1>
+                <div class="hero-meta">
+                    <th:block th:if="${featured.rating != null}">
+                        <span class="rating-badge meta-rating">
+                            <span class="star">★</span>
+                            <span th:text="${featured.rating.averageRating}">8.7</span>
+                        </span>
+                        <span class="votes meta-rating"
+                              th:text="|${#numbers.formatInteger(featured.rating.voteCount, 1, 'COMMA')} votes|">votes</span>
+                    </th:block>
+                    <span th:if="${featured.movie.startYear != null}" th:text="${featured.movie.startYear}">1999</span>
+                    <span th:if="${featured.movie.runtimeMinutes != null}" th:text="|${featured.movie.runtimeMinutes} min|">136 min</span>
+                </div>
+                <div class="movie-genres">
+                    <a class="genre-chip" th:each="genre : ${featured.genres}"
+                       th:href="@{/browse(genre=${genre.name})}" th:text="${genre.name}">Genre</a>
+                </div>
+                <button class="button button-small trailer-button trailer-overlay" hidden th:if="${tmdb}"
+                        th:data-trailer-endpoint="|/api/trailer/${featured.movie.id}|"
+                        th:data-trailer-title="${featured.movie.primaryTitle}">Trailer</button>
             </div>
-            <div class="movie-genres">
-                <a class="genre-chip" th:each="genre : ${featured.genres}"
-                   th:href="@{/browse/{name}(name=${genre.name})}" th:text="${genre.name}">Genre</a>
-            </div>
-            <p class="hero-extract" hidden
-               th:data-summary-endpoint="|/api/summary/movie/${featured.movie.id}|"></p>
-            <div class="hero-actions">
-                <a class="button button-primary" th:href="@{/movie/{id}(id=${featured.movie.id})}">View details</a>
+            <div class="hero-body">
+                <!-- On a phone the rating and the genres leave the head, which keeps to the title and the year. -->
+                <div class="hero-summary" th:if="${featured.rating != null or !featured.genres.isEmpty()}">
+                    <th:block th:if="${featured.rating != null}">
+                        <span class="rating-badge">
+                            <span class="star">★</span>
+                            <span th:text="${featured.rating.averageRating}">8.7</span>
+                        </span>
+                        <span class="votes" th:text="|${#numbers.formatInteger(featured.rating.voteCount, 1, 'COMMA')} votes|">votes</span>
+                    </th:block>
+                    <a class="genre-chip" th:each="genre : ${featured.genres}"
+                       th:href="@{/browse(genre=${genre.name})}" th:text="${genre.name}">Genre</a>
+                </div>
+                <p class="hero-extract" hidden
+                   th:data-summary-endpoint="|/api/summary/movie/${featured.movie.id}|"></p>
+                <div class="hero-actions">
+                    <a class="button button-primary" th:href="@{/movie/{id}(id=${featured.movie.id}, via='for-you')}">View details</a>
+                    <button class="button trailer-button" hidden th:if="${tmdb}"
+                            th:data-trailer-endpoint="|/api/trailer/${featured.movie.id}|"
+                            th:data-trailer-title="${featured.movie.primaryTitle}">Trailer</button>
+                </div>
             </div>
         </div>
     </div>
 </section>
 
 <!-- Search -->
-<section class="search-hero">
+
+<!-- Genre navigation -->
+
+<!-- Tonight: three doors, at home, at the cinema, with the club. -->
+<section class="section tonight" id="tonight" th:with="tonight=${view.tonight}">
+    <div class="container tonight-grid">
+        <a class="tonight-door door-home" th:if="${tonight.watch != null}" th:href="@{/movie/{id}(id=${tonight.watch.movie.id})}">
+            <span class="tonight-poster"><span th:replace="~{fragments/cards :: posterThumb(${tonight.watch.movie.id}, ${tonight.watch.movie.primaryTitle})}"></span></span>
+            <span class="tonight-text">
+                <span class="tonight-eyebrow">Watch tonight</span>
+                <span class="tonight-title" th:text="${tonight.watch.movie.primaryTitle}">Heat</span>
+                <span class="tonight-note" th:text="${tonight.watch.reason}">On Netflix</span>
+            </span>
+        </a>
+        <a class="tonight-door door-cinema" th:href="${tonight.country != null} ? '#cinema-section' : @{/signin}">
+            <span class="tonight-art" aria-hidden="true"><span class="tonight-ticket"></span></span>
+            <span class="tonight-text">
+                <span class="tonight-eyebrow">Go out</span>
+                <span class="tonight-title">In cinemas now</span>
+                <span class="tonight-note" th:text="${tonight.country != null} ? |What plays in ${tonight.country.inSentence} this week| : 'Set your country to see what plays near you'">What plays in the Netherlands this week</span>
+            </span>
+        </a>
+        <a class="tonight-door door-club"
+           th:href="${tonight.night != null} ? @{/nights/{id}(id=${tonight.night.id})} : (${tonight.club != null} ? @{/clubs/{id}/nights/new(id=${tonight.club.id})} : @{/community})">
+            <span class="tonight-art" aria-hidden="true"><span class="tonight-seats"><span></span><span></span><span></span></span></span>
+            <span class="tonight-text">
+                <span class="tonight-eyebrow">Together</span>
+                <span class="tonight-title" th:text="${tonight.night != null} ? ${tonight.night.title} : (${tonight.club != null} ? 'Plan a movie night' : 'Find your people')">Movie night</span>
+                <span class="tonight-note" th:text="${tonight.night != null} ? |${tonight.nightDay} · ${tonight.nightState}| : (${tonight.club != null} ? |With ${tonight.club.name}: vote, or swipe a deck together| : 'Friends and clubs: nights in, nights out, and games')">Saturday 31 October · The vote is open</span>
+            </span>
+        </a>
+        <a class="tonight-door door-level" th:if="${level != null}" th:href="@{/play/levels}">
+            <span class="level-ring tonight-ring" th:style="|--progress: ${level.fraction}|"><span th:text="${#numbers.formatInteger(level.fraction * 100, 1)} + '%'">42%</span></span>
+            <span class="tonight-text">
+                <span class="tonight-eyebrow">Your level</span>
+                <span class="tonight-title" th:text="${level.level.label}">Supporting</span>
+                <span class="tonight-note" th:text="${level.nextText}">117 more to Lead</span>
+            </span>
+        </a>
+    </div>
+</section>
+
+<!-- What to watch next: the visitor's recommendations, or the catalogue's picks for a new visitor. -->
+<section class="section" th:if="${!view.recommendations.watchNext.isEmpty()}" id="watch-next-section">
     <div class="container">
-        <div class="search-box" data-search-box>
-            <input type="search" placeholder="Search movies and people…" autocomplete="off" data-search-input>
-            <div class="search-suggestions" data-search-suggestions hidden></div>
+        <div class="section-header">
+            <h2 class="section-title">What to watch next</h2>
+            <a class="section-link" th:href="@{/for-you}">View all →</a>
+        </div>
+        <p class="section-note" th:unless="${view.recommendations.personal}">
+            Picks from the whole catalogue. Mark movies as watched, or save them, and these become yours.
+        </p>
+        <div class="movie-row" th:data-service-logos="${hasServices} ? '/api/my-services'">
+            <th:block th:each="pick : ${view.recommendations.watchNext}">
+                <a th:replace="~{fragments/cards :: recommended(${pick.movie.id}, ${pick.movie.primaryTitle}, ${pick.movie.startYear}, ${pick.reasons})}"></a>
+            </th:block>
         </div>
     </div>
 </section>
 
-<!-- Genre navigation -->
-<section class="section">
+<!-- What friends saw lately, and the members of the visitor's clubs, as far as each shares it: with a
+     community, the page is about them, and these rows follow what to watch next at twice the length. -->
+<!-- What plays in the visitor's country's cinemas now, filled in after the page loads (setupCinema in app.js). -->
+<section class="section" id="cinema-section" data-cinema-row hidden>
     <div class="container">
         <div class="section-header">
-            <h2 class="section-title">Browse by Genre</h2>
+            <h2 class="section-title">In Cinemas Now</h2>
+            <span class="section-note" data-cinema-country></span>
         </div>
-        <div class="genre-bar">
-            <a class="genre-chip" th:each="genreCount : ${view.genreCounts}"
-               th:href="@{/browse/{name}(name=${genreCount.genre.name})}">
-                <span th:text="${genreCount.genre.name}">Genre</span>
-                <span class="count" th:text="${#numbers.formatInteger(genreCount.movieCount, 1, 'COMMA')}">123</span>
-            </a>
+        <div class="movie-row" data-cinema-movies></div>
+    </div>
+</section>
+
+<section class="section" th:if="${!view.friendsSeen.isEmpty()}" id="friends-seen-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Friends Recently Saw</h2>
+            <a class="section-link" th:href="@{/community}">View all →</a>
+        </div>
+        <div class="movie-row">
+            <th:block th:each="item : ${view.friendsSeen}">
+                <a th:replace="~{fragments/cards :: sharedCheckIn(${item})}"></a>
+            </th:block>
+        </div>
+    </div>
+</section>
+
+<section class="section" th:if="${!view.clubsSeen.isEmpty()}" id="clubs-seen-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Recently Watched in Your Clubs</h2>
+            <a class="section-link" th:href="@{/community}">View all →</a>
+        </div>
+        <div class="movie-row">
+            <th:block th:each="item : ${view.clubsSeen}">
+                <a th:replace="~{fragments/cards :: sharedCheckIn(${item})}"></a>
+            </th:block>
+        </div>
+    </div>
+</section>
+
+<!-- Because you saw: a shelf per movie of the visitor's own that argued for the most picks. -->
+<section class="section" th:each="shelf : ${view.recommendations.shelves}" th:id="|shelf-${shelf.seed.id}|">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">
+                <a class="section-title-link" th:href="@{/movie/{id}(id=${shelf.seed.id})}" th:text="${shelf.title}">Because you saw The Matrix</a>
+            </h2>
+        </div>
+        <div class="movie-row">
+            <th:block th:each="pick : ${shelf.movies}">
+                <a th:replace="~{fragments/cards :: recommended(${pick.movie.id}, ${pick.movie.primaryTitle}, ${pick.movie.startYear}, ${pick.reasons})}"></a>
+            </th:block>
         </div>
     </div>
 </section>
@@ -72,8 +205,23 @@
             <h2 class="section-title">My Watchlist</h2>
             <a class="section-link" th:href="@{/watchlist}">View all →</a>
         </div>
-        <div class="movie-row">
+        <div class="movie-row" th:data-service-logos="${hasServices} ? '/api/my-services'">
             <th:block th:each="entry : ${view.watchlistEntries}">
+                <a th:replace="~{fragments/cards :: movie(${entry.movie.id}, ${entry.movie.primaryTitle}, ${entry.movie.startYear})}"></a>
+            </th:block>
+        </div>
+    </div>
+</section>
+
+<!-- Watched -->
+<section class="section" th:if="${!view.seenEntries.isEmpty()}" id="seen-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Watched</h2>
+            <a class="section-link" th:href="@{/seen}">View all →</a>
+        </div>
+        <div class="movie-row">
+            <th:block th:each="entry : ${view.seenEntries}">
                 <a th:replace="~{fragments/cards :: movie(${entry.movie.id}, ${entry.movie.primaryTitle}, ${entry.movie.startYear})}"></a>
             </th:block>
         </div>
@@ -94,13 +242,13 @@
     </div>
 </section>
 
-<!-- Top 10 -->
-<section class="section" id="top-rated-section">
+<!-- Top 10: not for a visitor with a community, whose page is about them. -->
+<section class="section" id="top-rated-section" th:unless="${view.community}">
     <div class="container">
         <div class="section-header">
             <h2 class="section-title">Top 10 Movies</h2>
             <span class="section-note">by rating</span>
-            <a class="section-link" th:href="@{/top}">All top movies →</a>
+            <a class="section-link" th:href="@{/browse}">All of Browse →</a>
         </div>
         <div class="movie-row">
             <th:block th:each="entry, iteration : ${view.topRated}">

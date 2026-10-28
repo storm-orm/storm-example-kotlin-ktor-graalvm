@@ -9,14 +9,16 @@ import st.orm.demo.imdb.service.StatisticsService
 fun Route.statisticsRoutes(statisticsService: StatisticsService) {
     get("/statistics") {
         val view = statisticsService.buildStatisticsView()
-        call.respond(
+        call.respondPage(
             ThymeleafContent(
                 "statistics",
                 mapOf(
+                    "totals" to view.totals,
                     "decades" to view.decades,
                     "maxDecadeCount" to view.maxDecadeCount,
                     "genreStatistics" to view.genreStatistics,
-                    "prolificActors" to view.prolificActors
+                    "prolificActors" to view.prolificActors,
+                    "recommendationEvents" to statisticsService.countRecommendationEvents()
                 )
             )
         )

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Community')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('community')}"></nav>
+
+<header class="play-hero community-hero" th:classappend="${manage} ? 'manage'">
+    <div th:replace="~{fragments/community :: keyboard(${view != null ? view.keyboard : {}}, ${view != null ? view.typed : {}})}"></div>
+    <div class="container play-hero-content">
+        <div class="page-title-row">
+            <h1 class="page-title">Community<span class="attention-badge" th:if="${attention.community > 0}" th:text="${attention.community == 1} ? '1 to answer' : |${attention.community} to answer|">2 to answer</span></h1>
+            <!-- With a community, its cog leads to the friends, the clubs, the invites and the sharing. -->
+            <a th:if="${view != null and view.hasCommunity and !manage}" th:replace="~{fragments/community :: manageLink(@{/community(manage='')}, 'Manage your friends and clubs')}"></a>
+        </div>
+        <p class="page-subtitle" th:if="${!manage}">Your friends and your clubs, and what goes on among you: what they watched, the games you play together, and the nights you plan.</p>
+        <p class="page-subtitle" th:if="${manage}">Friends and film clubs see what the others watched, as far as each shares it.</p>
+        <p class="page-switch" th:if="${manage and view != null and view.hasCommunity}"><a th:href="@{/community}">← Back to your community</a></p>
+    </div>
+</header>
+
+<!-- A community needs a signed-in account: who invites whom has to be someone. -->
+<section class="section" th:if="${view == null}">
+    <div class="container">
+        <div class="empty-state" id="community-signin">
+            Sign in to invite friends, start a club and see what they watch.
+            <a th:href="@{/signin(rd='/community')}">Sign in</a>, with GitHub, or with Freepod if you have no GitHub account.
+        </div>
+    </div>
+</section>
+
+<th:block th:if="${view != null}">
+<!-- Requests from club members, until accepted or put off: "not now" is never told to the one who asked. -->
+<section class="section" th:unless="${view.friends.requests.isEmpty()}">
+    <div class="container">
+        <div class="stat-card" id="requests-card">
+            <h2>Friend requests</h2>
+            <p class="stat-note">
+                Accepting makes you friends, and they see what you share with friends. Not now puts the request
+                away; they are not told.
+            </p>
+            <div class="stat-row request-row" th:each="request : ${view.friends.requests}">
+                <span class="friend-name">
+                    <span th:replace="~{fragments/community :: avatar(${request.requester}, '')}"></span>
+                    <span>
+                        <span th:text="${request.requester.name}">Bob</span>
+                        <span class="stat-note" th:text="|from ${request.club.name}|">from Office film club</span>
+                    </span>
+                </span>
+                <span class="stat-end">
+                    <form th:action="@{/friends/requests/{userId}/accept(userId=${request.requester.id})}" method="post">
+                        <button type="submit" class="button button-small button-primary">Accept</button>
+                    </form>
+                    <form th:action="@{/friends/requests/{userId}/dismiss(userId=${request.requester.id})}" method="post">
+                        <button type="submit" class="link-button">Not now</button>
+                    </form>
+                </span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- The community: what waits on the visitor, what everyone watched lately, the games and nights to pick up, and the people. -->
+<th:block th:if="${!manage}">
+<div class="container" th:if="${added}"><div class="notice">You are friends now.</div></div>
+
+<!-- To pick up: the games waiting on the visitor and the nights to answer, before anything else. -->
+<section class="section" th:if="${view.waiting > 0 or !view.games.isEmpty() or !view.nights.isEmpty()}" id="pick-up-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Pick Up</h2>
+            <span class="attention-badge" th:if="${view.waiting > 0}" th:text="${view.waiting == 1} ? '1 waits on you' : |${view.waiting} wait on you|">3 wait on you</span>
+        </div>
+        <div class="pick-up-grid">
+            <a class="pick-up night" th:each="card : ${view.nights}" th:href="@{/nights/{id}(id=${card.night.id})}" th:classappend="${!card.answered} ? 'your-move'">
+                <span class="pick-up-icon" aria-hidden="true"><span class="tonight-seats"><span></span><span></span><span></span></span></span>
+                <span class="pick-up-text">
+                    <span class="pick-up-title" th:text="${card.night.title}">Halloween night</span>
+                    <span class="pick-up-with" th:text="|${card.night.club.name} · ${card.day}|">Office film club · Saturday 31 October</span>
+                </span>
+                <span class="pick-up-status" th:text="${card.answered} ? ${card.state} : (${card.night.method.name() == 'SWIPE'} ? 'Swipe the deck' : 'Your vote')">Your vote</span>
+            </a>
+            <th:block th:each="entry : ${view.games}"><a th:replace="~{fragments/games :: entry(${entry})}"></a></th:block>
+        </div>
+    </div>
+</section>
+
+<!-- Lately: the check-ins of everyone in the community, or, when nobody checked in, their latest watches. -->
+<section class="section" id="lately-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title" th:text="${view.feedIsCheckIns} ? 'Checked In Lately' : 'Watched Lately'">Checked In Lately</h2>
+            <span class="section-note" th:text="${view.feedIsCheckIns} ? 'by your friends and clubs' : 'nobody checked in lately: what they marked watched'">by your friends and clubs</span>
+        </div>
+        <div class="empty-state" th:if="${view.feed.isEmpty()}">
+            Nothing yet: wait for your friends to mark what they watched, or <a th:href="@{/community(manage='')}">invite one</a>.
+        </div>
+        <div class="movie-grid" id="community-feed" th:unless="${view.feed.isEmpty()}">
+            <th:block th:each="item : ${view.feed}">
+                <a th:replace="~{fragments/cards :: sharedCheckIn(${item})}"></a>
+            </th:block>
+        </div>
+    </div>
+</section>
+
+<!-- The people: each friend a card to their page, each club a chip to its page, with what is in common. -->
+<section class="section" id="people-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Your People</h2>
+            <span class="section-note">tap one for what you have in common, and everything between you</span>
+        </div>
+        <div class="club-chips" th:unless="${view.clubs.clubs.isEmpty()}">
+            <a class="genre-chip" th:each="summary : ${view.clubs.clubs}" th:href="@{/clubs/{id}(id=${summary.membership.club.id})}">
+                <span th:text="${summary.membership.club.name}">Office film club</span>
+                <span class="count" th:text="${summary.memberCount}">4</span>
+            </a>
+        </div>
+        <div class="people-grid" th:unless="${view.people.isEmpty()}">
+            <a class="person-tile" th:each="item : ${view.people}" th:href="@{/friends/{id}(id=${item.user.id})}"
+               th:classappend="${!view.friends.friends.contains(item.user)} ? 'member'">
+                <span th:replace="~{fragments/community :: avatar(${item.user}, 'avatar-large')}"></span>
+                <span class="person-tile-name" th:text="${item.user.name}">Alice</span>
+                <span class="person-tile-note" th:if="${item.shares and item.theirs > 0}" th:text="|${item.percent}% in common|">34% in common</span>
+                <span class="person-tile-note" th:if="${item.shares and item.theirs == 0}">nothing watched yet</span>
+                <span class="person-tile-note" th:unless="${item.shares}">keeps it private</span>
+            </a>
+        </div>
+        <div class="empty-state" th:if="${view.people.isEmpty()}">Nobody yet: <a th:href="@{/community(manage='')}">invite a friend or start a club</a>.</div>
+    </div>
+</section>
+</th:block>
+<!-- What the page manages: the friends and their invites, the clubs, and what the visitor shares with each. -->
+<section class="section" th:if="${manage}">
+    <div class="container friends-grid">
+        <div class="stat-card" id="friends-card">
+            <div class="notice" th:if="${added}">You are friends now.</div>
+            <h2>Your friends</h2>
+            <p class="stat-note">
+                Send a friend a personal link: it works once, for two weeks. Or share your public link anywhere;
+                everyone who opens it and accepts becomes your friend, until you make a new one. Someone in one of
+                your clubs you can simply ask by name. Removing a friend is quiet: it ends things both ways, and
+                nobody is told.
+            </p>
+            <div class="empty-state" th:if="${view.friends.friends.isEmpty() and view.friends.sent.isEmpty()}">No friends yet.</div>
+            <div class="stat-row" th:each="friend : ${view.friends.friends}">
+                <span class="friend-name">
+                    <span th:replace="~{fragments/community :: avatar(${friend}, '')}"></span>
+                    <span th:text="${friend.name}">Alice</span>
+                </span>
+                <form class="stat-end" th:action="@{/friends/{id}/remove(id=${friend.id})}" method="post">
+                    <button type="submit" class="link-button">Remove</button>
+                </form>
+            </div>
+            <!-- The requests sent to club members, until accepted or withdrawn. -->
+            <div class="stat-row" th:each="request : ${view.friends.sent}">
+                <span class="friend-name">
+                    <span th:replace="~{fragments/community :: avatar(${request.recipient}, '')}"></span>
+                    <span th:text="${request.recipient.name}">Carol</span>
+                    <span class="friend-requested">Requested</span>
+                </span>
+                <form class="stat-end" th:action="@{/friends/requests/{userId}/withdraw(userId=${request.recipient.id})}" method="post">
+                    <button type="submit" class="link-button">Withdraw</button>
+                </form>
+            </div>
+            <div class="invite" data-invite-title="Be my friend on MOVIE/DB">
+                <div class="invite-buttons">
+                    <button type="button" class="button button-primary" data-invite="/api/friends/invite">Invite a friend</button>
+                    <button type="button" class="button" data-invite="/api/friends/public-invite">Share public link</button>
+                    <button type="button" class="link-button" data-invite="/api/friends/public-invite/new">New public link</button>
+                </div>
+                <input class="invite-link" type="text" readonly data-invite-link hidden aria-label="Invite link">
+                <!-- The people who came through the visitor's invites so far, friends and clubs together: the levels count them. -->
+                <p class="stat-note invited-note" th:if="${level != null}"
+                   th:text="${level.invited == 0} ? 'Nobody has come through your invites yet: the levels count the people you bring in.' : (${level.invited == 1} ? '1 person came through your invites so far: the levels count them.' : |${level.invited} people came through your invites so far: the levels count them.|)">2 people came through your invites so far.</p>
+                <div th:replace="~{fragments/community :: openInvites(${view.friends.invites}, '/friends/invites')}"></div>
+            </div>
+        </div>
+
+        <div class="stat-card" id="clubs-card">
+            <div class="notice" th:if="${closed}">You were the last member, so the club is closed.</div>
+            <h2>Your clubs</h2>
+            <p class="stat-note">Film clubs: coworkers, or a group of friends, who see what the others watched. Members need not be friends.</p>
+            <div class="empty-state" th:if="${view.clubs.clubs.isEmpty()}">
+                No clubs yet. Start one below, or ask a club's admin for an invite link.
+            </div>
+            <a class="stat-row club-row" th:each="summary : ${view.clubs.clubs}" th:href="@{/clubs/{id}(id=${summary.membership.club.id})}">
+                <span class="club-name" th:text="${summary.membership.club.name}">Office film club</span>
+                <span class="stat-end">
+                    <span class="role-badge" th:if="${summary.membership.admin}">Admin</span>
+                    <span class="stat-note" th:text="${summary.memberCount == 1} ? '1 member' : |${summary.memberCount} members|">4 members</span>
+                </span>
+            </a>
+            <!-- Starting a club makes the visitor its first admin. -->
+            <form class="club-create" data-saves th:action="@{/clubs}" method="post">
+                <input type="text" name="name" required maxlength="60" placeholder="Name, e.g. Office film club" aria-label="Club name">
+                <button type="submit" class="button">Start a club</button>
+            </form>
+        </div>
+
+        <!-- What friends see of you: each switch on by default. -->
+        <form class="stat-card" id="sharing-card" data-saves th:action="@{/friends/sharing}" method="post">
+            <h2>What you share with friends</h2>
+            <p class="stat-note">With your friends only; nobody else sees any of it.</p>
+            <th:block th:replace="~{fragments/community :: switches(${view.friends.sharing.shareSeen}, ${view.friends.sharing.shareName}, ${view.friends.sharing.shareDates}, 'Your friends', 'a friend\'s')}"></th:block>
+            <button type="submit" class="button">Save</button>
+        </form>
+
+        <!-- What members see of the visitor in every club not set apart. Dates start off: members are not always friends. -->
+        <form class="stat-card" id="club-sharing-card" data-saves th:action="@{/clubs/sharing}" method="post">
+            <h2>What you share in clubs</h2>
+            <p class="stat-note">In every club, unless you set one apart on its page. Members see who is in a club either way.</p>
+            <th:block th:replace="~{fragments/community :: switches(${view.clubs.defaults.clubShareSeen}, ${view.clubs.defaults.clubShareName}, ${view.clubs.defaults.clubShareDates}, 'Members', 'a member\'s')}"></th:block>
+            <button type="submit" class="button">Save</button>
+        </form>
+    </div>
+</section>
+</th:block>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('The Wolf of Wall Street')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <a class="back-link" th:href="@{/play}">← Play</a>
+        <p class="night-eyebrow">The Wolf of Wall Street</p>
+        <h1 class="page-title" th:text="${draft.theme.label}">Sci-Fi of the 1990s</h1>
+        <p class="page-subtitle" th:switch="${draft.match.mode.name()}">
+            <th:block th:case="'SOLO'">Against the house.</th:block>
+            <th:block th:case="'FRIEND'">Against a friend, a day per pick.</th:block>
+            <th:block th:case="*" th:text="|With ${draft.match.club.name}, a day per pick.|">With the club.</th:block>
+            <th:block th:text="|${draft.rounds} picks each, in turns that snake back.|">3 picks each.</th:block>
+            The IMDb ratings stay hidden until every pick is in; the highest total wins.
+        </p>
+        <p th:replace="~{fragments/games :: poolNote(${draft.match}, null)}"></p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container">
+        <div class="notice notice-error" th:if="${problem == 'theme'}" th:text="|That movie is not ${draft.theme.label}.|">That movie does not fit the theme.</div>
+        <div class="notice notice-error" th:if="${problem == 'taken'}">That movie is picked already.</div>
+        <div class="notice notice-error" th:if="${problem == 'turn'}">It is not your pick any more.</div>
+
+        <!-- How it stands: the visitor's pick, someone else's, or the result. -->
+        <div class="stat-card chain-status" th:classappend="${draft.yourTurn} ? 'your-turn'">
+            <th:block th:if="${draft.over}">
+                <p class="quiz-verdict">The draft is in</p>
+                <h2 class="chain-status-title"
+                    th:text="${draft.standings.size() > 1 and draft.standings[0].total == draft.standings[1].total} ? 'A tie!' : |${draft.standings[0].drafter.name} wins with ${draft.standings[0].total}!|">Alice wins!</h2>
+                <form th:if="${draft.match.mode.name() == 'SOLO'}" th:action="@{/play/draft}" method="post">
+                    <button type="submit" name="mode" value="solo" class="button button-primary">Draft again</button>
+                </form>
+            </th:block>
+            <th:block th:unless="${draft.over}">
+                <p class="quiz-verdict" th:text="${draft.yourTurn} ? 'Your pick' : |${draft.turn.name}'s pick|">Your pick</p>
+                <h2 class="chain-status-title" th:text="|Pick a movie: ${draft.theme.label}|">Pick a movie</h2>
+                <p class="stat-note" th:if="${draft.match.mode.name() != 'SOLO'}">
+                    <th:block th:text="${draft.hoursLeft == 1} ? 'One more hour' : |${draft.hoursLeft} more hours|">20 more hours</th:block>
+                    for this pick; then one is made at random from the board.
+                </p>
+                <div class="chain-move" th:if="${draft.yourTurn}">
+                    <form th:action="@{/play/matches/{id}/pick(id=${draft.match.id})}" method="post" data-pick-submits>
+                        <div class="picker search-box quiz-picker" data-picker="movie" data-picker-source="/api/search/titles">
+                            <input type="search" placeholder="Any movie of the theme…" autocomplete="off" aria-label="Your pick" data-picker-input>
+                            <input type="hidden" name="movie" data-picker-value>
+                            <div class="search-suggestions" data-picker-suggestions hidden></div>
+                        </div>
+                    </form>
+                </div>
+            </th:block>
+        </div>
+    </div>
+</section>
+
+<!-- The line-ups, a column each: the picks so far, and once in, each with its rating and the total. -->
+<section class="section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Line-ups</h2>
+        </div>
+        <div class="draft-lineups">
+            <div class="stat-card draft-lineup" th:each="lineUp : ${draft.over} ? ${draft.standings} : ${draft.lineUps}"
+                 th:classappend="${draft.turn != null and lineUp.drafter == draft.turn} ? 'drafting'">
+                <h2>
+                    <span th:text="${lineUp.drafter.name}">Alice</span>
+                    <span class="draft-total" th:if="${lineUp.total != null}" th:text="|★ ${lineUp.total}|">★ 24.6</span>
+                </h2>
+                <div class="draft-picks">
+                    <a class="draft-pick" th:each="pick : ${lineUp.picks}" th:href="@{/movie/{id}(id=${pick.movie.id})}">
+                        <div th:replace="~{fragments/cards :: posterThumb(${pick.movie.id}, ${pick.movie.primaryTitle})}"></div>
+                        <span class="draft-pick-title" th:text="${pick.movie.primaryTitle}">The Matrix</span>
+                        <span class="draft-pick-note" th:if="${pick.auto}">picked for them</span>
+                    </a>
+                    <span class="draft-slot" th:each="slot : ${#numbers.sequence(1, draft.rounds - lineUp.picks.size())}" th:if="${lineUp.picks.size() < draft.rounds}"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- The board: the best-known movies of the theme still to pick; on the visitor's turn, a tap picks one. -->
+<section class="section" th:unless="${draft.over}">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">On the Board</h2>
+            <span class="section-note">the best known still to pick</span>
+        </div>
+        <div class="movie-grid draft-board">
+            <form th:each="movie : ${draft.board}" th:action="@{/play/matches/{id}/pick(id=${draft.match.id})}" method="post" class="draft-board-movie">
+                <input type="hidden" name="movie" th:value="${movie.id}">
+                <button type="submit" class="draft-board-button" th:disabled="${!draft.yourTurn}" th:title="${draft.yourTurn} ? |Pick ${movie.primaryTitle}| : ${movie.primaryTitle}">
+                    <div th:replace="~{fragments/cards :: posterThumb(${movie.id}, ${movie.primaryTitle})}"></div>
+                    <span class="draft-pick-title" th:text="${movie.primaryTitle}">The Matrix</span>
+                    <span class="draft-pick-year" th:text="${movie.startYear}">1999</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<!-- Waiting on the others: the page asks now and then whether the match changed, and reloads when it did (app.js). -->
+<div hidden data-match-watch th:data-match-id="${draft.match.id}" th:data-match-version="${version}" th:if="${!draft.over and !draft.yourTurn}"></div>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

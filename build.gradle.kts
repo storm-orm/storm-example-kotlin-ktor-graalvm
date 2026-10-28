@@ -4,7 +4,7 @@ plugins {
     // The Storm plugin imports the BOM, adds storm-kotlin and storm-core, applies KSP and
     // wires the metamodel processor to it, and selects the compiler-plugin variant matching
     // Kotlin. KSP comes with the plugin from Kotlin 2.3 on.
-    id("st.orm") version "1.15.0"
+    id("st.orm") version "1.16.0"
     id("org.graalvm.buildtools.native") version "0.11.1"
     application
 }
@@ -19,6 +19,8 @@ java {
 }
 
 repositories {
+    // Storm 1.16.0 is resolved from the local Maven repository until it is on Maven Central.
+    mavenLocal()
     mavenCentral()
 }
 
@@ -36,13 +38,15 @@ dependencies {
     // and every auto-registered repository; the services are provided in Dependencies.kt.
     implementation("io.ktor:ktor-server-di:$ktorVersion")
     implementation("io.ktor:ktor-server-status-pages:$ktorVersion")
+    implementation("io.ktor:ktor-server-compression:$ktorVersion")
+    implementation("io.ktor:ktor-server-caching-headers:$ktorVersion")
     implementation("io.ktor:ktor-server-metrics-micrometer:$ktorVersion")
     implementation("io.micrometer:micrometer-registry-prometheus:1.15.4")
 
     // Storm ORM: the Ktor integration and serialization modules. The Gradle plugin
-    // already provides storm-kotlin, storm-core, and the metamodel processor.
+    // already provides storm-kotlin, storm-core, and the metamodel processor. The JSON
+    // columns (@Json) go through kotlinx.serialization, one converter for every one of them.
     implementation("st.orm:storm-ktor")
-    implementation("st.orm:storm-jackson3")
     implementation("st.orm:storm-kotlinx-serialization")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
     runtimeOnly("st.orm:storm-postgresql")
@@ -65,6 +69,8 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("st.orm:storm-test")
+    // SqlCapture.recording follows a capture into coroutines that switch threads.
+    testImplementation("st.orm:storm-kotlin-test")
     testRuntimeOnly("st.orm:storm-h2")
     testRuntimeOnly("com.h2database:h2:2.3.232")
     // EntitySchemaValidationTest runs on PostgreSQL through @StormTest(database = POSTGRESQL);

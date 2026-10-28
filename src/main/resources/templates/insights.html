@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('About You')}"></head>
+<body class="data-page">
+<nav th:replace="~{fragments/layout :: navbar('insights')}"></nav>
+
+<header class="play-hero section-hero">
+    <div th:replace="~{fragments/layout :: wall(${wall})}"></div>
+    <div class="container play-hero-content page-header-row">
+        <div>
+            <nav th:replace="~{fragments/layout :: sectionNav('insights')}"></nav>
+            <h1 class="page-title">About You</h1>
+            <p class="page-subtitle">What your watched list says about you.</p>
+        </div>
+        <!-- The year in movies, from the check-ins: this year's, with the earlier ones a tap away there. -->
+        <div class="page-actions">
+            <a class="button wrapped-link" th:href="@{/wrapped}" th:text="|Your ${#dates.year(#dates.createNow())} in movies|">Your 2026 in movies</a>
+        </div>
+    </div>
+</header>
+
+<section class="section" th:if="${insights.isEmpty}">
+    <div class="container">
+        <div class="empty-state" id="insights-empty">
+            Mark the movies you have watched, and this page fills in: your favourite actors and
+            directors, your genres and decades, and the ratings you usually watch.
+            <a th:href="@{/browse}">Start with the top movies</a>.
+        </div>
+    </div>
+</section>
+
+<th:block th:unless="${insights.isEmpty}">
+<section class="section" id="insight-totals">
+    <div class="container stat-chips">
+        <div class="stat-chip">
+            <div class="value" th:text="${insights.seenCount}">42</div>
+            <div class="label">Watched</div>
+        </div>
+        <div class="stat-chip">
+            <div class="value" th:text="${#numbers.formatInteger(insights.hoursWatched, 1, 'COMMA')}">80</div>
+            <div class="label">Hours watched</div>
+        </div>
+        <div class="stat-chip" th:if="${insights.averageRating != null}">
+            <div class="value" th:text="|★ ${#numbers.formatDecimal(insights.averageRating, 1, 1)}|">★ 7.9</div>
+            <div class="label">Average IMDB rating</div>
+        </div>
+        <div class="stat-chip" th:if="${insights.favouriteDecade != null}">
+            <div class="value" th:text="|${insights.favouriteDecade}s|">1990s</div>
+            <div class="label">Favourite decade</div>
+        </div>
+        <div class="stat-chip">
+            <div class="value" th:text="|${insights.likedCount} · ${insights.dislikedCount}|">5 · 1</div>
+            <div class="label">Thumbs up · down</div>
+        </div>
+        <div class="stat-chip">
+            <div class="value" th:text="${insights.watchlistCount}">7</div>
+            <div class="label">On your watchlist</div>
+        </div>
+    </div>
+</section>
+
+<!-- The distributions first, the histogram wide with the decades and the thumbs beside it; then the favourites, three abreast. -->
+<section class="section">
+    <div class="container insights-grid">
+        <div class="stat-card insights-ratings" id="ratings-card"
+             th:if="${insights.ratings != null}" th:with="ratings=${insights.ratings}">
+            <h2>The ratings you watch</h2>
+            <p class="stat-note" th:if="${ratings.range != null}">
+                You usually watch movies rated
+                <strong th:text="${#numbers.formatDecimal(ratings.usualFrom, 1, 1)}">7.2</strong> to
+                <strong th:text="${#numbers.formatDecimal(ratings.usualTo, 1, 1)}">8.6</strong> on IMDB.
+                For You favours that range: a movie rated far outside it keeps a share of its score.
+            </p>
+            <p class="stat-note" th:if="${ratings.range == null}">
+                Once five movies are watched, the curve of your usual range appears here, and For You follows it.
+            </p>
+            <div class="histogram">
+                <div class="histogram-range" th:if="${ratings.range != null}"
+                     th:style="|left: ${ratings.position(ratings.usualFrom)}%; width: ${ratings.position(ratings.usualTo) - ratings.position(ratings.usualFrom)}%|"></div>
+                <div class="histogram-bars">
+                    <div class="histogram-bin" th:each="bin : ${ratings.bins}"
+                         th:title="|${bin.count} rated ${#numbers.formatDecimal(bin.from, 1, 1)} to ${#numbers.formatDecimal(bin.from + 0.5, 1, 1)}|">
+                        <div class="histogram-bar" th:style="|height: ${bin.height}%|"></div>
+                    </div>
+                </div>
+                <svg class="histogram-curve" th:if="${ratings.curve != null}" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                    <polyline th:attr="points=${ratings.curve}" vector-effect="non-scaling-stroke"></polyline>
+                </svg>
+            </div>
+            <div class="histogram-ticks">
+                <span th:each="tick : ${ratings.ticks}" th:style="|left: ${ratings.position(tick)}%|" th:text="${tick}">7</span>
+            </div>
+        </div>
+
+        <div class="insights-side">
+            <div class="stat-card" id="seen-decades-card">
+                <h2>Your decades</h2>
+                <p class="stat-note">When the movies you saw came out.</p>
+                <div class="bar-row" th:each="bar : ${insights.decades}">
+                    <span th:text="|${bar.item.decade}s|">1990s</span>
+                    <div class="bar-track"><div class="bar-fill" th:style="|width: ${bar.share}%|"></div></div>
+                    <span class="bar-value" th:text="${bar.count}">12</span>
+                </div>
+            </div>
+
+            <div class="stat-card" id="thumbs-card">
+                <h2>You and IMDB</h2>
+                <p class="stat-note" th:unless="${insights.likedAverage != null and insights.dislikedAverage != null}">
+                    Give the movies you have watched a thumb up or down on their page: once both are given, this tells
+                    whether your taste agrees with IMDB's voters, and For You weighs what you liked.
+                </p>
+                <th:block th:if="${insights.likedAverage != null and insights.dislikedAverage != null}">
+                    <p class="stat-note">The IMDB ratings of the movies you gave a thumb.</p>
+                    <div class="stat-row">
+                        <span>👍 Liked</span>
+                        <div class="stat-end"><span class="rating-badge"><span class="star">★</span>
+                            <span th:text="${#numbers.formatDecimal(insights.likedAverage, 1, 1)}">8.4</span></span></div>
+                    </div>
+                    <div class="stat-row">
+                        <span>👎 Not for you</span>
+                        <div class="stat-end"><span class="rating-badge"><span class="star">★</span>
+                            <span th:text="${#numbers.formatDecimal(insights.dislikedAverage, 1, 1)}">7.1</span></span></div>
+                    </div>
+                    <p class="stat-note thumbs-verdict"
+                       th:text="${insights.likedAverage > insights.dislikedAverage} ? 'Your thumbs agree with the crowd.' : 'You and the crowd disagree: you liked what IMDB rates lower.'">
+                        Your thumbs agree with the crowd.</p>
+                </th:block>
+            </div>
+        </div>
+
+        <div class="stat-card" id="actors-card">
+            <h2>Favourite actors</h2>
+            <p class="stat-note">The cast you have watched most often.</p>
+            <div class="empty-state" th:if="${insights.actors.isEmpty()}">No actor is in more than one of your movies yet.</div>
+            <a class="stat-row" th:each="actor, iteration : ${insights.actors}" th:href="@{/person/{id}(id=${actor.person.id})}">
+                <span class="rank-number" th:text="${iteration.count}">1</span>
+                <div class="avatar">
+                    <span th:text="${#strings.substring(actor.person.primaryName, 0, 1)}">A</span>
+                    <img th:src="@{/api/photo/{id}(id=${actor.person.id})}" alt="" loading="lazy" onerror="this.classList.add('failed')">
+                </div>
+                <span th:text="${actor.person.primaryName}">Name</span>
+                <div class="stat-end">
+                    <span class="stat-count" th:text="|${actor.movieCount} movies|">3 movies</span>
+                </div>
+            </a>
+        </div>
+
+        <div class="stat-card" id="directors-card">
+            <h2>Favourite directors</h2>
+            <p class="stat-note">Whose films you keep coming back to.</p>
+            <div class="empty-state" th:if="${insights.directors.isEmpty()}">No director made more than one of your movies yet.</div>
+            <a class="stat-row" th:each="director, iteration : ${insights.directors}" th:href="@{/person/{id}(id=${director.person.id})}">
+                <span class="rank-number" th:text="${iteration.count}">1</span>
+                <div class="avatar">
+                    <span th:text="${#strings.substring(director.person.primaryName, 0, 1)}">A</span>
+                    <img th:src="@{/api/photo/{id}(id=${director.person.id})}" alt="" loading="lazy" onerror="this.classList.add('failed')">
+                </div>
+                <span th:text="${director.person.primaryName}">Name</span>
+                <div class="stat-end">
+                    <span class="stat-count" th:text="|${director.movieCount} movies|">2 movies</span>
+                </div>
+            </a>
+        </div>
+
+        <div class="stat-card insights-genres" id="seen-genres-card">
+            <h2>Your genres</h2>
+            <p class="stat-note">A movie of several genres counts for each.</p>
+            <div class="bar-row genre-bar-row" th:each="bar : ${insights.genres}">
+                <a th:href="@{/browse(genre=${bar.item.genre.name})}" th:text="${bar.item.genre.name}">Drama</a>
+                <div class="bar-track"><div class="bar-fill" th:style="|width: ${bar.share}%|"></div></div>
+                <span class="bar-value" th:text="${bar.count}">12</span>
+            </div>
+        </div>
+
+        <!-- With streaming services ticked on the account page: where the watched movies stream, filled in by the script. -->
+        <div class="stat-card insights-services" id="services-card" hidden th:if="${hasServices}"
+             data-service-shares="/api/insights/services">
+            <h2>Your services</h2>
+            <p class="stat-note">Where the movies you watched stream today. A movie on several of your services counts for each; one on none of them is left out.</p>
+            <div class="service-shares" data-service-share-rows></div>
+            <p class="stat-note service-shares-note" data-service-share-note></p>
+        </div>
+    </div>
+</section>
+
+<section class="section" th:if="${!insights.highlights.isEmpty()}" id="highlights-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Standouts</h2>
+            <span class="section-note">from what you have watched</span>
+        </div>
+        <div class="movie-row highlight-grid">
+            <a class="movie-card highlight-card" th:each="highlight : ${insights.highlights}"
+               th:href="@{/movie/{id}(id=${highlight.movie.id})}">
+                <div th:replace="~{fragments/cards :: posterThumb(${highlight.movie.id}, ${highlight.movie.primaryTitle})}"></div>
+                <div class="movie-card-info">
+                    <div class="highlight-label" th:text="${highlight.label}">Hidden gem</div>
+                    <div class="movie-card-title" th:text="${highlight.movie.primaryTitle}">Title</div>
+                    <div class="movie-card-year" th:text="${highlight.detail}">12,000 votes</div>
+                </div>
+            </a>
+        </div>
+    </div>
+</section>
+</th:block>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

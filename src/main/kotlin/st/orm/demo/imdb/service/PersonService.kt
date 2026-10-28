@@ -19,11 +19,11 @@ class PersonService(
     private val principalRepository: PrincipalRepository
 ) {
 
-    /** The person page: filmography and statistics in one read-only transaction. */
-    suspend fun findPersonDetail(personId: String): PersonDetail? = transaction(readOnly = true) {
+    /** The person page: filmography, by rating or by year, and statistics in one read-only transaction. */
+    suspend fun findPersonDetail(personId: String, byYear: Boolean = false): PersonDetail? = transaction(readOnly = true) {
         val person = personRepository.findById(personId) ?: return@transaction null
         // A person can hold multiple credits in one movie; show each movie once.
-        val filmography = principalRepository.findFilmography(person)
+        val filmography = principalRepository.findFilmography(person, byYear)
             .distinctBy { it.movie.id }
         PersonDetail(
             person = person,

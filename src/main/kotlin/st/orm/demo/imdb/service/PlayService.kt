@@ -1,0 +1,320 @@
+package st.orm.demo.imdb.service
+
+import st.orm.demo.imdb.model.Club
+import st.orm.demo.imdb.model.Game
+import st.orm.demo.imdb.model.GameMatch
+import st.orm.demo.imdb.model.GameMode
+import st.orm.demo.imdb.model.GamePlayer
+import st.orm.demo.imdb.model.GamePlayerPk
+import st.orm.demo.imdb.model.Movie
+import st.orm.demo.imdb.model.User
+import st.orm.demo.imdb.repository.GameMatchRepository
+import st.orm.demo.imdb.repository.GamePlayerRepository
+import st.orm.demo.imdb.repository.RatingRepository
+import st.orm.template.transaction
+import java.time.Duration
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+
+/**
+ * One of the visitor's games on the Play page: the match, who it is with,
+ * how it stands, whether it waits on them ([yourMove]), whether it is
+ * [over], and whether they play it ([mine]), which a club's round they have
+ * not joined yet they do not.
+ */
+data class GameEntry(val match: GameMatch, val with: String, val status: String, val yourMove: Boolean, val over: Boolean = false, val mine: Boolean = true, val since: String = "") {
+    val title: String get() = when (match.game) {
+        Game.CHAIN -> if (match.mode == GameMode.SOLO) "Catch Me If You Can" else "Chain Reaction"
+        Game.DRAFT -> "The Wolf of Wall Street"
+        Game.HIGHER_LOWER -> "Top Gun"
+        Game.SWIPE -> "Love at First Sight"
+        Game.CONNECT -> "Six Degrees of Separation"
+        Game.CAST, Game.REEL -> "Total Recall"
+    }
+
+    /** The game's emoji, for the lists. */
+    val icon: String get() = when (match.game) {
+        Game.CHAIN -> "🎞️"
+        Game.DRAFT -> "🎟️"
+        Game.HIGHER_LOWER -> "🎬"
+        Game.SWIPE -> "🍿"
+        Game.CONNECT -> "📽️"
+        Game.CAST -> "🎭"
+        Game.REEL -> "🎥"
+    }
+}
+
+/**
+ * The Play page: the visitor's open games, the ones waiting on them first,
+ * the few that closed last, who they can start one with, and the posters of
+ * the movies of their taste, for the wall across the top.
+ */
+data class PlayView(val games: List<GameEntry>, val finished: List<GameEntry>, val company: Company, val yesterday: YesterdayQuiz?)
+
+/** A page of the visitor's archive: their closed games, the last closed first. */
+data class ArchiveView(val games: List<GameEntry>, val page: Int, val hasNext: Boolean)
+
+/**
+ * The Play page's list of the visitor's games: the open matches they play,
+ * and the rounds of their clubs they have not played yet, each saying how
+ * it stands; the ones waiting on them first. A game that is over leaves the
+ * list for the archive the first time the list finds it so, and a player
+ * may close an open game: on their own or with a friend that ends it, in a
+ * club they leave it to the others. No more than [MAX_OPEN] games one
+ * started are open at once: a new one closes the oldest played on one's
+ * own, and waits when all are played with others.
+ */
+class PlayService(
+    private val matchService: MatchService,
+    private val gameMatchRepository: GameMatchRepository,
+    private val gamePlayerRepository: GamePlayerRepository,
+    private val chainService: ChainService,
+    private val draftService: DraftService,
+    private val connectService: ConnectService,
+    private val ratingRepository: RatingRepository,
+    private val quizService: QuizService,
+    private val castService: CastService
+) {
+
+    suspend fun playOf(user: User, now: Instant = Instant.now()): PlayView = transaction {
+        val company = matchService.companyOf(user)
+        // The club's rounds the visitor has no part in yet; one they closed is not offered again.
+        val rounds = gameMatchRepository.findOpen(company.clubs, now, LIMIT)
+        val joined = gamePlayerRepository.findMine(user, rounds).map { it.match.id }.toSet()
+        val offered = rounds.filter { it.id !in joined }
+        val (open, loads) = openGamesOf(user, now, offered)
+        val entries = open + offered.map { entryOf(user, it, null, now, loads.players[it.id].orEmpty(), loads) }
+        PlayView(
+            entries.sortedWith(compareByDescending<GameEntry> { it.yourMove }.thenByDescending { it.match.createdAt }),
+            gamePlayerRepository.findClosed(user, 0, FINISHED_SHOWN).content().map { closedEntryOf(user, it, now) },
+            company,
+            quizService.yesterdayOf(user, LocalDate.ofInstant(now, ZoneOffset.UTC))
+        )
+    }
+
+    /**
+     * Closes a game for the visitor: on their own or with a friend the game
+     * ends as it stands, for everyone; in a club they leave it, and the
+     * others play on, passing the visitor's turns by as they run out.
+     */
+    suspend fun close(user: User, matchId: Long, now: Instant = Instant.now()) = transaction {
+        gamePlayerRepository.findById(GamePlayerPk(matchId = matchId, userId = user.id))
+            ?.takeIf { it.closedAt == null }
+            ?.let { close(it, now) }
+    }
+
+    /**
+     * Makes room for a game the visitor starts: with [MAX_OPEN] games they
+     * started open, the oldest of those they play on their own closes. False
+     * when there is no room, all of them being played with others.
+     */
+    suspend fun makeRoom(user: User, now: Instant = Instant.now()): Boolean = transaction {
+        val started = openGamesOf(user, now).first.filter { it.match.host.id == user.id }
+        if (started.size < MAX_OPEN) return@transaction true
+        val oldest = started.filter { it.match.mode == GameMode.SOLO }.minByOrNull { it.match.createdAt } ?: return@transaction false
+        gamePlayerRepository.findById(GamePlayerPk(matchId = oldest.match.id, userId = user.id))?.let { close(it, now) }
+        true
+    }
+
+    /** A page of the visitor's archive, 0 the first. */
+    suspend fun archiveOf(user: User, page: Int, now: Instant = Instant.now()): ArchiveView = transaction(readOnly = true) {
+        val closed = gamePlayerRepository.findClosed(user, page, ARCHIVE_PAGE)
+        ArchiveView(closed.content().map { closedEntryOf(user, it, now) }, page, closed.hasNext())
+    }
+
+    /**
+     * The visitor's open games as they stand at [now]; the ones found over
+     * close, to the archive. A match nobody moved in for [IDLE] ends here,
+     * whatever its game: the list never grows with games left behind.
+     */
+    private fun openGamesOf(user: User, now: Instant, alongside: List<GameMatch> = emptyList()): Pair<List<GameEntry>, Loads> {
+        val mine = gamePlayerRepository.findOpen(user)
+        val players = gamePlayerRepository.findPlayersOf(mine.map { it.match } + alongside)
+        // The matches as they stand now, the idle ones ended; then what each game says of them, and of the ones read
+        // [alongside], a query or two per game, not per match.
+        val matches = mine.map { me -> endIfIdle(me.match, players[me.match.id].orEmpty(), now) }
+        val all = matches + alongside
+        val loads = Loads(
+            players,
+            chainService.turnsIn(all.filter { it.game == Game.CHAIN }, players, now),
+            connectService.standingsOf(all.filter { it.game == Game.CONNECT }),
+            draftService.turnsIn(all.filter { it.game == Game.DRAFT }, players, now),
+            castService.standingsOf(user, all.filter { it.game == Game.CAST || it.game == Game.REEL }, now)
+        )
+        val entries = mine.zip(matches).mapNotNull { (me, match) ->
+            val its = players[match.id].orEmpty()
+            val entry = entryOf(user, match, me, now, its, loads).copy(since = agoText(lastMoveOf(match, its), now))
+            if (entry.over) {
+                gamePlayerRepository.update(me.copy(closedAt = now, closedStatus = entry.status, closedWith = entry.with))
+                null
+            } else entry
+        }
+        return entries to loads
+    }
+
+    /** What the games say of several matches, read in one go for the list, by the match's id; absent, each match is read on its own. */
+    private class Loads(
+        val players: Map<Long, List<GamePlayer>>,
+        val chainTurns: Map<Long, Turn?>,
+        val connectStandings: Map<Long, Pair<Boolean, String>>,
+        val draftTurns: Map<Long, Drafter?>,
+        val castStandings: Map<Long, Triple<Boolean, String, Boolean>>
+    )
+
+    /** When a match last moved: the latest of its players' moves, or its start. */
+    private fun lastMoveOf(match: GameMatch, players: List<GamePlayer>): Instant = (players.map { it.updatedAt } + match.createdAt).max()
+
+    /**
+     * Whether the user has a game going already with these opponents: one
+     * open match per friend, and one per club, so nobody is buried in games.
+     * On one's own, as many as the room allows ([makeRoom]).
+     */
+    suspend fun hasOpenWith(user: User, opponents: Opponents): Boolean = transaction(readOnly = true) {
+        if (opponents.mode == GameMode.SOLO) return@transaction false
+        val mine = gamePlayerRepository.findOpen(user).map { it.match }.filter { it.endedAt == null && it.mode == opponents.mode }
+        when (opponents.mode) {
+            GameMode.CLUB -> mine.any { it.club?.id == opponents.clubId }
+            GameMode.FRIEND -> gamePlayerRepository.findPlayersOf(mine).values.any { players -> players.any { it.user.id == opponents.friendId } }
+            GameMode.SOLO -> false
+        }
+    }
+
+    /** Ends a match whose last move, or start, is more than [IDLE] ago; as it is otherwise. */
+    private fun endIfIdle(match: GameMatch, players: List<GamePlayer>, now: Instant): GameMatch {
+        if (match.endedAt != null) return match
+        val lastMove = lastMoveOf(match, players)
+        if (Duration.between(lastMove, now) <= IDLE) return match
+        return match.copy(endedAt = now).also(gameMatchRepository::update)
+    }
+
+    /** Closes a game for a player, keeping how it stood: ended as it is, or, in a club, left to the others. */
+    private fun close(me: GamePlayer, now: Instant) {
+        val match = if (me.match.mode != GameMode.CLUB && me.match.endedAt == null) me.match.copy(endedAt = now).also(gameMatchRepository::update) else me.match
+        val entry = entryOf(me.user, match, me, now)
+        val status = if (entry.over) entry.status else "You left this game"
+        gamePlayerRepository.update(me.copy(closedAt = now, closedStatus = status, closedWith = entry.with))
+    }
+
+    /** How a closed game stood when it closed, as kept then; worked out for one closed before that was kept. */
+    private fun closedEntryOf(user: User, me: GamePlayer, now: Instant): GameEntry =
+        me.closedStatus?.let { GameEntry(me.match, me.closedWith ?: "", it, yourMove = false, over = true) }
+            ?: entryOf(user, me.match, me, now).let { if (it.over) it else it.copy(status = "You left this game", yourMove = false, over = true) }
+
+    /**
+     * What a match looks like at [now], as a short text that changes
+     * whenever another player moves, or a turn passes on by time: a page
+     * that waits on the others asks for it now and then, and reloads when it
+     * changed. Null for a match the visitor may not look at.
+     */
+    suspend fun versionOf(user: User, matchId: Long, now: Instant = Instant.now()): String? = transaction(readOnly = true) {
+        val match = matchService.visibleMatch(user, matchId) ?: return@transaction null
+        val players = gamePlayerRepository.findPlayers(match)
+        val standing = players.joinToString(",") { "${it.user.id}:${it.score}:${it.finished}:${it.updatedAt.toEpochMilli()}" }
+        val game = when (match.game) {
+            Game.CHAIN -> chainService.versionOf(match, players, now)
+            Game.DRAFT -> draftService.versionOf(match, now)
+            Game.CONNECT -> connectService.versionOf(match)
+            Game.CAST, Game.REEL -> castService.versionOf(match, now)
+            Game.HIGHER_LOWER, Game.SWIPE -> ""
+        }
+        "${match.endedAt}|${match.isOver(now)}|$standing|$game"
+    }
+
+    /**
+     * A club's games of the last weeks, for its page, each as it stands for
+     * the visitor, a member, who may not have played it yet.
+     */
+    suspend fun clubGamesOf(user: User, club: Club, now: Instant = Instant.now()): List<GameEntry> = transaction(readOnly = true) {
+        gameMatchRepository.findRecentOf(club, now.minus(RECENT), LIMIT).map { match ->
+            entryOf(user, match, gamePlayerRepository.findById(GamePlayerPk(matchId = match.id, userId = user.id)), now)
+        }
+    }
+
+    /** How a match stands for the visitor: [me] is their player, or null for a club's round they have not played. */
+    private fun entryOf(user: User, match: GameMatch, me: GamePlayer?, now: Instant, players: List<GamePlayer> = gamePlayerRepository.findPlayers(match), loads: Loads? = null): GameEntry {
+        val with = withOf(user, match, players)
+        val entry = when (match.game) {
+            Game.HIGHER_LOWER -> when {
+                me == null -> if (match.isOver(now)) GameEntry(match, with, resultOf(user, players) { "a streak of $it" }, yourMove = false, over = true)
+                    else GameEntry(match, with, "Your turn: the round is open", yourMove = true)
+                !me.finished && !match.isOver(now) -> GameEntry(match, with, if (me.score == 0) "Your turn" else "Your turn: a streak of ${me.score} going", yourMove = true)
+                match.isOver(now) || match.mode == GameMode.SOLO -> GameEntry(match, with, resultOf(user, players) { "a streak of $it" }, yourMove = false, over = true)
+                else -> GameEntry(match, with, "You scored ${me.score}; waiting for the others", yourMove = false)
+            }
+            Game.CONNECT -> {
+                // Played together, no turns: an open puzzle is always one the visitor can add to.
+                val (over, standing) = if (loads != null) loads.connectStandings.getValue(match.id) else connectService.standingOf(match)
+                GameEntry(match, with, standing, yourMove = !over, over = over)
+            }
+            Game.SWIPE -> when {
+                match.isOver(now) -> GameEntry(match, with, "The round is closed: see what everyone wants", yourMove = false, over = true)
+                me == null || !me.finished -> GameEntry(match, with, "Your turn: swipe the posters", yourMove = true)
+                else -> GameEntry(match, with, "You swiped them all; waiting for the others", yourMove = false)
+            }
+            Game.DRAFT -> {
+                val turn = if (loads != null) loads.draftTurns[match.id] else draftService.turnIn(match, now)
+                when {
+                    turn == null -> GameEntry(match, with, "The draft is in: see who won", yourMove = false, over = true)
+                    turn.isUser(user) -> GameEntry(match, with, "Your pick", yourMove = true)
+                    else -> GameEntry(match, with, "${turn.name}'s pick", yourMove = false)
+                }
+            }
+            Game.CAST, Game.REEL -> (if (loads != null) loads.castStandings.getValue(match.id) else castService.standingOf(user, match, now)).let { (over, standing, yourMove) ->
+                GameEntry(match, with, standing, yourMove = yourMove, over = over)
+            }
+            Game.CHAIN -> {
+                val turn = if (loads != null) loads.chainTurns[match.id] else chainService.turnIn(match, players, now)
+                when {
+                    turn == null -> GameEntry(match, with, resultOf(user, players) { if (it == 1) "1 point" else "$it points" }, yourMove = false, over = true)
+                    turn.player.user.id == user.id -> GameEntry(match, with, "Your turn", yourMove = true)
+                    else -> GameEntry(match, with, "${turn.player.user.name ?: "Someone"}'s turn", yourMove = false)
+                }
+            }
+        }
+        return entry.copy(mine = me != null)
+    }
+
+    /** How long ago a moment was, as the list says it: "just now", "5 min ago", "3 h ago", "2 days ago". */
+    private fun agoText(moment: Instant, now: Instant): String {
+        val minutes = Duration.between(moment, now).toMinutes()
+        return when {
+            minutes < 1 -> "just now"
+            minutes < 60 -> "$minutes min ago"
+            minutes < 60 * 24 -> "${minutes / 60} h ago"
+            minutes < 60 * 48 -> "yesterday"
+            else -> "${minutes / (60 * 24)} days ago"
+        }
+    }
+
+    /** Who a match is with, as the list says it. */
+    private fun withOf(user: User, match: GameMatch, players: List<GamePlayer>): String = when (match.mode) {
+        GameMode.SOLO -> "On your own"
+        GameMode.FRIEND -> "With " + (players.firstOrNull { it.user.id != user.id }?.user?.name ?: "a friend")
+        GameMode.CLUB -> match.club?.name ?: "Your club"
+    }
+
+    /** How a match ended: the visitor's own score on their own, else who won, each score as [score] says it. */
+    private fun resultOf(user: User, players: List<GamePlayer>, score: (Int) -> String): String {
+        if (players.size == 1) return "Over: ${score(players.single().score)}"
+        val best = players.maxOf { it.score }
+        val winners = players.filter { it.score == best }
+        return when {
+            winners.size > 1 -> "A tie, with ${score(best)}"
+            winners.single().user.id == user.id -> "You won, with ${score(best)}"
+            else -> "${winners.single().user.name ?: "Someone"} won, with ${score(best)}"
+        }
+    }
+
+    companion object {
+        /** The games one started that may be open at once. */
+        const val MAX_OPEN = 8
+        private val RECENT: Duration = Duration.ofDays(21)
+        private const val LIMIT = 12
+        /** A match nobody moved in for this long ends by itself. */
+        val IDLE: Duration = Duration.ofDays(7)
+        /** The games that closed last, under the open ones. */
+        private const val FINISHED_SHOWN = 3
+        private const val ARCHIVE_PAGE = 20
+    }
+}

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${account.name != null} ? 'Your account' : 'Sign in')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('signin')}"></nav>
+
+<!-- Signed in, the page is the account: where the visitor stands, and their settings; the sign-ins and their linking
+     sit behind the Manage button, as the community's management does. Signed out, it is the way in. -->
+<header class="page-header">
+    <div class="container">
+        <div class="page-title-row">
+            <h1 class="page-title" th:text="${account.name == null} ? 'Sign in' : (${manage} ? 'Your sign-ins' : 'Your account')">Sign in</h1>
+            <a th:if="${account.name != null and !manage}" th:replace="~{fragments/community :: manageLink(@{/signin(manage='')}, 'Manage your sign-ins')}"></a>
+        </div>
+        <p class="page-subtitle" th:if="${account.name == null}">Your watchlist and seen list already work in this browser. Sign in to keep them on every device.</p>
+        <p class="page-subtitle" th:if="${account.name != null and !manage}" th:text="|Signed in as ${account.name}.|">Signed in.</p>
+        <p class="page-subtitle" th:if="${account.name != null and manage}">The accounts that sign you in. Link another, and either one signs you in to the same lists.</p>
+        <p class="page-switch" th:if="${manage}"><a th:href="@{/signin}">← Back to your account</a></p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container">
+        <div class="empty-state" th:if="${failure == 'expired'}">The sign-in took too long or was started elsewhere. Please try again.</div>
+        <div class="empty-state" th:if="${failure == 'denied'}">The sign-in was cancelled at the provider.</div>
+        <div class="empty-state" th:if="${failure == 'refused'}">The provider did not complete the sign-in. Please try again.</div>
+
+        <!-- Signed out, or managing: the logins of the account, each a way in to it, and the ways to add one. -->
+        <th:block th:if="${account.name == null or manage}">
+        <div class="account-logins" th:unless="${logins.isEmpty()}" id="account-logins">
+            <div class="stat-row" th:each="login : ${logins}">
+                <span class="account-login">
+                    <span class="provider-badge" th:classappend="|provider-${login.provider}|" aria-hidden="true"><span class="provider-icon"></span></span>
+                    <span th:text="${login.label}">GitHub</span>
+                </span>
+                <div class="stat-end"><span class="stat-count" th:text="${login.username}">octocat</span></div>
+            </div>
+        </div>
+
+        <div class="empty-state" th:if="${providers.isEmpty() and freepodLoginUrl == null and logins.isEmpty()}">
+            No sign-in providers are configured for this deployment.
+        </div>
+        <div class="signin-providers" th:unless="${providers.isEmpty() and freepodLoginUrl == null}">
+            <a class="button signin-button provider-button" th:each="provider : ${providers}"
+               th:classappend="|provider-${provider.key}|"
+               th:href="@{/signin/{key}(key=${provider.key}, rd=${returnTo})}">
+                <span class="provider-icon" aria-hidden="true"></span>
+                <span th:text="${logins.isEmpty()} ? |Continue with ${provider.label}| : |Link ${provider.label}|">Continue with GitHub</span>
+            </a>
+            <!-- Only on Freepod with its sign-in on: the platform signs in and comes back with the account. -->
+            <a class="button signin-button provider-button provider-freepod" id="freepod-signin" th:if="${freepodLoginUrl != null}" th:href="${freepodLoginUrl}">
+                <span class="provider-icon" aria-hidden="true"></span>
+                <span th:text="${logins.isEmpty()} ? 'Continue with Freepod' : 'Link Freepod'">Continue with Freepod</span>
+            </a>
+        </div>
+        <p class="account-hint" th:if="${logins.isEmpty() and freepodLoginUrl != null and !providers.isEmpty()}">
+            No GitHub account? Continue with Freepod: it takes an email address.
+        </p>
+        <p class="account-hint" th:if="${logins.isEmpty()}">
+            The application reads only the account's id, login name, display name and avatar. Nothing is written to the provider.
+        </p>
+        <p class="account-hint" th:unless="${logins.isEmpty()}">
+            Linking an account that has lists of its own here brings both together: the lists of this one move to it,
+            and every linked login leads there.
+        </p>
+        <form class="signout-form" th:if="${account.name != null}" th:action="@{/signout}" method="post">
+            <button type="submit" class="button" id="signout">Sign out</button>
+        </form>
+        </th:block>
+        <th:block th:if="${account.name != null and !manage}">
+        <!-- Signed in: where the visitor stands, in brief, and the pages that go into it. -->
+        <div class="stat-card account-standing" th:if="${level != null}">
+            <span class="level-ring" th:style="|--progress: ${level.fraction}|"><span th:text="${#numbers.formatInteger(level.fraction * 100, 1)} + '%'">42%</span></span>
+            <div class="account-standing-text">
+                <span class="level-eyebrow">Your level</span>
+                <span class="level-name" th:text="${level.level.label}">Supporting</span>
+                <span class="level-next" th:text="${level.nextText}">107 more to Lead</span>
+            </div>
+            <dl class="account-figures">
+                <div><dt>Movies watched</dt><dd th:text="${#numbers.formatInteger(level.watched, 1, 'COMMA')}">724</dd></div>
+                <div><dt>Checked in</dt><dd th:text="${level.checkedIn}">12</dd></div>
+                <div><dt>Badges</dt><dd th:text="${badgeCount}">27</dd></div>
+                <div><dt>Came through your invites</dt><dd th:text="${level.invited}">2</dd></div>
+            </dl>
+            <span class="level-links">
+                <a class="level-link" th:href="@{/play/levels}">Levels &amp; badges →</a>
+                <a class="level-link" th:href="@{/community(manage='')}">Friends, clubs &amp; invites →</a>
+            </span>
+        </div>
+
+        <!-- Signed in: the country the user is from, for the platforms a movie page shows. -->
+        <form class="stat-card country-card" id="country-card" data-saves th:if="${account.name != null}" th:action="@{/account/country}" method="post">
+            <h2>Your country</h2>
+            <p class="stat-note">Movie pages show the platforms a movie streams on in this country.</p>
+            <select class="country-select" name="country" aria-label="Your country">
+                <option value="" th:text="${browserCountry != null} ? |From your browser (${browserCountry.name})| : 'From your browser'">From your browser</option>
+                <option th:each="country : ${countries}" th:value="${country.code}" th:text="${country.name}"
+                        th:selected="${account.country == country.code}">Netherlands</option>
+            </select>
+            <button type="submit" class="button">Save</button>
+        </form>
+        <!-- Signed in: the streaming services of the user's country, ticked for the ones they have. -->
+        <form class="stat-card services-card" id="services-card" data-saves th:unless="${services.isEmpty()}" th:action="@{/account/services}" method="post">
+            <h2>Your services</h2>
+            <p class="stat-note" th:text="|The streaming services you have in ${country.name}. For You shows their logos on the picks they stream, and can keep to them.|">The streaming services you have.</p>
+            <div class="choice-grid">
+                <label class="choice-tile" th:each="service : ${services}">
+                    <input type="checkbox" name="service" th:value="${service.id}" th:checked="${service.chosen}">
+                    <img th:if="${service.logoUrl != null}" th:src="${service.logoUrl}" alt="" loading="lazy">
+                    <span th:text="${service.name}">Netflix</span>
+                </label>
+            </div>
+            <button type="submit" class="button">Save</button>
+        </form>
+        <!-- Signed in: the kinds of cinema and the languages the site keeps its picks to. -->
+        <form class="stat-card movies-card" id="movies-card" data-saves th:if="${account.name != null}" th:action="@{/account/movies}" method="post">
+            <h2>Your movies</h2>
+            <p class="stat-note">For You, the home page, Top Movies, Recently Added, the genres and Catch up keep to these. Search still finds every movie.</p>
+            <h3 class="choice-heading">Kinds of cinema</h3>
+            <div class="choice-grid">
+                <label class="choice-tile" th:each="tag : ${tags}">
+                    <input type="checkbox" name="show" th:value="${tag.key}" th:checked="${tag.chosen}">
+                    <span th:text="${tag.label}">Hollywood</span>
+                </label>
+            </div>
+            <h3 class="choice-heading" th:unless="${languages.isEmpty()}">Languages <span class="choice-hint">none ticked: every language</span></h3>
+            <div class="choice-grid language-grid" th:unless="${languages.isEmpty()}">
+                <label class="choice-tile" th:each="language : ${languages}">
+                    <input type="checkbox" name="language" th:value="${language.code}" th:checked="${language.chosen}">
+                    <span th:text="${language.name}">English</span>
+                    <span class="choice-count" th:text="${#numbers.formatInteger(language.movies, 1, 'COMMA')}">31,000</span>
+                </label>
+            </div>
+            <button type="submit" class="button">Save</button>
+        </form>
+        </th:block>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

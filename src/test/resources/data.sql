@@ -14,6 +14,15 @@ INSERT INTO movie (id, primary_title, original_title, start_year, runtime_minute
     ('tt0068646', 'The Godfather', 'The Godfather', 1972, 175),
     ('tt0211915', 'Amélie', 'Le Fabuleux Destin d''Amélie Poulain', 2001, 122);
 
+-- Four movies joined the catalogue after it was created, two a day in one sync
+-- run each: the two of a day share the moment, as the rows of a sync's chunk do.
+-- The Godfather and Amélie were there from the start and have no addition.
+INSERT INTO movie_addition (movie_id, added_at) VALUES
+    ('tt0133093', TIMESTAMP '2026-07-03 03:00:00'),
+    ('tt0234215', TIMESTAMP '2026-07-03 03:00:00'),
+    ('tt0111161', TIMESTAMP '2026-07-02 03:00:00'),
+    ('tt0110912', TIMESTAMP '2026-07-02 03:00:00');
+
 INSERT INTO movie_genre (movie_id, genre_id) VALUES
     ('tt0133093', 1),
     ('tt0133093', 3),
@@ -29,7 +38,8 @@ INSERT INTO person (id, primary_name, birth_year, death_year) VALUES
     ('nm0000151', 'Morgan Freeman', 1937, NULL),
     ('nm0000209', 'Tim Robbins', 1958, NULL),
     ('nm0000237', 'John Travolta', 1954, NULL),
-    ('nm0000199', 'Al Pacino', 1940, NULL);
+    ('nm0000199', 'Al Pacino', 1940, NULL),
+    ('nm0905154', 'Lana Wachowski', 1965, NULL);
 
 INSERT INTO principal (movie_id, ordering, person_id, category, characters) VALUES
     ('tt0133093', 1, 'nm0000206', 'actor', 'Neo'),
@@ -39,16 +49,24 @@ INSERT INTO principal (movie_id, ordering, person_id, category, characters) VALU
     ('tt0111161', 1, 'nm0000209', 'actor', 'Andy Dufresne'),
     ('tt0111161', 2, 'nm0000151', 'actor', 'Red'),
     ('tt0110912', 1, 'nm0000237', 'actor', 'Vincent Vega'),
-    ('tt0068646', 1, 'nm0000199', 'actor', 'Michael Corleone');
+    ('tt0068646', 1, 'nm0000199', 'actor', 'Michael Corleone'),
+    -- The director is billed after the cast, as IMDB lists principals: a taste profile reads it regardless.
+    ('tt0133093', 5, 'nm0905154', 'director', NULL),
+    ('tt0234215', 5, 'nm0905154', 'director', NULL);
 
 INSERT INTO rating (movie_id, average_rating, vote_count) VALUES
     ('tt0133093', 8.7, 2000000),
     ('tt0234215', 7.2, 600000),
     ('tt0111161', 9.3, 2900000),
     ('tt0110912', 8.9, 2200000),
-    ('tt0068646', 9.2, 2000000);
+    ('tt0068646', 9.2, 2000000),
+    ('tt0211915', 8.3, 800000);
 
 INSERT INTO movie_view (movie_id, viewed_at) VALUES
     ('tt0133093', TIMESTAMP '2026-07-01 10:00:00'),
     ('tt0111161', TIMESTAMP '2026-07-01 11:00:00'),
     ('tt0133093', TIMESTAMP '2026-07-01 12:00:00');
+
+-- Every movie is known on IMDb, as the V16 migration records for the catalogue.
+INSERT INTO movie_source (kind, movie_id, external_id)
+SELECT 'imdb', id, id FROM movie;

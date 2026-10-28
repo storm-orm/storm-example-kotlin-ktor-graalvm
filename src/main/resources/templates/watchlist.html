@@ -4,20 +4,28 @@
 <body>
 <nav th:replace="~{fragments/layout :: navbar('watchlist')}"></nav>
 
-<header class="page-header">
-    <div class="container">
-        <h1 class="page-title">My Watchlist</h1>
-        <p class="page-subtitle"
-           th:text="|${#numbers.formatInteger(watchlistPage.totalCount(), 1, 'COMMA')} saved movies|">3 saved movies</p>
+<header class="play-hero section-hero">
+    <div th:replace="~{fragments/layout :: wall(${wall})}"></div>
+    <div class="container play-hero-content page-header-row">
+        <div>
+            <nav th:replace="~{fragments/layout :: sectionNav('watchlist')}"></nav>
+            <h1 class="page-title">My Watchlist</h1>
+            <p class="page-subtitle"
+               th:text="|${#numbers.formatInteger(watchlistPage.totalCount(), 1, 'COMMA')} saved movies|">3 saved movies</p>
+        </div>
     </div>
 </header>
 
 <section class="section">
     <div class="container">
         <div class="empty-state" th:if="${watchlistPage.content().isEmpty()}">
-            Your watchlist is empty. Open a movie and press “Add to watchlist”.
+            Your watchlist is empty. Open a movie and press “Watchlist”.
         </div>
-        <div class="movie-grid" id="watchlist-results">
+        <p class="account-hint" th:if="${account.name == null}">
+            Your lists live in this browser. <a th:href="@{/signin(rd='/watchlist')}">Sign in</a> with a git account to keep them on every device.
+        </p>
+        <!-- The logos of the visitor's services go on the posters of the movies they stream, once the page asks. -->
+        <div class="movie-grid" id="watchlist-results" th:data-service-logos="${hasServices} ? '/api/my-services'">
             <th:block th:each="entry : ${watchlistPage.content()}">
                 <a th:replace="~{fragments/cards :: movie(${entry.movie.id}, ${entry.movie.primaryTitle}, ${entry.movie.startYear})}"></a>
             </th:block>

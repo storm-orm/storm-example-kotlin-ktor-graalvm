@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Top Gun')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <a class="back-link" th:href="@{/play}">← Play</a>
+        <div class="quiz-title-row">
+            <h1 class="page-title">Top Gun</h1>
+            <span class="hl-streak" th:text="${game.streak}">7</span>
+        </div>
+        <p class="page-subtitle">
+            <th:block th:switch="${game.match.mode.name()}">
+                <th:block th:case="'SOLO'">On your own<th:block th:if="${game.best > 0}"> · your best streak is <strong th:text="${game.best}">12</strong></th:block></th:block>
+                <th:block th:case="'FRIEND'">Against a friend: the same movies for both of you</th:block>
+                <th:block th:case="*" th:text="|A round for ${game.match.club.name}: the same movies for everyone|">A round for the club</th:block>
+            </th:block>
+            <th:block th:if="${game.hoursLeft != null and !game.over}"> · open <th:block th:text="${game.hoursLeft == 1} ? 'one more hour' : |${game.hoursLeft} more hours|">40 more hours</th:block></th:block>
+        </p>
+        <p th:replace="~{fragments/games :: poolNote(${game.match}, ${game.players})}"></p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container">
+        <!-- The pair to compare: the first with its rating, the second to call higher or lower. -->
+        <div class="hl-stage" th:if="${game.playing}">
+            <div class="hl-card">
+                <div th:replace="~{fragments/cards :: posterThumb(${game.current.movie.id}, ${game.current.movie.primaryTitle})}"></div>
+                <div class="hl-rating"><span class="star">★</span> <span th:text="${game.current.rating}">7.8</span></div>
+                <div class="hl-title" th:text="${game.current.movie.primaryTitle}">The Matrix</div>
+                <div class="hl-year" th:text="${game.current.movie.startYear}">1999</div>
+            </div>
+            <div class="hl-versus" aria-hidden="true">VS</div>
+            <div class="hl-card hl-next">
+                <div th:replace="~{fragments/cards :: posterThumb(${game.next.movie.id}, ${game.next.movie.primaryTitle})}"></div>
+                <div class="hl-rating hl-unknown">?</div>
+                <div class="hl-title" th:text="${game.next.movie.primaryTitle}">Inception</div>
+                <div class="hl-year" th:text="${game.next.movie.startYear}">2010</div>
+                <div class="hl-buttons">
+                    <form th:action="@{/play/matches/{id}/answer(id=${game.match.id})}" method="post">
+                        <button type="submit" name="higher" value="true" class="button button-primary hl-button">▲ Higher</button>
+                    </form>
+                    <form th:action="@{/play/matches/{id}/answer(id=${game.match.id})}" method="post">
+                        <button type="submit" name="higher" value="false" class="button hl-button">▼ Lower</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- The game over: the streak, and the pair it ended on, both ratings shown. -->
+        <div class="stat-card hl-result" th:if="${game.finished}">
+            <p class="quiz-verdict" th:text="${game.perfect} ? 'Every one right!' : 'Game over'">Game over</p>
+            <h2 class="hl-result-title" th:text="${game.streak == 1} ? 'A streak of 1' : |A streak of ${game.streak}|">A streak of 7</h2>
+            <p class="stat-note" th:if="${game.match.mode.name() == 'SOLO' and game.streak > 0 and game.streak >= game.best}">Your best yet.</p>
+            <div class="hl-missed" th:if="${game.missed != null}">
+                <span class="hl-missed-movie">
+                    <span th:text="${game.missed.first.movie.primaryTitle}">The Matrix</span>
+                    <span class="rating-badge"><span class="star">★</span> <span th:text="${game.missed.first.rating}">8.7</span></span>
+                </span>
+                <span class="hl-missed-vs">vs</span>
+                <span class="hl-missed-movie">
+                    <span th:text="${game.missed.second.movie.primaryTitle}">Inception</span>
+                    <span class="rating-badge"><span class="star">★</span> <span th:text="${game.missed.second.rating}">8.8</span></span>
+                </span>
+            </div>
+            <form th:if="${game.match.mode.name() == 'SOLO'}" th:action="@{/play/higher-lower}" method="post">
+                <button type="submit" name="mode" value="solo" class="button button-primary">Play again</button>
+            </form>
+        </div>
+
+        <div class="empty-state" th:if="${game.over and game.me == null}">This round is closed: it was open for two days.</div>
+    </div>
+</section>
+
+<!-- The board of a round with others: each player's streak as far as they played it. -->
+<section class="section" th:if="${game.match.mode.name() != 'SOLO'}">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">The Board</h2>
+            <span class="section-note" th:text="${game.over} ? 'final' : 'so far'">so far</span>
+        </div>
+        <div class="stat-card quiz-board hl-board">
+            <div class="quiz-board-row" th:each="player, rank : ${game.players}" th:classappend="${game.me != null and player.user.id == game.me.user.id} ? 'you'">
+                <span class="quiz-rank" th:text="${rank.count}">1</span>
+                <span th:replace="~{fragments/community :: avatar(${player.user}, '')}"></span>
+                <span class="quiz-board-name" th:text="${player.user.name}">Alice</span>
+                <span class="hl-playing" th:unless="${player.finished}">playing</span>
+                <span class="quiz-board-score" th:text="${player.score}">7</span>
+            </div>
+            <p class="stat-note hl-board-note" th:if="${game.match.mode.name() == 'CLUB' and !game.over}">Every member can play this round until it closes; they join as they play.</p>
+        </div>
+    </div>
+</section>
+
+<!-- Waiting on the others: the page asks now and then whether the match changed, and reloads when it did (app.js). -->
+<div hidden data-match-watch th:data-match-id="${game.match.id}" th:data-match-version="${version}" th:if="${game.match.mode.name() != 'SOLO' and game.finished and !game.over}"></div>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

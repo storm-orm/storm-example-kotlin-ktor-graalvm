@@ -17,6 +17,27 @@
     </div>
 </a>
 
+<!-- A recommended movie: the poster card with its reasons underneath, and a "Not interested"
+     control beside it. The link says where it came from, so the visit counts as a recommendation
+     that led somewhere. -->
+<div th:fragment="recommended(id, title, year, reasons)" class="recommended" th:data-movie-id="${id}">
+    <a class="movie-card" th:href="@{/movie/{id}(id=${id}, via='for-you')}">
+        <div class="poster">
+            <div class="poster-placeholder"><span th:text="${title}">Title</span></div>
+            <img th:src="@{/api/poster/{id}(id=${id})}" alt="" loading="lazy"
+                 onerror="this.classList.add('failed')">
+        </div>
+        <div class="movie-card-info">
+            <div class="movie-card-title" th:text="${title}">Title</div>
+            <div class="movie-card-year" th:text="${year}">Year</div>
+            <div class="movie-card-reasons">
+                <span th:each="reason : ${reasons}" th:text="${reason.text}">Because you saw The Matrix</span>
+            </div>
+        </div>
+    </a>
+    <button type="button" class="dismiss-button" data-dismiss th:data-movie-id="${id}" title="Not interested" aria-label="Not interested">×</button>
+</div>
+
 <!-- A movie poster card with a rank badge, for top-10 style rows. -->
 <a th:fragment="rankedMovie(rank, id, title, year)" class="movie-card" th:href="@{/movie/{id}(id=${id})}">
     <div class="poster">
@@ -31,11 +52,39 @@
     </div>
 </a>
 
+<!-- A check-in of a friend or a club member: the poster card, with who and the day as far as they share them. -->
+<a th:fragment="sharedCheckIn(item)" class="movie-card" th:href="@{/movie/{id}(id=${item.movie.id})}">
+    <div class="poster">
+        <div class="poster-placeholder"><span th:text="${item.movie.primaryTitle}">Title</span></div>
+        <img th:src="@{/api/poster/{id}(id=${item.movie.id})}" alt="" loading="lazy"
+             onerror="this.classList.add('failed')">
+    </div>
+    <div class="movie-card-info">
+        <div class="movie-card-title" th:text="${item.movie.primaryTitle}">Title</div>
+        <div class="friend-seen">
+            <img class="friend-avatar" th:if="${item.avatarUrl != null}" th:src="${item.avatarUrl}" alt="">
+            <span th:text="${item.caption}">Alice · 14 Mar 2026</span>
+        </div>
+    </div>
+</a>
+
 <!-- A small poster used inside list rows. -->
 <div th:fragment="posterThumb(id, title)" class="poster">
     <div class="poster-placeholder"><span th:text="${title}">Title</span></div>
     <img th:src="@{/api/poster/{id}(id=${id})}" alt="" loading="lazy"
          onerror="this.classList.add('failed')">
+</div>
+
+<!-- A poster under a veil while its credits are the question ([veiled]): blurred, and not to be opened. -->
+<div th:fragment="veiledPoster(id, title, veiled)" class="poster-veil" th:classappend="${veiled} ? 'veiled'">
+    <div th:replace="~{fragments/cards :: posterThumb(${id}, ${title})}"></div>
+    <span class="poster-veil-label" th:if="${veiled}" title="The poster is hidden until the game is over">Hidden</span>
+</div>
+
+<!-- A poster under a deep veil, where a face on it would give the actor away: blurred past recognising anyone. -->
+<div th:fragment="deepVeiledPoster(id, title)" class="poster-veil veiled deep">
+    <div th:replace="~{fragments/cards :: posterThumb(${id}, ${title})}"></div>
+    <span class="poster-veil-label" th:if="${veiled}" title="The poster is hidden until the game is over">Hidden</span>
 </div>
 
 <!-- A person card with an initial avatar. -->
@@ -46,6 +95,20 @@
              onerror="this.classList.add('failed')">
     </div>
     <div class="person-card-name" th:text="${name}">Name</div>
+</a>
+
+<!-- A list as a card: the posters of its latest movies fanned out, its name, how many movies, and whose it is
+     ([owner]: a club's name, "by Alice", or nothing for the visitor's own). -->
+<a th:fragment="listCard(summary, owner)" class="list-card" th:href="@{/lists/{id}(id=${summary.list.id})}">
+    <span class="list-posters" th:classappend="|posters-${summary.posters.size()}|">
+        <span class="list-poster" th:each="movie : ${summary.posters}">
+            <img th:src="@{/api/poster/{id}(id=${movie.id})}" alt="" loading="lazy" onerror="this.classList.add('failed')">
+        </span>
+    </span>
+    <span class="list-card-name" th:text="${summary.list.name}">Best heist films</span>
+    <span class="list-card-meta">
+        <th:block th:text="${summary.movieCount == 1} ? '1 movie' : |${summary.movieCount} movies|">12 movies</th:block><th:block th:if="${owner != null}"> · <th:block th:text="${owner}">by Alice</th:block></th:block>
+    </span>
 </a>
 
 </body>

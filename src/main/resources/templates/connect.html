@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Six Degrees of Separation')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <a class="back-link" th:href="@{/play}">← Play</a>
+        <h1 class="page-title">Six Degrees of Separation</h1>
+        <p class="page-subtitle">
+            <th:block th:switch="${puzzle.match.mode.name()}">
+                <th:block th:case="'SOLO'">On your own.</th:block>
+                <th:block th:case="'FRIEND'">Together with a friend: either of you adds the next link, any time.</th:block>
+                <th:block th:case="*" th:text="|Together with ${puzzle.match.club.name}: anyone adds the next link, any time.|">With the club.</th:block>
+            </th:block>
+            Join the two movies, each one sharing an actor with the one before, in as few links as you can. A link
+            through Kevin Bacon counts one less, a nod to Six Degrees of Kevin Bacon, the game in which every actor
+            is six movies or fewer from him.
+        </p>
+        <p th:replace="~{fragments/games :: poolNote(${puzzle.match}, ${puzzle.players})}"></p>
+    </div>
+</header>
+
+<!-- The two ends: the start and the target, and par between them. -->
+<section class="section">
+    <div class="container">
+        <div class="connect-ends">
+            <a class="connect-end" th:href="@{/movie/{id}(id=${puzzle.puzzle.start.id})}" th:classappend="${!puzzle.over} ? 'veiled-link'">
+                <div th:replace="~{fragments/cards :: veiledPoster(${puzzle.puzzle.start.id}, ${puzzle.puzzle.start.primaryTitle}, ${!puzzle.over})}"></div>
+                <span class="connect-end-label">From</span>
+                <span class="connect-end-title" th:text="${puzzle.puzzle.start.primaryTitle}">The Matrix</span>
+            </a>
+            <div class="connect-par">
+                <span class="connect-par-number" th:text="${puzzle.puzzle.par}">3</span>
+                <span class="connect-par-label">par</span>
+            </div>
+            <a class="connect-end" th:href="@{/movie/{id}(id=${puzzle.puzzle.target.id})}" th:classappend="${!puzzle.over} ? 'veiled-link'">
+                <div th:replace="~{fragments/cards :: veiledPoster(${puzzle.puzzle.target.id}, ${puzzle.puzzle.target.primaryTitle}, ${!puzzle.over})}"></div>
+                <span class="connect-end-label">To</span>
+                <span class="connect-end-title" th:text="${puzzle.puzzle.target.primaryTitle}">Pulp Fiction</span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+        <div class="notice notice-error" th:if="${problem == 'unlinked'}">That movie shares no actor with the end of the chain.</div>
+        <div class="notice notice-error" th:if="${problem == 'repeat'}">That movie is in the chain already.</div>
+
+        <div class="stat-card chain-status" th:classappend="${!puzzle.over} ? 'your-turn'">
+            <th:block th:if="${puzzle.connected}">
+                <p class="quiz-verdict" th:text="${puzzle.overPar <= 0} ? (${puzzle.overPar < 0} ? 'Under par!' : 'On par!') : |${puzzle.overPar} over par|">On par!</p>
+                <h2 class="chain-status-title" th:text="|Connected in ${puzzle.linkCount} ${puzzle.linkCount == 1 ? 'link' : 'links'}|">Connected in 3 links</h2>
+                <p class="stat-note" th:text="|${puzzle.puzzle.hints} ${puzzle.puzzle.hints == 1 ? 'hint' : 'hints'} · ${puzzle.puzzle.undos} ${puzzle.puzzle.undos == 1 ? 'undo' : 'undos'}|">1 hint · 0 undos</p>
+                <p class="stat-note" th:if="${puzzle.baconLinks > 0}"
+                   th:text="${puzzle.baconLinks == 1} ? 'Through Kevin Bacon: one link off.' : |Through Kevin Bacon ${puzzle.baconLinks} times: ${puzzle.baconLinks} links off.|">Through Kevin Bacon: one link off.</p>
+            </th:block>
+            <th:block th:if="${puzzle.over and !puzzle.connected}">
+                <p class="quiz-verdict">Given up</p>
+                <h2 class="chain-status-title">Par took <th:block th:text="${puzzle.puzzle.par}">3</th:block> links: see below.</h2>
+            </th:block>
+            <th:block th:unless="${puzzle.over}">
+                <p class="quiz-verdict">Add a link</p>
+                <h2 class="chain-status-title">Which movie shares an actor with <span th:text="${puzzle.last.movie.primaryTitle}">The Matrix</span>?</h2>
+                <div class="chain-move">
+                    <form th:action="@{/play/matches/{id}/connect/link(id=${puzzle.match.id})}" method="post" data-pick-submits>
+                        <div class="picker search-box quiz-picker" data-picker="movie" data-picker-source="/api/search/titles">
+                            <input type="search" placeholder="A movie title…" autocomplete="off" aria-label="The next movie" name="title" data-picker-input>
+                            <input type="hidden" name="movie" data-picker-value>
+                            <div class="search-suggestions" data-picker-suggestions hidden></div>
+                        </div>
+                    </form>
+                    <form th:if="${puzzle.links.size() > 1}" th:action="@{/play/matches/{id}/connect/undo(id=${puzzle.match.id})}" method="post">
+                        <button type="submit" class="button">Undo the last link</button>
+                    </form>
+                </div>
+                <div class="chain-hints">
+                    <a class="chain-cast-member" th:each="person : ${puzzle.revealed}" th:href="@{/person/{id}(id=${person.id})}" target="_blank" rel="noopener">
+                        <span class="avatar">
+                            <span th:text="${#strings.substring(person.primaryName, 0, 1)}">K</span>
+                            <img th:src="@{/api/photo/{id}(id=${person.id})}" alt="" loading="lazy" onerror="this.classList.add('failed')">
+                        </span>
+                        <span th:text="${person.primaryName}">Keanu Reeves</span>
+                    </a>
+                    <form th:if="${puzzle.moreHints}" th:action="@{/play/matches/{id}/connect/hint(id=${puzzle.match.id})}" method="post">
+                        <button type="submit" class="link-button chain-hint-button"
+                                th:text="${puzzle.revealed.isEmpty()} ? 'Stuck? Show an actor (counts as a hint, 3 at most)' : 'Show another actor'">Stuck? Show an actor</button>
+                    </form>
+                    <form th:action="@{/play/matches/{id}/connect/give-up(id=${puzzle.match.id})}" method="post">
+                        <button type="submit" class="link-button">Give up and show the way</button>
+                    </form>
+                </div>
+                <p class="stat-note connect-tally" th:if="${puzzle.puzzle.hints + puzzle.puzzle.undos > 0}"
+                   th:text="|So far: ${puzzle.puzzle.hints} ${puzzle.puzzle.hints == 1 ? 'hint' : 'hints'}, ${puzzle.puzzle.undos} ${puzzle.puzzle.undos == 1 ? 'undo' : 'undos'}|">So far: 1 hint, 0 undos</p>
+            </th:block>
+        </div>
+    </div>
+</section>
+
+<!-- The chain so far: the start, each link with the actor it goes through and who added it. -->
+<section class="section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">The Chain</h2>
+            <span class="section-note" th:text="${puzzle.linkCount == 1} ? '1 link' : |${puzzle.linkCount} links|">2 links</span>
+        </div>
+        <ol class="chain-links">
+            <li class="chain-link" th:each="link, step : ${puzzle.links}" th:classappend="${step.last} ? 'latest'" th:style="|--step: ${step.index}|">
+                <span class="chain-via" th:if="${link.via != null}">
+                    <span>via</span> <a th:href="@{/person/{id}(id=${link.via.id})}" th:text="${link.via.primaryName}">Keanu Reeves</a>
+                </span>
+                <a class="chain-poster" th:href="@{/movie/{id}(id=${link.movie.id})}"
+                   th:classappend="${step.last and !puzzle.over} ? 'veiled-link'" th:tabindex="${step.last and !puzzle.over} ? '-1'">
+                    <div th:replace="~{fragments/cards :: veiledPoster(${link.movie.id}, ${link.movie.primaryTitle}, ${step.last and !puzzle.over})}"></div>
+                    <span class="chain-movie-title" th:text="${link.movie.primaryTitle}">The Matrix</span>
+                    <span class="chain-movie-year" th:text="${link.movie.startYear}">1999</span>
+                </a>
+                <span class="chain-by">
+                    <th:block th:if="${step.first}">The start</th:block>
+                    <th:block th:if="${link.player != null}" th:text="${link.player.name} ?: 'You'">Alice</th:block>
+                </span>
+                <span class="chain-bacon" th:if="${link.throughBacon}"
+                      title="Six Degrees of Kevin Bacon: every actor is said to be six movies or fewer from him">Bacon bonus: one link off</span>
+            </li>
+        </ol>
+    </div>
+</section>
+
+<!-- Once over: the way par takes. -->
+<section class="section" th:if="${puzzle.over}">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">The Way Par Takes</h2>
+            <span class="section-note" th:text="|${puzzle.puzzle.par} links|">3 links</span>
+        </div>
+        <ol class="chain-links">
+            <li class="chain-link" th:each="step, i : ${puzzle.parWay}">
+                <span class="chain-via" th:if="${step.actor != null}">
+                    <span>via</span> <a th:href="@{/person/{id}(id=${step.actor.id})}" th:text="${step.actor.primaryName}">Keanu Reeves</a>
+                </span>
+                <a class="chain-poster" th:href="@{/movie/{id}(id=${step.movie.id})}">
+                    <div th:replace="~{fragments/cards :: posterThumb(${step.movie.id}, ${step.movie.primaryTitle})}"></div>
+                    <span class="chain-movie-title" th:text="${step.movie.primaryTitle}">The Matrix</span>
+                    <span class="chain-movie-year" th:text="${step.movie.startYear}">1999</span>
+                </a>
+            </li>
+        </ol>
+    </div>
+</section>
+
+<section class="section" th:if="${puzzle.match.mode.name() != 'SOLO'}">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">The Team</h2>
+        </div>
+        <div class="stat-card quiz-board chain-board">
+            <div class="quiz-board-row" th:each="player : ${puzzle.players}">
+                <span th:replace="~{fragments/community :: avatar(${player.user}, '')}"></span>
+                <span class="quiz-board-name" th:text="${player.user.name}">Alice</span>
+                <span class="quiz-board-score" th:text="${puzzle.linksBy(player) == 1} ? '1 link' : |${puzzle.linksBy(player)} links|">2 links</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Played together: the page asks now and then whether a teammate moved, and reloads when one did (app.js). -->
+<div hidden data-match-watch th:data-match-id="${puzzle.match.id}" th:data-match-version="${version}" th:if="${!puzzle.over and puzzle.match.mode.name() != 'SOLO'}"></div>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

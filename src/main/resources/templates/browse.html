@@ -1,33 +1,81 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments/layout :: head(${genre.name})}"></head>
+<head th:replace="~{fragments/layout :: head('Browse')}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar('browse')}"></nav>
 
-<header class="page-header">
-    <div class="container">
-        <h1 class="page-title" th:text="${genre.name}">Genre</h1>
-        <p class="page-subtitle"
-           th:text="|${#numbers.formatInteger(movieCount, 1, 'COMMA')} movies|">1,234 movies</p>
+<header class="play-hero section-hero">
+    <div th:replace="~{fragments/layout :: wall(${wall})}"></div>
+    <div class="container play-hero-content">
+        <nav th:replace="~{fragments/layout :: sectionNav('browse')}"></nav>
+        <h1 class="page-title">Browse</h1>
+        <p class="page-subtitle" th:if="${view.genre == null}">Every genre: the best rated with at least 25,000 votes, the newest among them, or all of it, the most voted first.</p>
+        <p class="page-subtitle" th:if="${view.genre != null}"
+           th:text="|${view.genre.name} · ${#numbers.formatInteger(view.movieCount, 1, 'COMMA')} movies|">Drama · 27,504 movies</p>
     </div>
 </header>
 
 <section class="section">
     <div class="container">
-        <div class="empty-state" th:if="${movieWindow.content().isEmpty()}">No movies in this genre.</div>
-        <div class="movie-grid" id="browse-results">
-            <th:block th:each="movie : ${movieWindow.content()}">
-                <a th:replace="~{fragments/cards :: movie(${movie.id}, ${movie.primaryTitle}, ${movie.startYear})}"></a>
-            </th:block>
+        <!-- The genres, each with how many movies, and the three orders. -->
+        <div class="genre-bar">
+            <a class="genre-chip" th:classappend="${view.genre == null} ? 'active'" th:href="@{/browse(sort=${sort})}">All</a>
+            <a class="genre-chip" th:each="count : ${view.genres}"
+               th:classappend="${view.genre != null && view.genre.id == count.genre.id} ? 'active'"
+               th:href="@{/browse(genre=${count.genre.name}, sort=${sort})}">
+                <span th:text="${count.genre.name}">Genre</span>
+                <span class="count" th:text="${#numbers.formatInteger(count.movieCount, 1, 'COMMA')}">123</span>
+            </a>
         </div>
-        <div class="scroll-sentinel" th:if="${movieWindow.nextCursor() != null}"
-             data-infinite-scroll
-             data-kind="movie"
-             data-target="browse-results"
-             th:data-endpoint="|/api/browse/${#uris.escapePathSegment(genre.name)}|"
-             th:data-cursor="${movieWindow.nextCursor()}">
-            <div class="spinner" hidden></div>
-        </div>
+        <nav class="view-tabs browse-tabs" th:with="genre=${view.genre != null ? view.genre.name : null}">
+            <a th:href="@{/browse(genre=${genre}, sort='rating')}" th:classappend="${sort == 'rating'} ? 'active'">Top rated</a>
+            <a th:href="@{/browse(genre=${genre}, sort='year')}" th:classappend="${sort == 'year'} ? 'active'">Newest</a>
+            <a th:href="@{/browse(genre=${genre}, sort='votes')}" th:classappend="${sort == 'votes'} ? 'active'">Most voted</a>
+        </nav>
+
+        <!-- The fifty best rated, or newest, with at least 25,000 votes: a ranked list. -->
+        <th:block th:if="${view.window == null}">
+            <div class="empty-state" th:if="${view.ranked.isEmpty()}">No movies match this filter.</div>
+            <div class="credit-list" id="top-movies-list">
+                <a class="ranked-row" th:each="entry, iteration : ${view.ranked}"
+                   th:href="@{/movie/{id}(id=${entry.movie.id})}">
+                    <div class="rank-number" th:text="${iteration.count}">1</div>
+                    <div th:replace="~{fragments/cards :: posterThumb(${entry.movie.id}, ${entry.movie.primaryTitle})}"></div>
+                    <div class="ranked-main">
+                        <div class="ranked-title" th:text="${entry.movie.primaryTitle}">Title</div>
+                        <div class="ranked-sub">
+                            <span th:if="${entry.movie.startYear != null}" th:text="${entry.movie.startYear}">1999</span>
+                            <span th:if="${entry.movie.runtimeMinutes != null}" th:text="| · ${entry.movie.runtimeMinutes} min|"> · 136 min</span>
+                        </div>
+                    </div>
+                    <div class="ranked-end">
+                        <span class="votes" th:text="|${#numbers.formatInteger(entry.voteCount, 1, 'COMMA')} votes|">votes</span>
+                        <span class="rating-badge">
+                            <span class="star">★</span>
+                            <span th:text="${entry.averageRating}">9.3</span>
+                        </span>
+                    </div>
+                </a>
+            </div>
+        </th:block>
+
+        <!-- All of them, the most voted first: a grid that scrolls on. -->
+        <th:block th:if="${view.window != null}">
+            <div class="empty-state" th:if="${view.window.content().isEmpty()}">No movies match this filter.</div>
+            <div class="movie-grid" id="browse-results">
+                <th:block th:each="entry : ${view.window.content()}">
+                    <a th:replace="~{fragments/cards :: movie(${entry.movie.id}, ${entry.movie.primaryTitle}, ${entry.movie.startYear})}"></a>
+                </th:block>
+            </div>
+            <div class="scroll-sentinel" th:if="${view.window.nextCursor() != null}"
+                 data-infinite-scroll
+                 data-kind="movie"
+                 data-target="browse-results"
+                 th:data-endpoint="${view.genre != null} ? @{/api/browse(genre=${view.genre.name})} : '/api/browse'"
+                 th:data-cursor="${view.window.nextCursor()}">
+                <div class="spinner" hidden></div>
+            </div>
+        </th:block>
     </div>
 </section>
 

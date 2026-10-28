@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!-- The cog, with the word "Manage" beside it so it is found, that leads from a community page to what it manages. -->
+<a th:fragment="manageLink(href, label)" class="page-manage" th:href="${href}" th:title="${label}" th:aria-label="${label}">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" fill-rule="evenodd" aria-hidden="true"><path d="M10.3 2h3.4l.5 2.6a7.7 7.7 0 0 1 2 1.1l2.5-.9 1.7 3-2 1.7a7.8 7.8 0 0 1 0 2.4l2 1.7-1.7 3-2.5-.9a7.7 7.7 0 0 1-2 1.1l-.5 2.6h-3.4l-.5-2.6a7.7 7.7 0 0 1-2-1.1l-2.5.9-1.7-3 2-1.7a7.8 7.8 0 0 1 0-2.4l-2-1.7 1.7-3 2.5.9a7.7 7.7 0 0 1 2-1.1L10.3 2zM12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8z"/></svg>
+    <span>Manage</span>
+</a>
+
+<!-- The three sharing switches, for friends, for clubs by default, or for one club: what the visitor
+     watches, that it is them, and when. Who sees it and how an unnamed movie shows differ per use. -->
+<th:block th:fragment="switches(seen, name, dates, audience, unnamed)">
+    <label class="switch-row">
+        <input type="checkbox" name="shareSeen" th:checked="${seen}">
+        <span><strong>What you watch</strong><br><th:block th:text="${audience}">Your friends</th:block> see the movies you mark as watched.</span>
+    </label>
+    <label class="switch-row">
+        <input type="checkbox" name="shareName" th:checked="${name}">
+        <span><strong>That it's you</strong><br>Off, your movies show as <th:block th:text="${unnamed}">a friend's</th:block>, without your name.</span>
+    </label>
+    <label class="switch-row">
+        <input type="checkbox" name="shareDates" th:checked="${dates}">
+        <span><strong>When you watched</strong><br>Off, your movies show without the day.</span>
+    </label>
+</th:block>
+
+<!-- An account's avatar, or its initial; [size] is an extra class, such as invite-avatar, or empty. -->
+<!-- From Star on, one wears their honour on their avatar, wherever it shows: that is the prestige. -->
+<span th:fragment="avatar(user, size)" class="nav-account-icon" th:classappend="${size} + (${user.level != null and user.level.honour != null} ? ' honoured' : '')">
+    <img th:if="${user.avatarUrl != null}" th:src="${user.avatarUrl}" alt="">
+    <span th:unless="${user.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(user.name, 0, 1))}">A</span>
+    <svg class="honour-mark" th:if="${user.level != null and user.level.honour != null}" th:classappend="${user.level.honour.mark}"><title th:text="${user.level.honour.title}">An Oscar</title><use th:attr="href=|#honour-${user.level.honour.mark}|"/></svg>
+</span>
+
+<!-- The invite links still open, public and personal, each with its link to copy and a way to withdraw it; hidden
+     while there are none. The page fetches the list again after a new invite (app.js), so the new one shows. -->
+<div th:fragment="openInvites(invites, withdrawPath)" class="open-invites" data-open-invites th:hidden="${invites.isEmpty()}">
+    <h3 class="choice-heading">Open invites</h3>
+    <div class="stat-row" th:each="invite : ${invites}">
+        <span class="open-invite">
+            <span class="open-invite-kind" th:classappend="${invite.public} ? 'public'" th:text="${invite.public} ? 'Public' : 'Personal'">Personal</span>
+            <span class="open-invite-age"
+                  th:text="${(invite.daysOld == 0 ? 'Made today' : (invite.daysOld == 1 ? 'Made yesterday' : 'Made ' + invite.daysOld + ' days ago'))
+                           + ' · ' + (invite.public ? 'open until replaced' : (invite.daysLeft == 1 ? 'open 1 more day' : 'open ' + invite.daysLeft + ' more days'))
+                           + (invite.public ? ' · ' + (invite.accepted == 0 ? 'accepted by nobody yet' : (invite.accepted == 1 ? 'accepted by 1' : 'accepted by ' + invite.accepted)) : '')}">Made today · open 14 more days</span>
+        </span>
+        <span class="stat-end">
+            <button type="button" class="link-button" th:data-copy-link="@{/invite/{token}(token=${invite.token})}">Copy link</button>
+            <form th:action="|${withdrawPath}/${invite.token}/withdraw|" method="post">
+                <button type="submit" class="link-button">Withdraw</button>
+            </form>
+        </span>
+    </div>
+</div>
+
+<!-- What the visitor has in common with each person: the movies both watched, as a share of what the other
+     watched, and the genres both watch most; a person who does not share what they watch shows no numbers. -->
+<!-- An auditorium behind a title: rows of seats, the visitor's people in some of them, by their avatar or
+     initial, the rest empty. The people are seated across the rows, a few seats apart. -->
+<!-- The keyboard behind the title, laid out as a real one: its keys press themselves and type out the titles of the
+     visitor's latest movies and who made them (setupKeyboard in app.js), on the line above the keys. -->
+<div th:fragment="keyboard(rows, typed)" class="keyboard-wall" aria-hidden="true" th:data-keyboard-typed="${#strings.listJoin(typed, '|')}">
+    <div class="keyboard-screen"><span class="keyboard-typed" data-keyboard-screen></span><span class="keyboard-caret"></span></div>
+    <div class="keyboard">
+        <div class="key-row" th:each="row : ${rows}">
+            <span class="key" th:each="letter : ${row}" th:classappend="${#strings.isEmpty(#strings.trim(letter))} ? 'key-space'" th:data-key="${letter}" th:text="${letter}">Q</span>
+        </div>
+    </div>
+</div>
+
+<div th:fragment="inCommon(items)" class="in-common" data-in-common>
+    <div class="stat-row in-common-row" th:each="item : ${items}">
+        <span class="friend-name">
+            <span th:replace="~{fragments/community :: avatar(${item.user}, '')}"></span>
+            <span>
+                <span th:text="${item.user.name}">Alice</span>
+                <span class="in-common-detail" th:if="${item.shares}">
+                    <strong th:text="${item.movies == 1} ? '1 movie in common' : |${item.movies} movies in common|">12 movies in common</strong>
+                    <th:block th:if="${item.theirs > 0}">· <th:block th:text="|${item.percent}% of the ${item.theirs} they watched|">34% of the 68 they watched</th:block></th:block>
+                    <th:block th:unless="${item.genres.isEmpty()}">· you both watch <th:block th:each="genre, status : ${item.genres}"><a th:href="@{/browse(genre=${genre.name})}" th:text="${genre.name}">Drama</a><th:block th:unless="${status.last}">, </th:block></th:block></th:block>
+                </span>
+                <span class="in-common-detail" th:unless="${item.shares}">Doesn't share what they watch</span>
+            </span>
+        </span>
+        <span class="in-common-bar" th:if="${item.shares and item.theirs > 0}" th:title="|${item.percent}% in common|">
+            <span class="bar-track"><span class="bar-fill" th:style="|width: ${item.percent}%|"></span></span>
+        </span>
+        <button type="button" class="link-button in-common-toggle" th:if="${item.shares and item.movies > 0}"
+                th:data-in-common-movies="@{/api/community/in-common/{id}(id=${item.user.id})}">Show movies</button>
+    </div>
+</div>
+
+</body>
+</html>

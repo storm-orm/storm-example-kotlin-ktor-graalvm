@@ -17,6 +17,36 @@
                th:text="${person.deathYear != null} ? |${person.birthYear} – ${person.deathYear}| : |Born ${person.birthYear}|">1964</p>
             <p class="person-bio" id="person-bio" hidden
                th:data-summary-endpoint="|/api/summary/person/${person.id}|"></p>
+            <!-- Kevin Bacon's own page only: the joke of Six Degrees of Kevin Bacon, explained for whoever does not know it. -->
+            <p class="bacon-number" th:if="${person.id == 'nm0000102'}">
+                <strong>Bacon number: 0</strong>
+                <span>Every actor has a Bacon number: how many shared movies it takes to reach him, six or fewer
+                    in the game Six Degrees of Kevin Bacon. A link through him scores a bonus in a chain and in Six Degrees of Separation.</span>
+            </p>
+            <!-- Bruce Willis's own page only: he stepped away in 2022; the movies stay, and five of them earn a badge. -->
+            <p class="bacon-number willis-note" th:if="${person.id == 'nm0000246'}">
+                <strong>Yippee-ki-yay</strong>
+                <span>Bruce Willis stepped away from acting in 2022, with aphasia, since diagnosed as frontotemporal dementia.
+                    The movies stay: five of them watched earn the Yippee-Ki-Yay badge, and a chain link through him scores five more, one for each Die Hard.</span>
+            </p>
+            <!-- Jack Nicholson's own page only: the Legend's rite. -->
+            <p class="bacon-number nicholson-note" th:if="${person.id == 'nm0000197'}">
+                <strong>Here's Johnny</strong>
+                <span>Three Oscars and twelve nominations, more than any actor. A chain link through him scores three more,
+                    one for each Oscar, and is the Legend's own rite.</span>
+            </p>
+            <!-- Jim Carrey's own page only: his words on bowing out, which The Mask's badge repeats. -->
+            <p class="bacon-number carrey-note" th:if="${person.id == 'nm0000120'}">
+                <strong>You are enough</strong>
+                <span>"I have enough. I've done enough. I am enough," he said, bowing out in 2022. The Mask, ten out of ten,
+                    earns a badge that says the same of you.</span>
+            </p>
+            <!-- Meryl Streep's own page only: the GOAT, which the top of the bill is named for. -->
+            <p class="bacon-number goat-note" th:if="${person.id == 'nm0000658'}">
+                <strong>The GOAT</strong>
+                <span>Twenty-one Oscar nominations, more than anyone, and three wins: the greatest of all time.
+                    The top level here, two thousand movies in, is named for what she is called, and a chain link through her scores three more.</span>
+            </p>
         </div>
     </div>
 </header>
@@ -50,14 +80,18 @@
     <div class="container">
         <div class="section-header">
             <h2 class="section-title">Filmography</h2>
-            <span class="section-note">sorted by rating</span>
+            <!-- By rating, or by year, the newest first. -->
+            <nav class="view-tabs filmography-tabs">
+                <a th:href="@{/person/{id}(id=${person.id})} + '#filmography-section'" th:classappend="${!byYear} ? 'active'">By rating</a>
+                <a th:href="@{/person/{id}(id=${person.id}, sort='year')} + '#filmography-section'" th:classappend="${byYear} ? 'active'">By year</a>
+            </nav>
         </div>
         <div class="empty-state" th:if="${filmography.isEmpty()}">No rated movies on record.</div>
         <div class="credit-list">
             <a class="ranked-row" th:each="entry : ${filmography}"
                th:href="@{/movie/{id}(id=${entry.movie.id})}">
                 <div th:replace="~{fragments/cards :: posterThumb(${entry.movie.id}, ${entry.movie.primaryTitle})}"></div>
-                <div>
+                <div class="ranked-main">
                     <div class="ranked-title" th:text="${entry.movie.primaryTitle}">Title</div>
                     <div class="ranked-sub">
                         <span th:if="${entry.movie.startYear != null}" th:text="${entry.movie.startYear}">1999</span>

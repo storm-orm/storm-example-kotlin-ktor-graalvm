@@ -2,13 +2,14 @@ package st.orm.demo.imdb.repository
 
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieView
+import st.orm.demo.imdb.insertUser
 import st.orm.demo.imdb.printStatements
 import st.orm.repository.repository
 import st.orm.template.ORMTemplate
+import st.orm.template.ref
 import st.orm.template.refById
 import st.orm.test.CapturedSql.Operation
 import st.orm.test.SqlCapture
@@ -19,17 +20,19 @@ import java.time.Instant
 class MovieViewRepositoryTest {
 
     @Test
-    fun `findRecentViews stays on the view table thanks to Ref`(orm: ORMTemplate, capture: SqlCapture) {
+    fun `a visitor's recent views are their own and stay on the view table thanks to Ref`(orm: ORMTemplate, capture: SqlCapture) {
         val movieViewRepository = orm.repository<MovieViewRepository>()
-        val recentViews = capture.execute {
-            movieViewRepository.findRecentViews(10)
-        }
-        capture.printStatements("findRecentViews")
-        assertEquals(1, capture.count(Operation.SELECT))
+        val visitor = orm.insertUser("visitor-views")
+        val at = Instant.parse("2026-07-02T10:00:00Z")
+        movieViewRepository.insert(MovieView(movie = refById<Movie>("tt0068646"), viewedAt = at, user = visitor.ref()))
+        movieViewRepository.insert(MovieView(movie = refById<Movie>("tt0110912"), viewedAt = at.plusSeconds(60)))
+
+        val own = capture.execute { movieViewRepository.findRecentViews(visitor, 10) }
+        capture.printStatements("findRecentViews(user)")
+        // The visitor's view only, not the anonymous one after it, by the account column.
+        assertEquals(listOf("tt0068646"), own.map { it.movie.id() })
         // The movie field is a Ref, so no join on the movie table is needed.
         assertFalse(capture.statements().single().statement().lowercase().contains("join"))
-        assertTrue(recentViews.size >= 3)
-        assertEquals("tt0133093", recentViews.first().movie.id())
     }
 
     @Test

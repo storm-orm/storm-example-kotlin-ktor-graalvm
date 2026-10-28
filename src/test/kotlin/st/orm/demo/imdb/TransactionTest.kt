@@ -26,34 +26,36 @@ class TransactionTest {
     fun `an exception inside the transaction rolls back all writes`(orm: ORMTemplate) {
         val movieRepository = orm.repository<MovieRepository>()
         val watchlistRepository = orm.repository<WatchlistRepository>()
+        val user = orm.insertUser("visitor-tx-1")
         val godfather = movieRepository.getById("tt0068646")
 
         assertThrows<IllegalStateException> {
             runBlocking {
                 transaction {
-                    watchlistRepository.insert(Watchlist(movie = godfather, addedAt = Instant.now()))
+                    watchlistRepository.insert(Watchlist(user = user, movie = godfather, addedAt = Instant.now()))
                     check(false) { "Simulated failure after the insert" }
                 }
             }
         }
-        assertFalse(watchlistRepository.existsById(godfather))
+        assertFalse(watchlistRepository.contains(user, godfather))
     }
 
     @Test
     fun `setRollbackOnly discards the writes without an exception`(orm: ORMTemplate) {
         val movieRepository = orm.repository<MovieRepository>()
         val watchlistRepository = orm.repository<WatchlistRepository>()
+        val user = orm.insertUser("visitor-tx-2")
         val pulpFiction = movieRepository.getById("tt0110912")
 
         runBlocking {
             transaction {
-                watchlistRepository.insert(Watchlist(movie = pulpFiction, addedAt = Instant.now()))
+                watchlistRepository.insert(Watchlist(user = user, movie = pulpFiction, addedAt = Instant.now()))
                 // Inside the transaction the write is visible...
-                assertTrue(watchlistRepository.existsById(pulpFiction))
+                assertTrue(watchlistRepository.contains(user, pulpFiction))
                 setRollbackOnly()
             }
         }
         // ...and gone after the rollback.
-        assertFalse(watchlistRepository.existsById(pulpFiction))
+        assertFalse(watchlistRepository.contains(user, pulpFiction))
     }
 }

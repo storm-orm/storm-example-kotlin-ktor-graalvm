@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(|Groundhog Day #${quiz.number}|)}"></head>
+<body class="quiz-page">
+<nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <a class="back-link" th:href="@{/play}">← Play</a>
+        <div class="quiz-title-row">
+            <h1 class="page-title">Groundhog Day <span class="quiz-number" th:text="|#${quiz.number}|">#1</span></h1>
+            <span class="quiz-streak" th:if="${quiz.streak > 0}" th:text="${quiz.streak == 1} ? '1-day streak' : |${quiz.streak}-day streak|">3-day streak</span>
+        </div>
+        <p class="page-subtitle">One movie, all day, every day. Guess today's: a new clue with every miss, six clues, six guesses.</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container quiz-layout">
+        <div class="stat-card quiz-stage">
+            <!-- The guesses as pips: green the hit, red a miss, white a skip, empty what is left. -->
+            <div class="quiz-pips" aria-label="Guesses">
+                <span class="quiz-pip" th:each="guess : ${quiz.guesses}"
+                      th:classappend="${guess.correct} ? 'hit' : (${guess.movie == null} ? 'skip' : 'miss')"></span>
+                <span class="quiz-pip" th:each="i : ${#numbers.sequence(1, quiz.guessesLeft)}" th:if="${quiz.guessesLeft > 0 and !quiz.finished}"></span>
+            </div>
+
+            <!-- The game over: the movie, how it went, and the squares to share. -->
+            <div class="quiz-result" th:if="${quiz.finished}" th:classappend="${quiz.solved} ? 'won'">
+                <div class="quiz-confetti" th:if="${quiz.solved}" aria-hidden="true">
+                    <span th:each="i : ${#numbers.sequence(1, 18)}"></span>
+                </div>
+                <a class="quiz-answer" th:href="@{/movie/{id}(id=${quiz.answer.id})}">
+                    <div th:replace="~{fragments/cards :: posterThumb(${quiz.answer.id}, ${quiz.answer.primaryTitle})}"></div>
+                </a>
+                <div class="quiz-result-text">
+                    <p class="quiz-verdict" th:text="${quiz.solved} ? (${quiz.guesses.size() == 1} ? 'First try!' : |Got it in ${quiz.guesses.size()}!|) : 'Not this time. It was'">Got it in 3!</p>
+                    <h2 class="quiz-answer-title"><a th:href="@{/movie/{id}(id=${quiz.answer.id})}" th:text="${quiz.answer.primaryTitle}">The Matrix</a></h2>
+                    <div class="invite-buttons">
+                        <button type="button" class="button button-primary" th:data-quiz-share="${quiz.shareText}">Share your score</button>
+                        <span class="quiz-tomorrow">A new movie tomorrow.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- The clues: the ones revealed, the newest with a pop, and the ones still hidden. -->
+            <ol class="quiz-clues">
+                <li class="quiz-clue" th:each="clue, step : ${quiz.clues}"
+                    th:classappend="${clue.text == null} ? 'hidden' : (${!quiz.finished and step.index == quiz.guesses.size()} ? 'newest')">
+                    <span class="quiz-clue-icon" th:classappend="${clue.text == null} ? 'clue-unknown' : |clue-${clue.kind}|" aria-hidden="true"></span>
+                    <span class="quiz-clue-body">
+                        <span class="quiz-clue-label" th:text="${clue.text == null} ? |Clue ${step.count}| : ${clue.label}">Released</span>
+                        <span class="quiz-clue-text" th:if="${clue.text != null}" th:text="${clue.text}">1999 · Action, Sci-Fi</span>
+                    </span>
+                </li>
+            </ol>
+
+            <!-- A guess: a movie picked from the suggestions goes in at once; a skip shows the next clue. -->
+            <div class="quiz-guess" th:unless="${quiz.finished}">
+                <form th:action="@{/play/quiz/guess}" method="post" data-pick-submits>
+                    <div class="picker search-box quiz-picker" data-picker="movie" data-picker-source="/api/search/titles">
+                        <input type="search" placeholder="Which movie is it?" autocomplete="off" aria-label="Your guess" data-picker-input>
+                        <input type="hidden" name="movie" data-picker-value>
+                        <div class="search-suggestions" data-picker-suggestions hidden></div>
+                    </div>
+                </form>
+                <form th:action="@{/play/quiz/skip}" method="post">
+                    <button type="submit" class="button quiz-skip">Skip</button>
+                </form>
+            </div>
+
+            <ul class="quiz-guesses" th:unless="${quiz.guesses.isEmpty()}">
+                <li th:each="guess : ${quiz.guesses}" th:classappend="${guess.correct} ? 'hit' : (${guess.movie == null} ? 'skip' : 'miss')">
+                    <span th:text="${guess.movie != null} ? ${guess.movie.primaryTitle} : 'Skipped'">The Matrix Reloaded</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- How the visitor's clubs did today, once they finished themselves. -->
+        <aside class="quiz-boards" th:if="${quiz.finished and !quiz.boards.isEmpty()}">
+            <div class="stat-card quiz-board" th:each="board : ${quiz.boards}">
+                <h2 th:text="${board.club}">Office film club</h2>
+                <div class="quiz-board-row" th:each="score, rank : ${board.rows}" th:classappend="${score.you} ? 'you'">
+                    <span class="quiz-rank" th:text="${rank.count}">1</span>
+                    <span class="nav-account-icon">
+                        <img th:if="${score.avatarUrl != null}" th:src="${score.avatarUrl}" alt="">
+                        <span th:unless="${score.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(score.name, 0, 1))}">A</span>
+                    </span>
+                    <span class="quiz-board-name" th:text="${score.name}">Alice</span>
+                    <span class="quiz-board-score" th:text="${score.solved} ? |${score.guesses}/6| : 'X/6'">3/6</span>
+                </div>
+            </div>
+        </aside>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

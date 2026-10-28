@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(|Amadeus #${amadeus.number}|)}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <a class="back-link" th:href="@{/play}">← Play</a>
+        <h1 class="page-title">Amadeus <span class="quiz-number" th:text="|#${amadeus.number}|">#1</span></h1>
+        <p class="page-subtitle">Movies you watched, four composers each: who wrote the score? Ten a day, yours alone.</p>
+    </div>
+</header>
+
+<section class="section">
+    <div class="container quiz-layout">
+        <div class="stat-card odd-stage">
+            <div class="odd-progress">
+                <span class="quiz-pip" th:each="i : ${#numbers.sequence(1, amadeus.count)}"
+                      th:classappend="${i <= amadeus.index} ? 'answered' : (${i == amadeus.index + 1} ? 'current' : '')"></span>
+                <span class="odd-score" th:text="|${amadeus.score} right|">3 right</span>
+            </div>
+
+            <!-- The movie just answered: right or not, and who wrote it. -->
+            <div class="odd-reveal" th:if="${amadeus.last != null and !amadeus.finished}" th:classappend="${amadeus.last.right} ? 'right' : 'wrong'">
+                <p class="quiz-verdict" th:text="${amadeus.last.right} ? 'Right!' : 'Not quite'">Right!</p>
+                <p class="odd-reveal-text">
+                    <th:block th:text="|${amadeus.last.movie.primaryTitle}:|">Inception:</th:block>
+                    <strong th:text="${amadeus.last.composer.primaryName}">Hans Zimmer</strong>.
+                </p>
+            </div>
+
+            <!-- The movie, and the four names: a tap names the composer. -->
+            <th:block th:if="${amadeus.current != null}">
+                <div class="lineup-case">
+                    <div class="poster lineup-poster">
+                        <img th:src="@{/api/poster/{id}(id=${amadeus.current.movie.id})}" alt="" loading="lazy" onerror="this.classList.add('failed')">
+                    </div>
+                    <div>
+                        <p class="lineup-eyebrow">Who wrote the score of</p>
+                        <h2 class="lineup-part" th:text="${amadeus.current.movie.primaryTitle}">Inception</h2>
+                        <p class="lineup-movie" th:text="|${amadeus.current.movie.startYear}?|">2010?</p>
+                    </div>
+                </div>
+                <div class="score-choices">
+                    <form th:each="person : ${amadeus.current.composers}" th:action="@{/play/amadeus}" method="post" class="odd-pick">
+                        <input type="hidden" name="person" th:value="${person.id}">
+                        <button type="submit" class="button score-choice" th:text="${person.primaryName}">Hans Zimmer</button>
+                    </form>
+                </div>
+            </th:block>
+
+            <!-- Done: the score, and every movie with its composer. -->
+            <th:block th:if="${amadeus.finished}">
+                <div class="odd-final">
+                    <span class="odd-final-score" th:text="|${amadeus.score}/${amadeus.count}|">7/10</span>
+                    <div>
+                        <p class="quiz-verdict" th:text="${amadeus.score == amadeus.count} ? 'Every one right!' : 'Done for today'">Done for today</p>
+                        <button type="button" class="button button-primary" th:data-quiz-share-url="@{/play/shared/amadeus/{user}/{day}(user=${account.id}, day=${amadeus.day})}" th:data-quiz-share="|Storm Movies Amadeus #${amadeus.number} · ${amadeus.score}/${amadeus.count}|">Share your score</button>
+                    </div>
+                </div>
+                <div class="odd-results">
+                    <div class="odd-result" th:each="result : ${amadeus.results}" th:classappend="${result.right} ? 'right' : 'wrong'">
+                        <div class="odd-result-posters">
+                            <a th:href="@{/movie/{id}(id=${result.movie.id})}" class="odd-result-poster is-odd" th:title="${result.movie.primaryTitle}">
+                                <div th:replace="~{fragments/cards :: posterThumb(${result.movie.id}, ${result.movie.primaryTitle})}"></div>
+                            </a>
+                        </div>
+                        <p class="odd-result-text">
+                            <th:block th:text="|${result.movie.primaryTitle}:|">Inception:</th:block>
+                            <a th:href="@{/person/{id}(id=${result.composer.id})}"><strong th:text="${result.composer.primaryName}">Hans Zimmer</strong></a>
+                            <th:block th:if="${!result.right and result.picked != null}" th:text="|, not ${result.picked.primaryName}|">, not John Williams</th:block>
+                        </p>
+                    </div>
+                </div>
+            </th:block>
+        </div>
+        <aside th:replace="~{fragments/games :: boards(${amadeus.boards})}"></aside>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

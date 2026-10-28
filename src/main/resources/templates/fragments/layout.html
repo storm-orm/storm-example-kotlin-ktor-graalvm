@@ -5,39 +5,187 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="|${title} · Storm Movies|">Storm Movies</title>
     <link rel="icon" type="image/png" th:href="@{/img/favicon.png}">
+    <!-- A page that can be shared sets a share card: the link then unfurls into the card in a chat or a timeline. -->
+    <th:block th:if="${share != null}">
+        <link rel="canonical" th:href="${share.url}">
+        <meta property="og:type" th:content="${share.type}">
+        <meta property="og:site_name" content="Storm Movies">
+        <meta property="og:title" th:content="${share.title}">
+        <meta property="og:description" th:content="${share.description}">
+        <meta property="og:image" th:content="${share.imageUrl}">
+        <meta property="og:url" th:content="${share.url}">
+        <meta name="twitter:card" th:content="${share.largeImage} ? 'summary_large_image' : 'summary'">
+    </th:block>
+    <!-- Posters and photos redirect to IMDB's image CDN: connect before the first image asks. -->
+    <link rel="preconnect" href="https://m.media-amazon.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap">
-    <link rel="stylesheet" th:href="@{/css/app.css}">
-    <script th:src="@{/js/app.js}" defer></script>
+          href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&display=swap">
+    <!-- The links carry the version of this start: the browser keeps the files for a year, and a deploy renews them. -->
+    <link rel="stylesheet" th:href="@{/css/app.css(v=${assets})}">
+    <script th:src="@{/js/app.js(v=${assets})}" defer></script>
 </head>
 <body>
 
 <nav class="navbar" th:fragment="navbar(active)">
+    <!-- The honours of the top four levels, worn on avatars and set on the ladder: a star in the pavement, a Golden
+         Globe, an Oscar, the goat. Drawn once here, in gold, so every page has them. -->
+    <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true">
+        <defs>
+            <linearGradient id="honour-gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f6dc8c"/><stop offset="0.5" stop-color="#c9962f"/><stop offset="1" stop-color="#e6bd5c"/></linearGradient>
+            <linearGradient id="honour-shade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a87824"/><stop offset="1" stop-color="#6e4b12"/></linearGradient>
+            <symbol id="honour-star" viewBox="0 0 40 40">
+                <polygon points="20,2 24.47,14.85 38.07,15.13 27.23,23.35 31.17,36.37 20,28.6 8.83,36.37 12.77,23.35 1.93,15.13 15.53,14.85" fill="url(#honour-gold)"/>
+                <circle cx="20" cy="22" r="3.2" fill="none" stroke="#6e4b12" stroke-width="1.4"/>
+            </symbol>
+            <symbol id="honour-globe" viewBox="0 0 40 48">
+                <circle cx="20" cy="16" r="13" fill="url(#honour-gold)"/>
+                <g fill="none" stroke="#8a5f18" stroke-width="1.1" opacity="0.8"><ellipse cx="20" cy="16" rx="5.5" ry="13"/><path d="M7 16h26M9.5 9.5h21M9.5 22.5h21"/></g>
+                <g transform="rotate(-28 20 16)">
+                    <rect x="3" y="12.5" width="34" height="7" fill="url(#honour-shade)"/>
+                    <g fill="#f6dc8c"><rect x="5" y="13.3" width="2" height="1.2"/><rect x="9.5" y="13.3" width="2" height="1.2"/><rect x="14" y="13.3" width="2" height="1.2"/><rect x="18.5" y="13.3" width="2" height="1.2"/><rect x="23" y="13.3" width="2" height="1.2"/><rect x="27.5" y="13.3" width="2" height="1.2"/><rect x="32" y="13.3" width="2" height="1.2"/><rect x="5" y="17.5" width="2" height="1.2"/><rect x="9.5" y="17.5" width="2" height="1.2"/><rect x="14" y="17.5" width="2" height="1.2"/><rect x="18.5" y="17.5" width="2" height="1.2"/><rect x="23" y="17.5" width="2" height="1.2"/><rect x="27.5" y="17.5" width="2" height="1.2"/><rect x="32" y="17.5" width="2" height="1.2"/></g>
+                </g>
+                <path d="M16.5 28.5h7l2.5 7h-12z" fill="url(#honour-shade)"/>
+                <rect x="9" y="35.5" width="22" height="5" rx="1" fill="url(#honour-gold)"/>
+                <rect x="6" y="40.5" width="28" height="5" rx="1" fill="url(#honour-shade)"/>
+            </symbol>
+            <symbol id="honour-oscar" viewBox="0 0 40 48">
+                <!-- The statuette: a knight on a reel of film, arms folded over a sword, as the real one. -->
+                <rect x="6" y="44" width="28" height="3.5" rx="0.8" fill="url(#honour-shade)"/>
+                <ellipse cx="20" cy="41.5" rx="11" ry="3" fill="url(#honour-shade)"/>
+                <rect x="9" y="37.5" width="22" height="4" fill="url(#honour-shade)"/>
+                <ellipse cx="20" cy="37.5" rx="11" ry="3" fill="url(#honour-gold)"/>
+                <g fill="#6e4b12"><circle cx="13.5" cy="37.3" r="1"/><circle cx="26.5" cy="37.3" r="1"/><circle cx="20" cy="35.4" r="1"/><circle cx="20" cy="39.4" r="1"/><circle cx="16.5" cy="38.8" r="0.8"/><circle cx="23.5" cy="38.8" r="0.8"/></g>
+                <path d="M15.8 34.5 L16.6 23 L23.4 23 L24.2 34.5 Z" fill="url(#honour-gold)"/>
+                <path d="M20 24 V34.5" stroke="#8a5f18" stroke-width="0.9"/>
+                <path d="M13.2 11.5 C15.5 9.2 24.5 9.2 26.8 11.5 L25.6 23.5 C23 24.6 17 24.6 14.4 23.5 Z" fill="url(#honour-gold)"/>
+                <path d="M13.6 12.5 L19 18.2 M26.4 12.5 L21 18.2" stroke="#8a5f18" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+                <ellipse cx="20" cy="18.8" rx="2.4" ry="1.6" fill="url(#honour-shade)"/>
+                <rect x="16.5" y="17.2" width="7" height="1.3" rx="0.5" fill="url(#honour-shade)"/>
+                <path d="M19.3 19.5 H20.7 L20.5 34 H19.5 Z" fill="url(#honour-shade)"/>
+                <rect x="18.7" y="8" width="2.6" height="2.2" fill="url(#honour-shade)"/>
+                <ellipse cx="20" cy="5" rx="3" ry="3.6" fill="url(#honour-gold)"/>
+            </symbol>
+            <symbol id="honour-goat" viewBox="0 0 40 48">
+                <!-- The goat, head on: the horns curling back, the ears out, the beard down, in the same gold. -->
+                <path d="M11 7 C6 9 5 17 9 20 C10 15 12 11 15 10 Z" fill="url(#honour-shade)"/>
+                <path d="M29 7 C34 9 35 17 31 20 C30 15 28 11 25 10 Z" fill="url(#honour-shade)"/>
+                <path d="M13 12 C10 18 6 24 4 25 C7 27 11 26 14 23 Z" fill="url(#honour-gold)"/>
+                <path d="M27 12 C30 18 34 24 36 25 C33 27 29 26 26 23 Z" fill="url(#honour-gold)"/>
+                <path d="M14 10 C17 8 23 8 26 10 C28 15 28 24 27 30 C25 36 15 36 13 30 C12 24 12 15 14 10 Z" fill="url(#honour-gold)"/>
+                <path d="M16 33 C17 38 19 43 20 46 C21 43 23 38 24 33 C22 34 18 34 16 33 Z" fill="url(#honour-shade)"/>
+                <g fill="#5a3d10"><ellipse cx="16.3" cy="19" rx="1.4" ry="1.8"/><ellipse cx="23.7" cy="19" rx="1.4" ry="1.8"/></g>
+                <path d="M17.5 29 C19 30.5 21 30.5 22.5 29" stroke="#6e4b12" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+                <g fill="#6e4b12"><circle cx="18.2" cy="27" r="0.9"/><circle cx="21.8" cy="27" r="0.9"/></g>
+            </symbol>
+        </defs>
+    </svg>
     <div class="container navbar-inner">
-        <a class="brand" th:href="@{/}">
-            <img class="brand-logo" th:src="@{/img/storm-logo.png}" alt="Storm">
-            <span>Storm Movies</span>
-        </a>
-        <div class="nav-links">
+        <div class="brand">
+            <a th:href="@{/}" title="Storm Movies">
+                <img class="brand-logo" th:src="@{/img/storm-logo.png(v=${assets})}" alt="Storm Movies">
+            </a>
+        </div>
+        <!-- Five places: Movies and My Movies open a menu of their pages; each of those pages names its own under its title. -->
+        <div class="nav-links" th:with="movies=${active == 'for-you' or active == 'browse' or active == 'recent' or active == 'search'}, mine=${active == 'seen' or active == 'watchlist' or active == 'top-ten' or active == 'lists' or active == 'insights' or active == 'wrapped'}">
             <a th:href="@{/}" th:classappend="${active == 'home'} ? 'active'">Home</a>
-            <a th:href="@{/top}" th:classappend="${active == 'top'} ? 'active'">Top Movies</a>
-            <a th:href="@{/watchlist}" th:classappend="${active == 'watchlist'} ? 'active'">Watchlist</a>
-            <a th:href="@{/statistics}" th:classappend="${active == 'statistics'} ? 'active'">Statistics</a>
+            <div class="nav-group">
+                <a th:href="@{/for-you}" th:classappend="${movies} ? 'active'" aria-haspopup="true">Movies</a>
+                <div class="nav-menu">
+                    <a th:href="@{/for-you}" th:classappend="${active == 'for-you'} ? 'active'">For You</a>
+                    <a th:href="@{/browse}" th:classappend="${active == 'browse'} ? 'active'">Browse</a>
+                    <a th:href="@{/recent}" th:classappend="${active == 'recent'} ? 'active'">Recently Added</a>
+                </div>
+            </div>
+            <div class="nav-group">
+                <a th:href="@{/seen}" th:classappend="${mine} ? 'active'" aria-haspopup="true">My Movies</a>
+                <div class="nav-menu">
+                    <a th:href="@{/seen}" th:classappend="${active == 'seen'} ? 'active'">Watched</a>
+                    <a th:href="@{/watchlist}" th:classappend="${active == 'watchlist'} ? 'active'">Watchlist</a>
+                    <a th:href="@{/top-ten}" th:classappend="${active == 'top-ten'} ? 'active'">Top Ten</a>
+                    <a th:href="@{/lists}" th:classappend="${active == 'lists'} ? 'active'">Lists</a>
+                    <a th:href="@{/insights}" th:classappend="${active == 'insights' or active == 'wrapped'} ? 'active'">About You</a>
+                </div>
+            </div>
+            <a th:href="@{/play}" th:classappend="${active == 'play'} ? 'active'">Play<span class="nav-badge" th:if="${attention.games > 0}" th:text="${attention.games}" th:title="|${attention.games} ${attention.games == 1 ? 'game waits' : 'games wait'} on you|">2</span></a>
+            <a th:if="${account.name != null}" th:href="@{/community}" th:classappend="${active == 'community'} ? 'active'">Community<span class="nav-badge" th:if="${attention.community > 0}" th:text="${attention.community}" th:title="|${attention.community} to answer: friend requests and nights|">1</span></a>
         </div>
         <div class="search-box" data-search-box>
-            <input type="search" placeholder="Search movies and people…" autocomplete="off" data-search-input>
+            <!-- The full placeholder where the box fits it, else the short one (fitPlaceholders in app.js). -->
+            <input type="search" placeholder="Search" data-placeholder-full="Search movies and people…" autocomplete="off" data-search-input>
             <div class="search-suggestions" data-search-suggestions hidden></div>
         </div>
+        <!-- The account: a name once signed in with a git provider, else the way to. -->
+        <!-- Signed in, the account icon opens the account page: the logins, linking another, signing out. -->
+        <div class="nav-account">
+            <!-- Signed in: the movies watched behind an eye, in fuchsia, and the check-ins behind a plus, in green, each a way to the list. -->
+            <th:block th:if="${account.name != null and level != null}">
+                <a class="nav-count nav-count-watched" th:href="@{/seen}" th:title="|${level.watched} movies watched|">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <span th:text="${#numbers.formatInteger(level.watched, 1, 'COMMA')}">724</span>
+                </a>
+                <a class="nav-count nav-count-checkins" th:href="@{/seen(checkins='')}" th:title="|${level.checkedIn} checked in|">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                    <span th:text="${level.checkedIn}">12</span>
+                </a>
+            </th:block>
+            <!-- The ring fills from this level to the next; its title says how far (the levels page explains). -->
+            <a th:if="${account.name != null}" class="nav-account-icon" th:href="@{/signin}"
+               th:classappend="(${active == 'signin'} ? 'active ' : '') + (${level != null and level.level.honour != null} ? 'honoured' : '')"
+               th:style="${level != null} ? |--progress: ${level.fraction}|"
+               th:title="${level != null} ? |${account.name} · ${level.level.label}: ${level.nextText}| : |${account.name}: your account|" aria-label="Your account">
+                <img th:if="${account.avatarUrl != null}" th:src="${account.avatarUrl}" alt="">
+                <span th:unless="${account.avatarUrl != null}" th:text="${#strings.toUpperCase(#strings.substring(account.name, 0, 1))}">A</span>
+                <svg class="honour-mark" th:if="${level != null and level.level.honour != null}" th:classappend="${level.level.honour.mark}"><title th:text="${level.level.honour.title}">An Oscar</title><use th:attr="href=|#honour-${level.level.honour.mark}|"/></svg>
+            </a>
+            <a th:unless="${account.name != null}" class="nav-signin" th:href="@{/signin}">Sign in</a>
+        </div>
     </div>
+</nav>
+
+<!-- A wall of posters drifting behind a title: three rows, each its own way (the hero's CSS). -->
+<div th:fragment="wall(rows)" class="play-wall" aria-hidden="true" th:if="${rows != null and !rows.isEmpty()}">
+    <div class="play-wall-row" th:each="row, line : ${rows}" th:classappend="|row-${line.count}|">
+        <th:block th:each="round : ${#numbers.sequence(1, 2)}">
+            <div class="poster" th:each="movie : ${row}">
+                <img th:src="@{/api/poster/{id}(id=${movie.id})}" alt="" loading="lazy" onerror="this.classList.add('failed')">
+            </div>
+        </th:block>
+    </div>
+</div>
+
+<!-- The pages of a section, above a page's title: "Movies · For You / Browse / Recently Added", the page itself lit. -->
+<nav th:fragment="sectionNav(active)" class="section-nav" aria-label="Section"
+     th:with="movies=${active == 'for-you' or active == 'browse' or active == 'recent'}">
+    <span class="section-nav-name" th:text="${movies} ? 'Movies' : 'My Movies'">Movies</span>
+    <th:block th:if="${movies}">
+        <a th:href="@{/for-you}" th:classappend="${active == 'for-you'} ? 'active'">For You</a>
+        <a th:href="@{/browse}" th:classappend="${active == 'browse'} ? 'active'">Browse</a>
+        <a th:href="@{/recent}" th:classappend="${active == 'recent'} ? 'active'">Recently Added</a>
+    </th:block>
+    <th:block th:unless="${movies}">
+        <a th:href="@{/seen}" th:classappend="${active == 'seen'} ? 'active'">Watched</a>
+        <a th:href="@{/watchlist}" th:classappend="${active == 'watchlist'} ? 'active'">Watchlist</a>
+        <a th:href="@{/top-ten}" th:classappend="${active == 'top-ten'} ? 'active'">Top Ten</a>
+        <a th:href="@{/lists}" th:classappend="${active == 'lists'} ? 'active'">Lists</a>
+        <a th:href="@{/insights}" th:classappend="${active == 'insights'} ? 'active'">About You</a>
+    </th:block>
 </nav>
 
 <footer class="footer" th:fragment="footer">
     <div class="container">
         <div>
             Built with <a href="https://orm.st" target="_blank" rel="noopener">Storm ORM</a> on Ktor ·
-            Data from the public <a href="https://datasets.imdbws.com/" target="_blank" rel="noopener">IMDB dataset</a>
+            Data from the public <a href="https://datasets.imdbws.com/" target="_blank" rel="noopener">IMDB dataset</a> ·
+            <a th:href="@{/statistics}">Statistics</a><th:block th:if="${hostedOnFreepod}"> ·
+            Hosted on <a href="https://freepod.eu" target="_blank" rel="noopener">Freepod</a></th:block>
+        </div>
+        <!-- TMDB's terms ask for this notice wherever its API is used. -->
+        <div class="footer-credit" th:if="${tmdb}">
+            Trailers and TMDB imports use the <a href="https://www.themoviedb.org" target="_blank" rel="noopener">TMDB</a>
+            API but are not endorsed, certified, or otherwise approved by TMDB. Where movies stream comes from
+            <a href="https://www.justwatch.com" target="_blank" rel="noopener">JustWatch</a>.
         </div>
     </div>
 </footer>

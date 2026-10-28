@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Invite')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('community')}"></nav>
+
+<header class="page-header">
+    <div class="container">
+        <h1 class="page-title" th:text="${join != null or member != null} ? 'Club invite' : 'Friend invite'">Friend invite</h1>
+    </div>
+</header>
+
+<!-- One page for both kinds of invite: to be friends, or to join a club. -->
+<section class="section">
+    <div class="container invite-page">
+        <th:block th:if="${befriend != null}">
+            <div class="invite-from">
+                <span th:replace="~{fragments/community :: avatar(${befriend.inviter}, 'invite-avatar')}"></span>
+                <p><strong th:text="${befriend.inviter.name}">Alice</strong> would like to be friends with you on MOVIE/DB.</p>
+            </div>
+            <p class="account-hint">
+                Friends see what each other has been watching, as much as each of you chooses to share. On the
+                Community page you decide whether friends see your movies, your name next to them, and the dates.
+            </p>
+        </th:block>
+        <th:block th:if="${join != null}">
+            <div class="invite-from">
+                <span th:replace="~{fragments/community :: avatar(${join.inviter}, 'invite-avatar')}"></span>
+                <p>
+                    <strong th:text="${join.inviter.name}">Alice</strong> has invited you to join
+                    <strong th:text="${join.club.name}">Office film club</strong>
+                    (<th:block th:text="${join.memberCount == 1} ? '1 member so far' : |${join.memberCount} members|">4 members</th:block>).
+                </p>
+            </div>
+            <p class="account-hint">
+                The members of a club see what the others have been watching, as much as each chooses to share. You
+                decide whether they see your movies, your name next to them, and the dates. You don't need to be
+                friends to be in a club together.
+            </p>
+        </th:block>
+        <th:block th:if="${befriend != null or join != null}">
+            <form th:if="${account.name != null}" th:action="@{/invite/{token}(token=${token})}" method="post">
+                <button type="submit" class="button button-primary" id="accept-invite">Accept</button>
+            </form>
+            <p th:if="${account.name == null}">
+                <a class="button button-primary" th:href="@{/signin(rd=|/invite/${token}|)}">Sign in to accept</a>
+                <span class="account-hint">with GitHub, or with Freepod if you have no GitHub account.</span>
+            </p>
+        </th:block>
+        <div class="empty-state" th:if="${own}">
+            This is your own link. Send it to a friend: it works once, for two weeks.
+        </div>
+        <div class="empty-state" th:if="${member != null}">
+            You're already a member of <a th:href="@{/clubs/{id}(id=${member.club.id})}" th:text="${member.club.name}">the club</a>.
+        </div>
+        <div class="empty-state" th:if="${full}">
+            This club is full.
+        </div>
+        <div class="empty-state" th:if="${gone}" id="invite-gone">
+            This link has already been used, has expired, or never existed. Ask for a new one.
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

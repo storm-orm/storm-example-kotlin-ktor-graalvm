@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Play')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('play')}"></nav>
+
+<!-- A wall of the games' pieces behind the title, posters, pips, tickets, cards and links in neon, three rows
+     drifting each its own way, as the posters drift behind the other sections. -->
+<header class="play-hero game-hero">
+    <div class="play-wall game-wall" aria-hidden="true">
+        <div class="play-wall-row" th:each="line : ${#numbers.sequence(1, 3)}" th:classappend="|row-${line}|">
+            <th:block th:each="round : ${#numbers.sequence(1, 2)}">
+                <span class="piece" th:each="i : ${#numbers.sequence(1, 12)}" th:classappend="|piece-${(i + line) % 6} tone-${(i * 7 + line) % 5}|">
+                    <span></span><span></span><span></span>
+                </span>
+            </th:block>
+        </div>
+    </div>
+    <div class="container play-hero-content">
+        <h1 class="page-title">Play</h1>
+        <p class="page-subtitle">Games made of the whole catalogue. Play on your own, against a friend, or with your club:
+            everyone takes their turn in their own time.</p>
+    </div>
+</header>
+
+<!-- Where the visitor stands: the level, the way to the next, and the page that explains it all. -->
+<section class="section level-strip" th:if="${level != null}">
+    <div class="container">
+        <a class="level-card" th:href="@{/play/levels}">
+            <span class="level-ring" th:style="|--progress: ${level.fraction}|"><span th:text="${#numbers.formatInteger(level.fraction * 100, 1)} + '%'">42%</span></span>
+            <span class="level-text">
+                <span class="level-eyebrow">Your level</span>
+                <span class="level-name" th:text="${level.level.label}">Supporting</span>
+                <span class="level-next" th:text="|${#numbers.formatInteger(level.watched, 1, 'COMMA')} movies · ${level.nextText} · ${level.invited == 1 ? '1 person' : level.invited + ' people'} came through your invites|">143 movies · 107 more to Lead · 2 people came through your invites</span>
+            </span>
+            <span class="level-links">
+                <span class="level-link"><th:block th:text="${badgeCount == 1} ? '1 badge' : |${badgeCount} badges|">3 badges</th:block> · Levels &amp; badges →</span>
+                <a class="level-link" th:href="@{/signin}">Your account →</a>
+            </span>
+        </a>
+        <p class="notice game-full" th:if="${refused != null}"
+           th:text="${refused.everyoneNeedsLevel} ? |${refused.title} is played from movies everyone watched, so it needs every player at ${refused.level.label}: your friend, or the whole club, is not there yet.| : |${refused.title} could not start: no friend or club, or no movies to play from.|">Needs every player at Supporting.</p>
+        <p class="notice game-full" th:if="${locked != null}" th:text="|Not yet: that one ${#strings.toLowerCase(locked.text)}.|">Not yet: that one unlocks at Bit Part · 12 movies to go.</p>
+    </div>
+</section>
+
+<!-- The visitor's open games, the ones waiting on them first, each with a way to close it; under them the few
+     that closed last, and the way to the archive. -->
+<section class="section" th:unless="${play.games.isEmpty() and play.finished.isEmpty()}" id="your-games">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Your Games</h2>
+            <span class="attention-badge" th:if="${attention.games > 0}" th:text="${attention.games == 1} ? '1 waits on you' : |${attention.games} wait on you|">2 wait on you</span>
+            <a class="section-link" th:href="@{/play/archive}">Finished games →</a>
+        </div>
+        <p class="notice game-full" th:if="${busy}">One game at a time with the same friend or club: finish or close the one you have going with them first.</p>
+        <p class="notice game-full" th:if="${full}" th:text="|You have ${maxOpen} games going with others. Close one to start another.|">
+            You have 8 games going with others. Close one to start another.</p>
+        <div class="game-list" th:unless="${play.games.isEmpty()}">
+            <div class="game-row" th:each="entry : ${play.games}">
+                <a th:replace="~{fragments/games :: entry(${entry})}"></a>
+                <form th:if="${entry.mine}" th:action="@{/play/matches/{id}/close(id=${entry.match.id})}" method="post" class="game-close"
+                      th:data-confirm="${entry.match.mode.name() == 'FRIEND'} ? 'Close this game? It ends for your friend too.' : null">
+                    <button type="submit" class="game-close-button"
+                            th:title="${entry.match.mode.name() == 'CLUB'} ? 'Leave this game: the club plays on' : 'Close this game: it ends as it stands'"
+                            aria-label="Close this game">×</button>
+                </form>
+            </div>
+        </div>
+        <th:block th:unless="${play.finished.isEmpty()}">
+            <h3 class="game-list-heading">Recently Finished</h3>
+            <div class="game-list finished">
+                <th:block th:each="entry : ${play.finished}"><a th:replace="~{fragments/games :: entry(${entry})}"></a></th:block>
+            </div>
+        </th:block>
+    </div>
+</section>
+
+<section class="section" id="games">
+    <div class="container game-grid">
+        <div class="game-card game-quiz">
+            <!-- The day that repeats: a poster inside a loop that comes back round to its own arrow. -->
+            <span class="game-art game-art-line" aria-hidden="true">
+                <svg class="art-svg" viewBox="0 0 48 48">
+                    <path d="M39 27a15 15 0 1 1-4.4-13.6"/>
+                    <path d="M36 7v7h-7"/>
+                    <rect x="17.5" y="15" width="13" height="18" rx="2"/>
+                </svg>
+            </span>
+            <span class="game-title-row"><span class="game-title">Groundhog Day</span> <span class="game-level">Extra</span></span>
+            <span class="game-text">One movie, all day, every day: six clues, six guesses. Play on your own, and see how your clubs did.</span>
+            <span class="game-modes">On your own · your friends and clubs see the scores</span>
+            <a class="button button-primary game-button" th:href="@{/play/quiz}">Play today's movie</a>
+            <!-- Yesterday's movie, now it can be told: its poster, and how many got it. -->
+            <span class="quiz-yesterday" th:if="${play.yesterday != null}">
+                <span class="poster quiz-yesterday-poster">
+                    <img th:src="@{/api/poster/{id}(id=${play.yesterday.movie.id})}" alt="" loading="lazy" onerror="this.classList.add('failed')">
+                </span>
+                <span class="quiz-yesterday-text">
+                    <span class="quiz-yesterday-label">Yesterday</span>
+                    <span class="quiz-yesterday-title" th:text="${play.yesterday.movie.primaryTitle}">The Transporter</span>
+                    <span class="quiz-yesterday-score" th:if="${play.yesterday.played > 0}"
+                          th:text="|${play.yesterday.solved} of ${play.yesterday.played} got it|">3 of 5 got it</span>
+                </span>
+            </span>
+        </div>
+
+        <!-- The Outsiders: a daily of ten sets of four posters, one that does not belong. -->
+        <div class="game-card game-odd">
+            <span class="game-art game-art-odd" aria-hidden="true"><span class="game-art-poster"></span><span class="game-art-poster"></span><span class="game-art-poster"></span><span class="game-art-poster odd"></span></span>
+            <span class="game-title-row"><span class="game-title">The Outsiders</span> <span class="game-level" th:text="${levels['ODD_ONE_OUT']}">Extra</span></span>
+            <span class="game-text">Ten sets of four posters a day. Three share a director or a star: tap the one that does not belong.</span>
+            <span class="game-modes">Daily · your friends and clubs see the scores</span>
+            <a class="button button-primary game-button" th:if="${locks['ODD_ONE_OUT'] == null}" th:href="@{/play/odd-one-out}">Play today's</a>
+            <span class="game-lock" th:if="${locks['ODD_ONE_OUT'] != null}" th:text="${locks['ODD_ONE_OUT'].text}">Unlocks at Bit Part</span>
+        </div>
+
+        <!-- The Breakfast Club: a daily grid of sixteen posters in four groups. -->
+        <div class="game-card game-connections">
+            <span class="game-art game-art-grid" aria-hidden="true">
+                <span class="level-1"></span><span class="level-1"></span><span class="level-2"></span><span class="level-2"></span>
+                <span class="level-3"></span><span class="level-3"></span><span class="level-4"></span><span class="level-4"></span>
+            </span>
+            <span class="game-title-row"><span class="game-title">The Breakfast Club</span> <span class="game-level" th:text="${levels['CONNECTIONS']}">Extra</span></span>
+            <span class="game-text">Sixteen posters, four groups of four, each with a director or a star in common. Find them before you make four mistakes.</span>
+            <span class="game-modes">Daily · your friends and clubs see the scores</span>
+            <a class="button button-primary game-button" th:if="${locks['CONNECTIONS'] == null}" th:href="@{/play/connections}">Play today's</a>
+            <span class="game-lock" th:if="${locks['CONNECTIONS'] != null}" th:text="${locks['CONNECTIONS'].text}">Unlocks at Bit Part</span>
+        </div>
+
+        <!-- Face/Off: a daily of ten pairs of posters, which is rated higher. -->
+        <div class="game-card game-face-off">
+            <!-- Two faces, face to face, with the line between them, as on the poster. -->
+            <span class="game-art game-art-line" aria-hidden="true">
+                <svg class="art-svg" viewBox="0 0 72 48">
+                    <path d="M12 4C22 3 28 8 28 15L27 17C32 20 32 24 27 26L26 28C29 29 29 31 26 32C28 34 27 36 24 37C26 40 22 44 16 44L14 48"/>
+                    <path d="M60 4C50 3 44 8 44 15L45 17C40 20 40 24 45 26L46 28C43 29 43 31 46 32C44 34 45 36 48 37C46 40 50 44 56 44L58 48"/>
+                    <path d="M38 4L34 46" stroke-dasharray="3 3"/>
+                </svg>
+            </span>
+            <span class="game-title-row"><span class="game-title">Face/Off</span> <span class="game-level" th:text="${levels['FACE_OFF']}">Extra</span></span>
+            <span class="game-text">Two posters face to face, ten times a day: which one does IMDb rate higher?</span>
+            <span class="game-modes">Daily · your friends and clubs see the scores</span>
+            <a class="button button-primary game-button" th:if="${locks['FACE_OFF'] == null}" th:href="@{/play/face-off}">Play today's</a>
+            <span class="game-lock" th:if="${locks['FACE_OFF'] != null}" th:text="${locks['FACE_OFF'].text}">Unlocks at Bit Part</span>
+        </div>
+
+        <!-- The Usual Suspects: a daily of ten line-ups, who played the part. -->
+        <div class="game-card game-suspects">
+            <span class="game-art game-art-lineup" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></span>
+            <span class="game-title-row"><span class="game-title">The Usual Suspects</span> <span class="game-level" th:text="${levels['USUAL_SUSPECTS']}">Extra</span></span>
+            <span class="game-text">A movie, a part, five faces in a line-up: point at whoever played it. Ten a day.</span>
+            <span class="game-modes">Daily · your friends and clubs see the scores</span>
+            <a class="button button-primary game-button" th:if="${locks['USUAL_SUSPECTS'] == null}" th:href="@{/play/usual-suspects}">Play today's</a>
+            <span class="game-lock" th:if="${locks['USUAL_SUSPECTS'] != null}" th:text="${locks['USUAL_SUSPECTS'].text}">Unlocks at Bit Part</span>
+        </div>
+
+        <!-- Memento: a daily of series to put in the order they came out. -->
+        <div class="game-card game-memento">
+            <span class="game-art game-art-memento" aria-hidden="true"><span class="game-art-poster"></span><span class="game-art-poster"></span><span class="game-art-poster"></span><span class="game-art-poster"></span></span>
+            <span class="game-title-row"><span class="game-title">Memento</span> <span class="game-level" th:text="${levels['MEMENTO']}">Extra</span></span>
+            <span class="game-text">A series, shuffled: tap its movies in the order they came out. Up to five series a day.</span>
+            <span class="game-modes">Daily · your friends and clubs see the scores</span>
+            <a class="button button-primary game-button" th:if="${locks['MEMENTO'] == null}" th:href="@{/play/memento}">Play today's</a>
+            <span class="game-lock" th:if="${locks['MEMENTO'] != null}" th:text="${locks['MEMENTO'].text}">Unlocks at Bit Part</span>
+        </div>
+
+        <!-- The Mask: a daily of ten actors behind a mask, four of their movies the clues. -->
+        <div class="game-card game-mask">
+            <span class="game-art game-art-mask" aria-hidden="true"><svg th:replace="~{fragments/games :: maskFace('mask-art')}"></svg></span>
+            <span class="game-title-row"><span class="game-title">The Mask</span> <span class="game-level" th:text="${levels['THE_MASK']}">Extra</span></span>
+            <span class="game-text">Four posters, one actor behind a mask: who is it? Four names to choose from, ten a day.</span>
+            <span class="game-modes">Daily · your friends and clubs see the scores</span>
+            <a class="button button-primary game-button" th:if="${locks['THE_MASK'] == null}" th:href="@{/play/the-mask}">Play today's</a>
+            <span class="game-lock" th:if="${locks['THE_MASK'] != null}" th:text="${locks['THE_MASK'].text}">Unlocks at Bit Part</span>
+        </div>
+
+        <!-- Amadeus: a daily of ten of the visitor's own movies, who wrote the score. -->
+        <div class="game-card game-amadeus">
+            <span class="game-art game-art-score" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span></span>
+            <span class="game-title-row"><span class="game-title">Amadeus</span> <span class="game-level" th:text="${levels['AMADEUS']}">Extra</span></span>
+            <span class="game-text">Movies you watched, four composers each: who wrote the score? Ten a day, made of your own movies.</span>
+            <span class="game-modes">Daily · yours alone · your friends and clubs see the scores</span>
+            <a class="button button-primary game-button" th:if="${locks['AMADEUS'] == null}" th:href="@{/play/amadeus}">Play today's</a>
+            <span class="game-lock" th:if="${locks['AMADEUS'] != null}" th:text="${locks['AMADEUS'].text}">Unlocks at Bit Part</span>
+        </div>
+
+        <!-- Top Gun: started here, on one's own, against a friend, or as a round for a club. -->
+        <div class="game-card game-higher-lower">
+            <span class="game-art game-art-cards" aria-hidden="true">
+                <span class="game-art-card"><span>7.8</span></span><span class="game-art-card back"><span>?</span></span>
+            </span>
+            <span class="game-title-row"><span class="game-title">Top Gun</span> <span class="game-level" th:text="${levels['HIGHER_LOWER']}">Extra</span></span>
+            <span class="game-text">Two posters: is the second rated higher or lower on IMDb? Keep it going as long as you can.</span>
+            <th:block th:if="${locks['HIGHER_LOWER'] == null}">
+            <form th:replace="~{fragments/games :: startForm('/play/higher-lower', 'Challenge', 'Start a round')}"></form>
+            </th:block>
+            <span class="game-lock" th:if="${locks['HIGHER_LOWER'] != null}" th:text="${locks['HIGHER_LOWER'].text}">Unlocks at Bit Part · 12 movies to go</span>
+        </div>
+
+        <!-- Chain Reaction: each movie shares an actor with the one before; against the house, a friend, or a club. -->
+        <div class="game-card game-chain">
+            <span class="game-art game-art-chain" aria-hidden="true">
+                <span class="game-art-poster"></span><span class="game-line"></span><span class="game-art-poster"></span><span class="game-line"></span><span class="game-art-poster"></span>
+            </span>
+            <span class="game-title-row"><span class="game-title">Chain Reaction</span> <span class="game-level" th:text="${levels['CHAIN']}">Extra</span></span>
+            <span class="game-text">Take turns adding a movie that shares an actor with the last one. A day per turn; whoever misses theirs is skipped. On your own it is Catch Me If You Can: the house answers every movie of yours with one of its own.</span>
+            <th:block th:if="${locks['CHAIN'] == null}">
+            <form th:replace="~{fragments/games :: startForm('/play/chain', 'Start a chain', 'Start a chain')}"></form>
+            </th:block>
+            <span class="game-lock" th:if="${locks['CHAIN'] != null}" th:text="${locks['CHAIN'].text}">Unlocks at Bit Part · 12 movies to go</span>
+        </div>
+
+        <!-- Love at First Sight: posters to swipe on one's own, or a round with a friend or a club. -->
+        <a class="game-card game-swipe" th:href="@{/swipe}">
+            <span class="game-art game-art-swipe" aria-hidden="true"><span class="game-art-poster"></span><span class="game-art-poster"></span></span>
+            <span class="game-title-row"><span class="game-title">Love at First Sight</span> <span class="game-level" th:text="${levels['SWIPE']}">Extra</span></span>
+            <span class="game-text">Posters, one at a time: right for a movie you want to see, left to pass. On your own it teaches For You your taste; with a friend you find your matches, with a club the next movie night.</span>
+            <span class="game-modes">On your own · with a friend · with a club</span>
+            <span class="button button-primary game-button">Start swiping</span>
+        </a>
+
+        <!-- The Wolf of Wall Street: a theme, picks in turn, the IMDb ratings told at the end. -->
+        <div class="game-card game-draft">
+            <span class="game-art game-art-draft" aria-hidden="true">
+                <span class="game-art-poster"></span><span class="game-art-poster"></span><span class="game-art-poster"></span>
+            </span>
+            <span class="game-title-row"><span class="game-title">The Wolf of Wall Street</span> <span class="game-level" th:text="${levels['DRAFT']}">Extra</span></span>
+            <span class="game-text">A theme, like Sci-Fi of the 1990s. Take turns picking three movies each; the ratings stay hidden until the end, and the best line-up wins.</span>
+            <th:block th:if="${locks['DRAFT'] == null}">
+            <form th:replace="~{fragments/games :: startForm('/play/draft', 'Start a draft', 'Start a draft')}"></form>
+            </th:block>
+            <span class="game-lock" th:if="${locks['DRAFT'] != null}" th:text="${locks['DRAFT'].text}">Unlocks at Bit Part · 12 movies to go</span>
+        </div>
+
+        <!-- Six Degrees of Separation: two movies to join, together, in as few links as par. -->
+        <div class="game-card game-connect">
+            <span class="game-art game-art-connect" aria-hidden="true">
+                <span class="game-art-poster"></span><span class="game-line"></span><span class="game-dot"></span><span class="game-line"></span><span class="game-art-poster"></span>
+            </span>
+            <span class="game-title-row"><span class="game-title">Six Degrees of Separation</span> <span class="game-level" th:text="${levels['CONNECT']}">Extra</span></span>
+            <span class="game-text">Two movies to join by a chain of shared actors, in as few links as you can. Play it together: anyone adds the next link, any time.</span>
+            <th:block th:if="${locks['CONNECT'] == null}">
+            <form th:replace="~{fragments/games :: startForm('/play/connect', 'Start a puzzle', 'Start a puzzle')}"></form>
+            </th:block>
+            <span class="game-lock" th:if="${locks['CONNECT'] != null}" th:text="${locks['CONNECT'].text}">Unlocks at Bit Part · 12 movies to go</span>
+        </div>
+
+        <!-- Total Recall: the house picks a movie, its cast to name, or an actor or director, their movies; bid how many
+             you can name, then name them. The choice of what to recall goes with the start form. -->
+        <div class="game-card game-cast">
+            <!-- One face over another: the front slides aside on the one beneath, and back (the keyframes in app.css). -->
+            <span class="game-art game-art-line" aria-hidden="true">
+                <svg class="art-svg" viewBox="0 0 64 48">
+                    <ellipse cx="38" cy="24" rx="13" ry="17"/>
+                    <circle cx="33.5" cy="21" r="1.7" fill="currentColor"/><circle cx="42.5" cy="21" r="1.7" fill="currentColor"/>
+                    <path d="M34 31h8"/>
+                    <g class="recall-front">
+                        <ellipse class="recall-skin" cx="38" cy="24" rx="13" ry="17"/>
+                        <circle cx="33.5" cy="21" r="1.7" fill="currentColor"/><circle cx="42.5" cy="21" r="1.7" fill="currentColor"/>
+                        <path d="M34 31c2 1.5 6 1.5 8 0"/>
+                    </g>
+                </svg>
+            </span>
+            <span class="game-title-row"><span class="game-title">Total Recall</span> <span class="game-level" th:text="${levels['CAST']}">Extra</span></span>
+            <span class="game-text">The house picks a movie, or an actor or a director. How many of the cast can you name, the director
+                too, or how many of their movies? Bid against your friend or your club: the highest bid has to name them all.
+                On your own, name as many as you know.</span>
+            <th:block th:if="${locks['CAST'] == null}">
+            <label class="recall-of">
+                <span>Recall</span>
+                <select name="of" form="cast-start" aria-label="What to recall">
+                    <option value="movie">the cast of a movie</option>
+                    <option value="person">the movies of an actor or director</option>
+                </select>
+            </label>
+            <form th:replace="~{fragments/games :: startForm('/play/cast', 'Challenge', 'Start a round')}"></form>
+            </th:block>
+            <span class="game-lock" th:if="${locks['CAST'] != null}" th:text="${locks['CAST'].text}">Unlocks at Supporting</span>
+        </div>
+    </div>
+</section>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -18,7 +18,7 @@ fun Route.searchRoutes(searchService: SearchService) {
                 put("personWindow", results.personWindow)
             }
         }
-        call.respond(ThymeleafContent("search", model))
+        call.respondPage(ThymeleafContent("search", model))
     }
 
     get("/api/search/suggestions") {
@@ -30,6 +30,18 @@ fun Route.searchRoutes(searchService: SearchService) {
                 persons = suggestions.persons.map { it.toSearchItem() }
             )
         )
+    }
+
+    // Movies by their titles alone, for the games, in the shape of the suggestions.
+    get("/api/search/titles") {
+        val query = call.request.queryParameters.getOrFail("query")
+        call.respond(SearchSuggestions(movies = searchService.findTitleSuggestions(query).map { it.toSearchItem() }, persons = emptyList()))
+    }
+
+    // People by their names alone, for the games, in the shape of the suggestions.
+    get("/api/search/names") {
+        val query = call.request.queryParameters.getOrFail("query")
+        call.respond(SearchSuggestions(movies = emptyList(), persons = searchService.findNameSuggestions(query).map { it.toSearchItem() }))
     }
 
     get("/api/search/movies") {
