@@ -5,11 +5,9 @@ import org.junit.jupiter.api.Test
 import st.orm.demo.imdb.model.Genre
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieGenre
-import st.orm.demo.imdb.model.MovieSummary
 import st.orm.demo.imdb.model.MovieView
 import st.orm.demo.imdb.model.Person
 import st.orm.demo.imdb.model.PersonGallery
-import st.orm.demo.imdb.model.PersonSummary
 import st.orm.demo.imdb.model.Principal
 import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.model.Watchlist
@@ -41,9 +39,7 @@ class EntitySchemaValidationTest {
             Rating::class,
             MovieView::class,
             Watchlist::class,
-            PersonGallery::class,
-            MovieSummary::class,
-            PersonSummary::class
+            PersonGallery::class
         )
         assertTrue(errors.isEmpty()) { "Schema validation errors: $errors" }
     }

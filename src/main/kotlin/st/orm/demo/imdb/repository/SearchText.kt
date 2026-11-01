@@ -18,7 +18,7 @@ private val WHITESPACE = Regex("\\s+")
  */
 internal val foldAccents = SqlFunction.of<String>("fold_accents")
 
-/** The column without its accents, as the searches match it: `MovieSummary_.primaryTitle.folded`. */
+/** The column without its accents, as the searches match it: `Movie_.primaryTitle.folded`. */
 internal val <T : Data> Navigable<T, String>.folded: Metamodel<T, String>
     get() = foldAccents(this)
 

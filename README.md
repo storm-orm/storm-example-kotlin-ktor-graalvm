@@ -17,8 +17,10 @@ time, exactly what the Spring hints register:
 - every Data type (entities and projections) with constructors, methods, and
   fields, including compound primary keys and inline components reached
   through constructor signatures, and the kotlinx.serialization companions;
-- every repository interface as a JDK proxy shape, with the Kotlin
-  `$DefaultImpls` classes for default methods;
+- every repository interface: on GraalVM for JDK 24 and up as the class
+  Storm writes for it during the build, so the image calls the repository
+  directly and keeps only the methods the app uses; on an older GraalVM as a
+  JDK proxy shape, with the Kotlin `$DefaultImpls` classes for default methods;
 - converters for reflective construction.
 
 The feature activates automatically through storm-core's
@@ -125,7 +127,7 @@ src/main/kotlin/st/orm/demo/imdb/
 ├── Application.kt      Ktor module: Storm plugin, Thymeleaf, DI, routing
 ├── FlywayResources.kt  Explicit Flyway resources (native images cannot scan)
 ├── Dependencies.kt     Service wiring via ktor-server-di
-├── model/              Storm entities (@PK, @FK) and projections
+├── model/              Storm entities (@PK, @FK)
 ├── repository/         EntityRepository interfaces with QueryBuilder queries
 ├── service/            Business logic in suspend `transaction { }` blocks,
 │                       plus the streaming IMDB importer
