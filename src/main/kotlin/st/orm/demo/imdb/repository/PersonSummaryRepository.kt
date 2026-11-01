@@ -31,9 +31,14 @@ interface PersonSummaryRepository : ProjectionRepository<PersonSummary, String> 
 
     /**
      * Name suggestions for the search auto-complete. Like the movie
-     * suggestions it uses suggest, which ignores words the trigram index
-     * cannot serve, so every keystroke reads the index. They are ranked as
-     * [searchByName] ranks them, alphabetically within each rank.
+     * suggestions it uses suggest, so every keystroke reads the trigram
+     * index of V1: a word of three letters or more matched anywhere in a
+     * name and a word of two at the start of one, so in "de niro" "niro"
+     * matches anywhere and "de" at the start of a word. A word of one letter
+     * takes no part, so an input of such words alone suggests nothing. No
+     * words are ignored: the particles of names, such as "de" and "van",
+     * are what the user types to find De Niro or Van Damme. They are ranked
+     * as [searchByName] ranks them, alphabetically within each rank.
      */
     fun findNameSuggestions(query: String, limit: Int): List<PersonSummary> {
         val name = searchText(query)

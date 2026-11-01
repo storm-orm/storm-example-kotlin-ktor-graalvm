@@ -83,7 +83,9 @@ CREATE INDEX idx_movie_view_viewed_at ON movie_view (viewed_at DESC);
 -- LOWER(fold_accents(column)) LIKE LOWER(fold_accents('%word%')), applying the
 -- function to the column and to the input alike (see SearchText.kt). A leading
 -- wildcard rules out a btree index; trigram GIN indexes on exactly that
--- expression serve it, for words of three characters or more.
+-- expression serve it, for words of three characters or more. The suggestions
+-- match a word of two characters at the start of a word instead, which the same
+-- indexes serve, and leave out a word of one.
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE EXTENSION IF NOT EXISTS unaccent;
 

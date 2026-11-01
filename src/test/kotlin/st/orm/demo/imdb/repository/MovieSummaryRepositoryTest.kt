@@ -124,6 +124,43 @@ class MovieSummaryRepositoryTest {
     }
 
     @Test
+    fun `findMovieSuggestions ignores the noise words of titles`(orm: ORMTemplate) {
+        val movieSummaryRepository = orm.repository<MovieSummaryRepository>()
+        fun titles(query: String) =
+            movieSummaryRepository.findMovieSuggestions(query, 5).map { it.primaryTitle }
+        // "the" is in five of the six titles; alone it suggests nothing.
+        assertEquals(emptyList<String>(), titles("the"))
+        assertEquals(emptyList<String>(), titles("THE"))
+        // Next to another word it takes no part: "the god" suggests what "god" does.
+        assertEquals(listOf("The Godfather"), titles("god"))
+        assertEquals(listOf("The Godfather"), titles("the god"))
+    }
+
+    @Test
+    fun `findMovieSuggestions matches a two-letter word at the start of a word`(orm: ORMTemplate) {
+        val movieSummaryRepository = orm.repository<MovieSummaryRepository>()
+        fun titles(query: String) =
+            movieSummaryRepository.findMovieSuggestions(query, 5).map { it.primaryTitle }
+        assertEquals(listOf("The Godfather"), titles("go"))
+        assertEquals(listOf("The Matrix", "The Matrix Reloaded"), titles("ma"))
+        // Inside a word it does not match: "at" is in Matrix, but starts no word.
+        assertEquals(emptyList<String>(), titles("at"))
+        // A word of one letter takes no part, so it suggests nothing.
+        assertEquals(emptyList<String>(), titles("m"))
+        assertEquals(emptyList<String>(), titles("  "))
+    }
+
+    @Test
+    fun `findMovieSuggestions ignores accents`(orm: ORMTemplate) {
+        val movieSummaryRepository = orm.repository<MovieSummaryRepository>()
+        fun titles(query: String) =
+            movieSummaryRepository.findMovieSuggestions(query, 5).map { it.primaryTitle }
+        assertEquals(listOf("Amélie"), titles("amelie"))
+        assertEquals(listOf("Amélie"), titles("AMÉLIE"))
+        assertEquals(listOf("Amélie"), titles("fabuleux"))
+    }
+
+    @Test
     fun `scrollByGenre scrolls a genre most voted first`(orm: ORMTemplate, capture: SqlCapture) {
         val genreRepository = orm.repository<GenreRepository>()
         val movieSummaryRepository = orm.repository<MovieSummaryRepository>()

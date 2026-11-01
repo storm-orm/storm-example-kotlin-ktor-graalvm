@@ -34,10 +34,23 @@ class PersonSummaryRepositoryTest {
     fun `findNameSuggestions orders by name`(orm: ORMTemplate, capture: SqlCapture) {
         val personSummaryRepository = orm.repository<PersonSummaryRepository>()
         val suggestions = capture.execute {
-            personSummaryRepository.findNameSuggestions("an", 10)
+            personSummaryRepository.findNameSuggestions("ree", 10)
         }
         capture.printStatements("findNameSuggestions")
         assertEquals(listOf("Keanu Reeves", "Morgan Freeman"), suggestions.map { it.primaryName })
+    }
+
+    @Test
+    fun `findNameSuggestions matches a two-letter word at the start of a word`(orm: ORMTemplate) {
+        val personSummaryRepository = orm.repository<PersonSummaryRepository>()
+        fun names(query: String) =
+            personSummaryRepository.findNameSuggestions(query, 10).map { it.primaryName }
+        // "fr" starts the second word of Morgan Freeman's name.
+        assertEquals(listOf("Morgan Freeman"), names("fr"))
+        // "an" is in Keanu and Morgan, but starts no word.
+        assertEquals(emptyList<String>(), names("an"))
+        // A word of one letter takes no part, so it suggests nothing.
+        assertEquals(emptyList<String>(), names("k"))
     }
 
     @Test

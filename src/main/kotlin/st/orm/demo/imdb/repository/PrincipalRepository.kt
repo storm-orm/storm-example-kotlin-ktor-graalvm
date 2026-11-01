@@ -10,12 +10,12 @@ import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.model.Rating_
 import st.orm.Ref
 import st.orm.repository.EntityRepository
-import st.orm.repository.entity
 import st.orm.repository.select
 import st.orm.template.and
 import st.orm.template.eq
 import st.orm.template.inList
 import st.orm.template.neq
+import st.orm.template.ref
 import java.math.BigDecimal
 
 /**
@@ -125,13 +125,13 @@ interface PrincipalRepository : EntityRepository<Principal, PrincipalPk> {
      * one query; joining every person before counting took four times as long.
      */
     fun findMostProlificActors(limit: Int): List<ProlificActor> {
-        val counts = select<ActingCreditCount, _, _> { "${Principal_.person}, COUNT(*)" }
+        val counts = select(ActingCreditCount::class) { "${Principal_.person}, COUNT(*)" }
             .where(Principal_.category inList listOf("actor", "actress"))
             .groupBy(Principal_.person)
             .orderByDescending { "COUNT(*)" }
             .limit(limit)
             .resultList
-        val people = orm.entity<Person>().findAllByRef(counts.map { it.person }).associateBy<Person, Any> { it.id }
-        return counts.map { ProlificActor(people.getValue(it.person.id()), it.creditCount) }
+        val people = orm.entity(Person::class).findAllByRef(counts.map { it.person }).associateBy { it.ref() }
+        return counts.map { ProlificActor(people.getValue(it.person), it.creditCount) }
     }
 }
