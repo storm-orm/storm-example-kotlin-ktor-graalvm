@@ -489,5 +489,17 @@
     "name": "st.orm.demo.imdb.web.WatchlistState$Companion",
     "allDeclaredFields": true,
     "allPublicMethods": true
+  },
+  {
+    "name": "st.orm.demo.imdb.service.CastCredit",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "st.orm.demo.imdb.repository.ActingCreditCount",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
   }
 ]
