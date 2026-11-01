@@ -41,7 +41,7 @@ class RatingRepositoryTest {
     }
 
     @Test
-    fun `findTopMovies with genre joins the junction table`(orm: ORMTemplate, capture: SqlCapture) {
+    fun `findTopMovies with genre filters by the junction table`(orm: ORMTemplate, capture: SqlCapture) {
         val genreRepository = orm.repository<GenreRepository>()
         val ratingRepository = orm.repository<RatingRepository>()
         val action = genreRepository.findByName("Action")!!

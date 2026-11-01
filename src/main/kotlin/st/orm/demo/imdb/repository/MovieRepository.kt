@@ -4,7 +4,6 @@ import kotlinx.serialization.Serializable
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.Movie_
 import st.orm.repository.EntityRepository
-import st.orm.repository.select
 import st.orm.template.isNotNull
 
 /**
@@ -26,7 +25,7 @@ interface MovieRepository : EntityRepository<Movie, String> {
      * still with metamodel column references.
      */
     fun countMoviesPerDecade() =
-        select<DecadeMovieCount, _, _> { "(${Movie_.startYear} / 10) * 10, COUNT(*)" }
+        select(DecadeMovieCount::class) { "(${Movie_.startYear} / 10) * 10, COUNT(*)" }
             .where(Movie_.startYear.isNotNull())
             .groupBy { "(${Movie_.startYear} / 10) * 10" }
             .orderBy { "(${Movie_.startYear} / 10) * 10" }

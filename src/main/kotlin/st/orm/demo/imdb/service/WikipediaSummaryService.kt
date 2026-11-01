@@ -1,6 +1,9 @@
 package st.orm.demo.imdb.service
 
 import kotlinx.serialization.Serializable
+import st.orm.Ref
+import st.orm.demo.imdb.model.Movie
+import st.orm.demo.imdb.model.Person
 import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.PersonRepository
 import tools.jackson.databind.ObjectMapper
@@ -35,15 +38,17 @@ class WikipediaSummaryService(
     private val objectMapper: ObjectMapper
 ) {
 
-    private val summariesByKey = ConcurrentHashMap<String, Optional<ExternalSummary>>()
+    // Keyed by the row's ref: a ref compares by type and key, so a movie and a
+    // person never share an entry.
+    private val summariesByRef = ConcurrentHashMap<Ref<*>, Optional<ExternalSummary>>()
 
     private val httpClient: HttpClient = HttpClient.newBuilder()
         .followRedirects(HttpClient.Redirect.NORMAL)
         .build()
 
-    fun findMovieSummary(movieId: String): ExternalSummary? =
-        summariesByKey.computeIfAbsent("movie:$movieId") {
-            val movie = movieRepository.findById(movieId)
+    fun findMovieSummary(movieRef: Ref<Movie>): ExternalSummary? =
+        summariesByRef.computeIfAbsent(movieRef) {
+            val movie = movieRepository.findByRef(movieRef)
                 ?: return@computeIfAbsent Optional.empty()
             // Disambiguate common titles: prefer the year-qualified article.
             val candidateTitles = listOfNotNull(
@@ -54,9 +59,9 @@ class WikipediaSummaryService(
             Optional.ofNullable(findFirstSummary(candidateTitles))
         }.orElse(null)
 
-    fun findPersonSummary(personId: String): ExternalSummary? =
-        summariesByKey.computeIfAbsent("person:$personId") {
-            val person = personRepository.findById(personId)
+    fun findPersonSummary(personRef: Ref<Person>): ExternalSummary? =
+        summariesByRef.computeIfAbsent(personRef) {
+            val person = personRepository.findByRef(personRef)
                 ?: return@computeIfAbsent Optional.empty()
             val candidateTitles = listOf(person.primaryName, "${person.primaryName} (actor)")
             Optional.ofNullable(findFirstSummary(candidateTitles))

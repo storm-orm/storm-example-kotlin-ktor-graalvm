@@ -4,7 +4,6 @@ import st.orm.demo.imdb.model.Genre
 import st.orm.demo.imdb.model.Genre_
 import st.orm.demo.imdb.model.MovieGenre
 import st.orm.repository.EntityRepository
-import st.orm.repository.select
 
 /**
  * Query result shape: a genre together with the number of movies in it,
@@ -30,7 +29,7 @@ interface GenreRepository : EntityRepository<Genre, Int> {
      * template; the join, grouping, and ordering stay in code.
      */
     fun findGenresWithMovieCounts() =
-        select<GenreMovieCount, _, _> { "${Genre::class}, COUNT(*)" }
+        select(GenreMovieCount::class) { "${Genre::class}, COUNT(*)" }
             .innerJoin<MovieGenre>().on<Genre>()
             .groupBy(Genre_.id)
             .orderBy(Genre_.name)

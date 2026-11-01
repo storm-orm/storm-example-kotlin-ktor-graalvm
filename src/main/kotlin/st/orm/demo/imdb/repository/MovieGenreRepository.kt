@@ -10,7 +10,6 @@ import st.orm.demo.imdb.model.Rating
 import st.orm.demo.imdb.model.Rating_
 import st.orm.demo.imdb.serialization.BigDecimalAsStringSerializer
 import st.orm.repository.EntityRepository
-import st.orm.repository.select
 import st.orm.template.eq
 import java.math.BigDecimal
 
@@ -42,7 +41,7 @@ interface MovieGenreRepository : EntityRepository<MovieGenre, MovieGenrePk> {
      * The aggregate expressions live in templates; everything else is code.
      */
     fun findGenreRatingStatistics(minimumMovieCount: Int, limit: Int) =
-        select<GenreRatingStatistics, _, _> { "${Genre::class}, AVG(${Rating_.averageRating}), COUNT(*)" }
+        select(GenreRatingStatistics::class) { "${Genre::class}, AVG(${Rating_.averageRating}), COUNT(*)" }
             .innerJoin<Rating>().on<Movie>()
             .groupBy(MovieGenre_.genre)
             .having { "COUNT(*) >= $minimumMovieCount" }

@@ -4,6 +4,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.slf4j.LoggerFactory
+import st.orm.Ref
 import st.orm.demo.imdb.model.Person
 import st.orm.demo.imdb.model.PersonGallery
 import st.orm.demo.imdb.model.Photo
@@ -57,9 +58,9 @@ class PersonGalleryService(
      * fetch failures are not stored; a later request simply tries again.
      * Returns null for unknown persons.
      */
-    suspend fun findGallery(personId: String): List<Photo>? {
+    suspend fun findGallery(personRef: Ref<Person>): List<Photo>? {
         val (person, stored) = transaction(readOnly = true) {
-            personRepository.findById(personId)?.let { it to personGalleryRepository.findById(it.ref()) }
+            personRepository.findByRef(personRef)?.let { it to personGalleryRepository.findById(personRef) }
         } ?: return null
         stored?.let { return it.photos }
         // Fetch outside the transaction: no connection is held during HTTP I/O.
@@ -101,7 +102,7 @@ class PersonGalleryService(
     private suspend fun fetchPhotos(person: Person): List<Photo>? = withContext(Dispatchers.IO) {
         // The summary lookup resolves the person to a canonical article
         // title — it already skips disambiguation pages.
-        val article = wikipediaSummaryService.findPersonSummary(person.id) ?: return@withContext null
+        val article = wikipediaSummaryService.findPersonSummary(person.ref()) ?: return@withContext null
         try {
             val encodedTitle = URLEncoder.encode(article.title.replace(' ', '_'), StandardCharsets.UTF_8)
             val uri = URI.create("https://en.wikipedia.org/api/rest_v1/page/media-list/$encodedTitle")

@@ -47,6 +47,7 @@ class StatisticsService(
             val decades = movieRepository.countMoviesPerDecade()
             StatisticsView(
                 decades = decades,
+                // The decades are in memory for the chart; the largest count scales its bars.
                 maxDecadeCount = decades.maxOfOrNull { it.movieCount } ?: 1L,
                 genreStatistics = movieGenreRepository.findGenreRatingStatistics(
                     GENRE_MINIMUM_MOVIE_COUNT, GENRE_LIMIT),

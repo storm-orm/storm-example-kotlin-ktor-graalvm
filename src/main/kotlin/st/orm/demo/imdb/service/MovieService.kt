@@ -1,5 +1,6 @@
 package st.orm.demo.imdb.service
 
+import st.orm.Ref
 import st.orm.demo.imdb.model.Genre
 import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieView
@@ -13,6 +14,7 @@ import st.orm.demo.imdb.repository.PrincipalRepository
 import st.orm.demo.imdb.repository.RatingRepository
 import st.orm.demo.imdb.repository.RelatedMovie
 import st.orm.demo.imdb.repository.WatchlistRepository
+import st.orm.template.ref
 import st.orm.template.transaction
 import java.time.Instant
 
@@ -53,8 +55,8 @@ class MovieService(
      * up in the recently-viewed section on the home page. The view insert
      * and the page reads share one explicit Storm transaction.
      */
-    suspend fun viewMovie(movieId: String): MovieDetail? = transaction {
-        val movie = movieRepository.findById(movieId) ?: return@transaction null
+    suspend fun viewMovie(movieRef: Ref<Movie>): MovieDetail? = transaction {
+        val movie = movieRepository.findByRef(movieRef) ?: return@transaction null
         movieViewRepository.insert(MovieView(movie = movie, viewedAt = Instant.now()))
 
         val credits = principalRepository.findCast(movie)
@@ -75,10 +77,13 @@ class MovieService(
 
     /**
      * Folds the credits into one per person, at the person's first billing
-     * position, with each distinct role once.
+     * position, with each distinct role once. The fold runs here rather than
+     * in the query: a card holds a list of roles, which one row per person
+     * cannot give without a JSON aggregation, and a movie has a few dozen
+     * credits at most, read in billing order for the page anyway.
      */
     private fun castCredits(credits: List<Principal>): List<CastCredit> =
-        credits.groupBy { it.person.id }.values.map { personCredits ->
+        credits.groupBy { it.person.ref() }.values.map { personCredits ->
             CastCredit(
                 person = personCredits.first().person,
                 roles = personCredits.map { it.characters ?: it.category }.distinct()

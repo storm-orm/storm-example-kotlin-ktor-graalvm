@@ -96,16 +96,16 @@ interface MovieSummaryRepository : ProjectionRepository<MovieSummary, String> {
     /**
      * All movies in a genre with keyset scrolling. The junction table has a
      * composite key and cannot be scrolled directly, so the scroll runs on
-     * the movie's simple primary key with a JOIN through the junction table,
-     * resolved automatically against the projection by table. The scroll key
-     * has to identify one row of the projection, which a key on the junction
-     * table would not. The rating is joined so the [scrollable] can order the
-     * genre by its vote count, as the browse page does ([mostVotedFirst]);
-     * every imported movie has one, so the inner join drops none.
+     * the movie's simple primary key, and the junction table is a semi-join,
+     * resolved automatically against the projection by table: it keeps the
+     * movies of the genre without adding rows. The rating is joined so the
+     * [scrollable] can order the genre by its vote count, as the browse page
+     * does ([mostVotedFirst]); every imported movie has one, so the inner
+     * join drops none.
      */
     fun scrollByGenre(genre: Genre, scrollable: Scrollable<MovieSummary>) =
         select()
-            .innerJoin<MovieGenre>().on<MovieSummary>()
+            .semiJoin<MovieGenre>().on<MovieSummary>()
             .innerJoin<Rating>().on<MovieSummary>()
             .where(MovieGenre_.genre eq genre)
             .narrow<MovieSummary>()

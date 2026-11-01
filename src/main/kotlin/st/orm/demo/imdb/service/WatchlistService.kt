@@ -1,6 +1,8 @@
 package st.orm.demo.imdb.service
 
 import st.orm.Page
+import st.orm.Ref
+import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.Watchlist
 import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.demo.imdb.repository.WatchlistRepository
@@ -21,8 +23,8 @@ class WatchlistService(
      * transaction around the handler. The service stays transaction-free;
      * called from another transaction it simply joins it (REQUIRED).
      */
-    suspend fun toggle(movieId: String): Boolean {
-        val movie = movieRepository.getById(movieId)
+    suspend fun toggle(movieRef: Ref<Movie>): Boolean {
+        val movie = movieRepository.getByRef(movieRef)
         return if (watchlistRepository.existsById(movie)) {
             watchlistRepository.removeById(movie)
             false
