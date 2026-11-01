@@ -6,6 +6,10 @@
 -- This file is also executed against H2 by @StormTest, so it sticks to DDL
 -- that is valid in both PostgreSQL and H2.
 
+-- The searches fold accents through fold_accents, which PostgreSQL defines over
+-- unaccent (V1). H2 has no unaccent, so the tests define it in Java.
+CREATE ALIAS fold_accents DETERMINISTIC FOR 'st.orm.demo.imdb.H2Functions.foldAccents';
+
 CREATE TABLE movie (
     id              VARCHAR NOT NULL PRIMARY KEY, -- IMDB tconst, e.g. 'tt0133093'
     primary_title   VARCHAR NOT NULL,

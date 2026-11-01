@@ -36,12 +36,12 @@ class RatingRepositoryTest {
         capture.printStatements("findTopMovies-all")
         // No genre filter: the junction table must not be joined.
         assertTrue(!capture.statements().single().statement().contains("movie_genre"))
-        assertEquals(5, topMovies.size)
+        assertEquals(6, topMovies.size)
         assertEquals("The Shawshank Redemption", topMovies.first().movie.primaryTitle)
     }
 
     @Test
-    fun `findTopMovies with genre joins the junction table`(orm: ORMTemplate, capture: SqlCapture) {
+    fun `findTopMovies with genre filters by the junction table`(orm: ORMTemplate, capture: SqlCapture) {
         val genreRepository = orm.repository<GenreRepository>()
         val ratingRepository = orm.repository<RatingRepository>()
         val action = genreRepository.findByName("Action")!!

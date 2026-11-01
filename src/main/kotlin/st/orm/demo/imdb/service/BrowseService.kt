@@ -1,37 +1,38 @@
 package st.orm.demo.imdb.service
 
-import st.orm.Scrollable
 import st.orm.Window
 import st.orm.demo.imdb.model.Genre
+import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.model.MovieGenre_
-import st.orm.demo.imdb.model.MovieSummary
-import st.orm.demo.imdb.model.MovieSummary_
 import st.orm.demo.imdb.repository.GenreRepository
 import st.orm.demo.imdb.repository.MovieGenreRepository
-import st.orm.demo.imdb.repository.MovieSummaryRepository
+import st.orm.demo.imdb.repository.MovieRepository
 import st.orm.template.transaction
 
 /** Everything the browse-by-genre page shows. */
 data class BrowseView(
     val genre: Genre,
     val movieCount: Long,
-    val movieWindow: Window<MovieSummary>
+    val movieWindow: Window<Movie>
 )
 
 class BrowseService(
     private val genreRepository: GenreRepository,
     private val movieGenreRepository: MovieGenreRepository,
-    private val movieSummaryRepository: MovieSummaryRepository
+    private val movieRepository: MovieRepository
 ) {
 
-    /** The browse page: genre, count, and first window in one read-only transaction. */
+    /**
+     * The browse page: genre, count, and first window in one read-only
+     * transaction. The genre lists its most voted movies first.
+     */
     suspend fun browseGenre(genreName: String): BrowseView? = transaction(readOnly = true) {
         val genre = genreRepository.findByName(genreName) ?: return@transaction null
         BrowseView(
             genre = genre,
             movieCount = movieGenreRepository.countBy(MovieGenre_.genre, genre),
-            movieWindow = movieSummaryRepository.scrollByGenre(
-                genre, Scrollable.of(MovieSummary_.id, PAGE_SIZE))
+            movieWindow = movieRepository.scrollByGenre(
+                genre, MovieRepository.mostVotedFirst(PAGE_SIZE))
         )
     }
 
@@ -40,15 +41,15 @@ class BrowseService(
      * cursor is the opaque string from the previous response (null requests
      * the first window) — the client echoes it back unchanged.
      */
-    suspend fun scrollGenre(genreName: String, cursor: String?): Window<MovieSummary>? =
+    suspend fun scrollGenre(genreName: String, cursor: String?): Window<Movie>? =
         transaction(readOnly = true) {
             val genre = genreRepository.findByName(genreName) ?: return@transaction null
             val scrollable = if (cursor != null) {
-                Scrollable.of(MovieSummary_.id, PAGE_SIZE).from(cursor)
+                MovieRepository.mostVotedFirst(PAGE_SIZE).from(cursor)
             } else {
-                Scrollable.of(MovieSummary_.id, PAGE_SIZE)
+                MovieRepository.mostVotedFirst(PAGE_SIZE)
             }
-            movieSummaryRepository.scrollByGenre(genre, scrollable)
+            movieRepository.scrollByGenre(genre, scrollable)
         }
 
     companion object {

@@ -1,8 +1,8 @@
 package st.orm.demo.imdb.web
 
 import kotlinx.serialization.Serializable
-import st.orm.demo.imdb.model.MovieSummary
-import st.orm.demo.imdb.model.PersonSummary
+import st.orm.demo.imdb.model.Movie
+import st.orm.demo.imdb.model.Person
 
 @Serializable
 data class MovieSearchItem(val id: String, val title: String, val year: Int?)
@@ -31,6 +31,6 @@ data class SearchSuggestions(
 @Serializable
 data class WatchlistState(val onWatchlist: Boolean)
 
-fun MovieSummary.toSearchItem() = MovieSearchItem(id = id, title = primaryTitle, year = startYear)
+fun Movie.toSearchItem() = MovieSearchItem(id = id, title = primaryTitle, year = startYear)
 
-fun PersonSummary.toSearchItem() = PersonSearchItem(id = id, name = primaryName)
+fun Person.toSearchItem() = PersonSearchItem(id = id, name = primaryName)

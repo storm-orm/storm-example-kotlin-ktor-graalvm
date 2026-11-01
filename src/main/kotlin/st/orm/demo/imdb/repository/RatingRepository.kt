@@ -30,9 +30,10 @@ interface RatingRepository : EntityRepository<Rating, Movie> {
 
     /**
      * The top movies page: optionally filtered by genre, sorted by rating
-     * or release year. Demonstrates query composition — the genre join and
+     * or release year. Demonstrates query composition — the genre filter and
      * the sort order are decided by plain Kotlin conditionals inside the
-     * query block.
+     * query block. The genre is a semi-join on the junction table: it keeps
+     * the movies of the genre without adding rows.
      */
     fun findTopMovies(
         genre: Genre?,
@@ -43,7 +44,7 @@ interface RatingRepository : EntityRepository<Rating, Movie> {
         select {
             where(Rating_.voteCount greaterEq minimumVoteCount)
             if (genre != null) {
-                innerJoin<MovieGenre, Movie>()
+                semiJoin<MovieGenre, Movie>()
                 where(MovieGenre_.genre eq genre)
             }
             when (sortBy) {

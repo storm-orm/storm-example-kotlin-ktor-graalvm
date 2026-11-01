@@ -7,14 +7,16 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.thymeleaf.ThymeleafContent
 import io.ktor.server.util.getOrFail
+import st.orm.demo.imdb.model.Movie
 import st.orm.demo.imdb.service.MovieService
 import st.orm.demo.imdb.service.WatchlistService
 import st.orm.ktor.transactional
+import st.orm.template.refById
 
 fun Route.movieRoutes(movieService: MovieService, watchlistService: WatchlistService) {
     get("/movie/{movieId}") {
         val movieId = call.parameters.getOrFail("movieId")
-        val detail = movieService.viewMovie(movieId)
+        val detail = movieService.viewMovie(refById<Movie>(movieId))
             ?: return@get call.respond(HttpStatusCode.NotFound, "Unknown movie: $movieId")
         call.respond(ThymeleafContent("movie", mapOf("detail" to detail)))
     }
@@ -26,7 +28,7 @@ fun Route.movieRoutes(movieService: MovieService, watchlistService: WatchlistSer
     transactional {
         post("/api/watchlist/{movieId}") {
             val movieId = call.parameters.getOrFail("movieId")
-            call.respond(WatchlistState(onWatchlist = watchlistService.toggle(movieId)))
+            call.respond(WatchlistState(onWatchlist = watchlistService.toggle(refById<Movie>(movieId))))
         }
     }
 }

@@ -42,6 +42,10 @@ class HomeService(
     /** All home page sections, read in one read-only transaction. */
     suspend fun buildHomeView(): HomeView = transaction(readOnly = true) {
         // Views hold movie refs; dedupe the refs and fetch the movies once.
+        // The dedupe and the order stay in code: grouping the views per movie
+        // in the query would read every view ever recorded, where the newest
+        // views are a bounded read of the viewed_at index. The movies come back
+        // in no set order, so each is looked up by its ref in the order viewed.
         val recentMovieRefs = movieViewRepository.findRecentViews(RECENT_VIEW_SAMPLE_SIZE)
             .map { it.movie }
             .distinct()

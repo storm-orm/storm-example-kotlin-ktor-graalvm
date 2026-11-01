@@ -45,6 +45,10 @@ import java.util.zip.GZIPInputStream
  * the movie pass, so the genres and their junction rows are written as a
  * single write set. Dataset files are downloaded once and cached locally; the
  * import is skipped entirely when movie data is already present.
+ *
+ * The parsing steps key the dataset lines by their IMDB ids rather than by
+ * refs: the ids are how the files refer to each other, and the rows they name
+ * are still being written.
  */
 class ImdbDataImporter(
     private val movieRepository: MovieRepository,
