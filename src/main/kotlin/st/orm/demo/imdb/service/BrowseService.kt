@@ -1,11 +1,9 @@
 package st.orm.demo.imdb.service
 
-import st.orm.Scrollable
 import st.orm.Window
 import st.orm.demo.imdb.model.Genre
 import st.orm.demo.imdb.model.MovieGenre_
 import st.orm.demo.imdb.model.MovieSummary
-import st.orm.demo.imdb.model.MovieSummary_
 import st.orm.demo.imdb.repository.GenreRepository
 import st.orm.demo.imdb.repository.MovieGenreRepository
 import st.orm.demo.imdb.repository.MovieSummaryRepository
@@ -24,14 +22,17 @@ class BrowseService(
     private val movieSummaryRepository: MovieSummaryRepository
 ) {
 
-    /** The browse page: genre, count, and first window in one read-only transaction. */
+    /**
+     * The browse page: genre, count, and first window in one read-only
+     * transaction. The genre lists its most voted movies first.
+     */
     suspend fun browseGenre(genreName: String): BrowseView? = transaction(readOnly = true) {
         val genre = genreRepository.findByName(genreName) ?: return@transaction null
         BrowseView(
             genre = genre,
             movieCount = movieGenreRepository.countBy(MovieGenre_.genre, genre),
             movieWindow = movieSummaryRepository.scrollByGenre(
-                genre, Scrollable.of(MovieSummary_.id, PAGE_SIZE))
+                genre, MovieSummaryRepository.mostVotedFirst(PAGE_SIZE))
         )
     }
 
@@ -44,9 +45,9 @@ class BrowseService(
         transaction(readOnly = true) {
             val genre = genreRepository.findByName(genreName) ?: return@transaction null
             val scrollable = if (cursor != null) {
-                Scrollable.of(MovieSummary_.id, PAGE_SIZE).from(cursor)
+                MovieSummaryRepository.mostVotedFirst(PAGE_SIZE).from(cursor)
             } else {
-                Scrollable.of(MovieSummary_.id, PAGE_SIZE)
+                MovieSummaryRepository.mostVotedFirst(PAGE_SIZE)
             }
             movieSummaryRepository.scrollByGenre(genre, scrollable)
         }

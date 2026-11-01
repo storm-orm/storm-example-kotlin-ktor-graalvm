@@ -55,6 +55,8 @@ class MovieSummaryRepositoryTest {
                 .content().map { it.primaryTitle }
         assertEquals(listOf("Amélie"), titles("fabuleux destin"))
         assertEquals(listOf("Amélie"), titles("amélie poulain"))
+        assertEquals(listOf("Amélie"), titles("amelie poulain"))
+        assertEquals(listOf("Amélie"), titles("AMELIE"))
         assertEquals(emptyList<String>(), titles("fabuleux matrix"))
     }
 
@@ -122,26 +124,27 @@ class MovieSummaryRepositoryTest {
     }
 
     @Test
-    fun `scrollByGenre joins the junction table and scrolls on the movie key`(orm: ORMTemplate, capture: SqlCapture) {
+    fun `scrollByGenre scrolls a genre most voted first`(orm: ORMTemplate, capture: SqlCapture) {
         val genreRepository = orm.repository<GenreRepository>()
         val movieSummaryRepository = orm.repository<MovieSummaryRepository>()
         val drama = genreRepository.findByName("Drama")!!
 
         capture.clear()
         val firstWindow = capture.execute {
-            movieSummaryRepository.scrollByGenre(drama, Scrollable.of(MovieSummary_.id, 2))
+            movieSummaryRepository.scrollByGenre(drama, MovieSummaryRepository.mostVotedFirst(2))
         }
         capture.printStatements("scrollByGenre")
         assertEquals(1, capture.count(Operation.SELECT))
         assertTrue(capture.statements().single().statement().contains("movie_genre"))
-        assertEquals(2, firstWindow.content().size)
+        // Shawshank (2.9M votes) and Pulp Fiction (2.2M) before The Godfather
+        // (2.0M), the reverse of their ids.
+        assertEquals(listOf("The Shawshank Redemption", "Pulp Fiction"), firstWindow.content().map { it.primaryTitle })
         assertTrue(firstWindow.hasNext())
 
         val secondWindow = movieSummaryRepository.scrollByGenre(
             drama,
-            Scrollable.of(MovieSummary_.id, 2).from(firstWindow.nextCursor()!!)
+            MovieSummaryRepository.mostVotedFirst(2).from(firstWindow.nextCursor()!!)
         )
-        // Three drama movies in total: 2 in the first window, 1 in the second.
-        assertEquals(1, secondWindow.content().size)
+        assertEquals(listOf("The Godfather"), secondWindow.content().map { it.primaryTitle })
     }
 }

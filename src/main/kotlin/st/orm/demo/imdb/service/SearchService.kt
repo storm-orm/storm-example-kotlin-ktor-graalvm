@@ -3,7 +3,6 @@ package st.orm.demo.imdb.service
 import st.orm.Scrollable
 import st.orm.Window
 import st.orm.demo.imdb.model.MovieSummary
-import st.orm.demo.imdb.model.MovieSummary_
 import st.orm.demo.imdb.model.PersonSummary
 import st.orm.demo.imdb.model.PersonSummary_
 import st.orm.demo.imdb.repository.MovieSummaryRepository
@@ -31,7 +30,7 @@ class SearchService(
     suspend fun search(query: String): SearchResults = transaction(readOnly = true) {
         SearchResults(
             movieWindow = movieSummaryRepository.searchMovies(
-                query, Scrollable.of(MovieSummary_.id, MOVIE_PAGE_SIZE)),
+                query, MovieSummaryRepository.mostVotedFirst(MOVIE_PAGE_SIZE)),
             personWindow = personSummaryRepository.searchByName(
                 query, Scrollable.of(PersonSummary_.id, PERSON_PAGE_SIZE))
         )
@@ -45,9 +44,9 @@ class SearchService(
      */
     fun scrollMovies(query: String, cursor: String?): Window<MovieSummary> {
         val scrollable = if (cursor != null) {
-            Scrollable.of(MovieSummary_.id, MOVIE_PAGE_SIZE).from(cursor)
+            MovieSummaryRepository.mostVotedFirst(MOVIE_PAGE_SIZE).from(cursor)
         } else {
-            Scrollable.of(MovieSummary_.id, MOVIE_PAGE_SIZE)
+            MovieSummaryRepository.mostVotedFirst(MOVIE_PAGE_SIZE)
         }
         return movieSummaryRepository.searchMovies(query, scrollable)
     }

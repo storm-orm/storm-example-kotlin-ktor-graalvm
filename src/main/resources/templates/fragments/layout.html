@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="|${title} · Storm Movies|">Storm Movies</title>
     <link rel="icon" type="image/png" th:href="@{/img/favicon.png}">
+    <!-- Posters and photos redirect to IMDB's image CDN: connect before the first image asks. -->
+    <link rel="preconnect" href="https://m.media-amazon.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet"

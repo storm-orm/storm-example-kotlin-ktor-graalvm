@@ -59,8 +59,7 @@
                          onerror="this.classList.add('failed')">
                 </div>
                 <div class="person-card-name" th:text="${credit.person.primaryName}">Name</div>
-                <div class="credit-role"
-                     th:text="${credit.characters != null} ? ${credit.characters} : ${credit.category}">Role</div>
+                <div class="credit-role" th:text="${credit.role}">Role</div>
             </a>
         </div>
     </div>

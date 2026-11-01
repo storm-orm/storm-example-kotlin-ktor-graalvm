@@ -46,7 +46,8 @@ INSERT INTO rating (movie_id, average_rating, vote_count) VALUES
     ('tt0234215', 7.2, 600000),
     ('tt0111161', 9.3, 2900000),
     ('tt0110912', 8.9, 2200000),
-    ('tt0068646', 9.2, 2000000);
+    ('tt0068646', 9.2, 2000000),
+    ('tt0211915', 8.3, 800000);
 
 INSERT INTO movie_view (movie_id, viewed_at) VALUES
     ('tt0133093', TIMESTAMP '2026-07-01 10:00:00'),
